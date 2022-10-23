@@ -1,5 +1,7 @@
 
-src/
+# threejsのソースコードの格納先を無視
+threejs/
+
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,node,windows,linux
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,node,windows,linux

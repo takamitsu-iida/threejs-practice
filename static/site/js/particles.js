@@ -15,19 +15,21 @@ const sizes = {
 // シーン
 const scene = new THREE.Scene();
 
-//カメラ
+// カメラ
 const camera = new THREE.PerspectiveCamera(
-  100,
-  sizes.width / sizes.height,
-  0.1,
-  100
+  100,                        // 視野角度
+  sizes.width / sizes.height, // アスペクト比 width/height ブラウザのリサイズに注意
+  0.1,                        // 開始距離
+  100                         // 終了距離
 );
 camera.position.set(1, 1, 2);
 
 // レンダラー
 const renderer = new THREE.WebGLRenderer();
-renderer.setSize(sizes.width, sizes.height);
+renderer.setSize(sizes.width, sizes.height); // 画面サイズいっぱいに設定 ブラウザのリサイズに注意
 renderer.setPixelRatio(window.devicePixelRatio);
+
+// レンダラーをHTMLの要素に加えてブラウザで処理
 document.body.appendChild(renderer.domElement);
 
 // テクスチャ設定
