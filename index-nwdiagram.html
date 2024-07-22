@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Network Diagram</title>
+
+    <style type="text/css">
+
+      * {
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        overflow: hidden;
+        backdrop-filter: blur(25px);
+      }
+
+
+      #info_text {
+        position: absolute;
+        top: 0px;
+        left: 40%;
+        margin: 10px;
+        background-color: #ffffe0;
+        color: #333;
+        padding: 5px 10px;
+      }
+    </style>
+
+    <!-- three.js -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/static/build/three.module.js",
+          "OrbitControls": "/static/controls/OrbitControls.js",
+          "TrackballControls": "/static/controls/TrackballControls.js"
+        }
+      }
+    </script>
+
+    <!-- cytoscape.js -->
+    <script src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>
+
+  </head>
+
+  <body>
+    <div id="cy"></div>
+    <canvas id="threejs"></canvas>
+  </body>
+
+  <script src="/static/site/js/nwdiagram.js" type="module"></script>
+
+</html>

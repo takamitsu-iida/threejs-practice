@@ -1,7 +1,7 @@
 
 # threejsのソースコードの格納先を無視
 threejs/
-
+three.js-master/
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,node,windows,linux
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,node,windows,linux
@@ -173,7 +173,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
+# build/
 develop-eggs/
 dist/
 downloads/

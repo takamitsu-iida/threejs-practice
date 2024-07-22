@@ -5,15 +5,17 @@
 
 ## ドキュメント
 
-[three.js](https://threejs.org/){:target="_blank"}
+参考にしたもの。
 
-[examples(かなり古い)](http://stemkoski.github.io/Three.js/){:target="_blank"}
+[three.js](https://threejs.org/)
 
-[terrain examples](https://threejs.org/examples/?q=terrain#webgl_geometry_terrain_raycast){:target="_blank"}
+[examples(かなり古い)](http://stemkoski.github.io/Three.js/)
 
-[terrain building with three.js](https://blog.mastermaps.com/2013/10/terrain-building-with-threejs.html){:target="_blank"}
+[terrain examples](https://threejs.org/examples/?q=terrain#webgl_geometry_terrain_raycast)
 
-[three.jsのPlaneGeometryで地形を作る](https://yomotsu.net/blog/2012/12/01/create-terrain-with-threejs.html){:target="_blank"}
+[terrain building with three.js](https://blog.mastermaps.com/2013/10/terrain-building-with-threejs.html)
+
+[three.jsのPlaneGeometryで地形を作る](https://yomotsu.net/blog/2012/12/01/create-terrain-with-threejs.html)
 
 
 <br>
@@ -21,7 +23,8 @@
 ## インストール
 
 開発中はVSCodeの補完を働かせたい。
-ローカルにコピーしたthree.jsを、そのJavaScriptファイルからの相対パスで参照することで補完が機能する。
+
+ローカルにコピーしたthree.jsを読むようにすると補完がかかる。
 
 誰かに見せるときにはCDNを利用にするように書き換えたほうがいい。
 
@@ -35,20 +38,45 @@ three.jsをどこから読み込むか、によってHTML、JavaScriptの記述�
 
 index.htmlはプロジェクト直下に配置。その他の静的コンテンツは/staticの下に配置する。
 
+/static/buildにはthree.js本体を配置。
+
+/static/controlsに各種コントローラを配置。実体は `three.js-master/examples/jsm/controls` からコピーしたもの。
+
 ```bash
 .
 ├── README.md
+├── index-nwdiagram.html
 ├── index-particles.html
 ├── index-terrain.html
 ├── index-u.html
 ├── static
-│   ├── build
-│   ├── controls
-│   └── site
-└── threejs
-    ├── three.js-r145
-    └── three.js-r145.zip
-```
+│   ├── build
+│   │   ├── three.module.js
+│   │   └── three.module.min.js
+│   ├── controls
+│   │   ├── ArcballControls.js
+│   │   ├── DragControls.js
+│   │   ├── FirstPersonControls.js
+│   │   ├── FlyControls.js
+│   │   ├── MapControls.js
+│   │   ├── OrbitControls.js
+│   │   ├── PointerLockControls.js
+│   │   ├── TrackballControls.js
+│   │   └── TransformControls.js
+│   └── site
+│       ├── css
+│       │   ├── practice.css
+│       │   └── style.css
+│       ├── img
+│       │   ├── earth.jpg
+│       │   ├── particle.png
+│       │   └── space.jpg
+│       └── js
+│           ├── nwdiagram.js
+│           ├── particles.js
+│           ├── practice.js
+│           └── terrain.js
+└```
 
 <br>
 
@@ -66,45 +94,76 @@ three.jsのバージョンを切り替えて試行するならこの方法がよ
   <script type="importmap">
     {
       "imports": {
-        "three": "/threejs/three.js-r145/build/three.module.js"
+        "three": "/threejs/three.js-r145/build/three.module.js",
+        "OrbitControls": /threejs/three.js-r145/examples/jsm/controls/OrbitControls.js"
       }
     }
   </script>
 ```
+
+<br>
+
+> [!NOTE]
+>
+> JSON形式で記述するimportmapの書式に注意。
+> 最後にコンマをつけると書式エラーで何も表示されなくなってしまう。
+
+<br>
 
 - JavaScriptでのインポート指定
 
 そのJavaScriptファイルからの相対パスで指定する。
 
 ```js
-import * as THREE        from "../../../threejs/three.js-r145/build/three.module.js";
-import { OrbitControls } from "../../../threejs/three.js-r145/examples/jsm/controls/OrbitControls.js";
+import * as THREE        from "three";
+import { OrbitControls } from "OrbitControls";
 ```
 
 <br>
 
 ### ２．ローカルに必要なものだけをコピーして参照
 
-three.jsのdistフォルダと、examples/jsm/controlsをコピーして利用する。
+three.jsのdistフォルダと、examples/jsm/controlsを/staticにコピーして利用する。
+
 こうしておけばgithub pagesでそのまま動作する。
+
+<br>
+
+> [!NOTE]
+>
+> 2024年7月追記、現在はこの方法にしている。
+
+<br>
+
+> [!NOTE]
+>
+> 2024年7月追記
+>
+> three.jsをバージョンr166に入れ替え。
+
+<br>
+
 
 - index.htmlでの指定
 
 ```html
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "/static/build/three.module.js"
+    <!-- three.js -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/static/build/three.module.js",
+          "OrbitControls": "/static/controls/OrbitControls.js",
+          "TrackballControls": "/static/controls/TrackballControls.js"
+        }
       }
-    }
-  </script>
+    </script>
 ```
 
 - JavaScriptでのインポート指定
 
 ```js
-import * as THREE        from "../../build/three.module.js";
-import { OrbitControls } from "../../controls/OrbitControls.js";
+import * as THREE from "three";
+import { TrackballControls } from "TrackballControls";
 ```
 
 <br>
@@ -119,7 +178,8 @@ import { OrbitControls } from "../../controls/OrbitControls.js";
   <script type="importmap">
     {
       "imports": {
-        "three": "https://unpkg.com/three/build/three.module.js"
+        "three": "https://unpkg.com/three/build/three.module.js",
+        "OrbitControls": "https://unpkg.com/three@0.145/examples/jsm/controls/OrbitControls.js"
       }
     }
   </script>
@@ -128,6 +188,6 @@ import { OrbitControls } from "../../controls/OrbitControls.js";
 - JavaScriptでのインポート指定
 
 ```js
-import * as THREE from "https://unpkg.com/three/build/three.module.js";
-import { OrbitControls } from "https://unpkg.com/three@0.145/examples/jsm/controls/OrbitControls.js";
+import * as THREE from "three";
+import { OrbitControls } from "OrbitControls"
 ```
