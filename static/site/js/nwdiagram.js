@@ -24,25 +24,54 @@ import { GUI } from "https://cdn.jsdelivr.net/npm/lil-gui@0.19/+esm";
 
 
 
-var ObjectSelection = function (parameters) {
+export var ObjectSelection = function (parameters) {
+
+  // 参照
+  // 初めてのThree.js 第二版
+  // P235
+  // https://github.com/oreilly-japan/learning-three-js-2e-ja-support
+
+
   parameters = parameters || {};
 
-  this.domElement = parameters.domElement || document;
   this.INTERSECTED = null;
 
   var self = this;
-
   var callbackSelected = parameters.selected;
   var callbackClicked = parameters.clicked;
-  var mouse = { x: 0, y: 0 };
+  var mouse = new THREE.Vector2()
 
+  // スクリーン上のDOM要素
+  this.domElement = parameters.domElement || document;
+
+  // マウスが動いたときのイベントを登録
   this.domElement.addEventListener('mousemove', onDocumentMouseMove, false);
+
   function onDocumentMouseMove(event) {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+    // DOM要素(canvas)を取得
+    // eventから取得してもよいし、parametersで渡されたものを使ってもよい
+    // const element = self.domElement;
+    const element = event.currentTarget;
+
+    // その要素の位置を取得
+    const clientRect = element.getBoundingClientRect();
+
+    // 要素上のマウス座標
+    const x = event.clientX - clientRect.x;
+    const y = event.clientY - clientRect.y;
+
+    // 要素の幅、高さ (paddingが含まれるのでCSSで0にしておくこと)
+    const w = element.clientWidth;
+    const h = element.clientHeight;
+
+    // マウス座標を(-1, 1)の範囲に変換
+    mouse.x = +(x/w)*2 -1;
+    mouse.y = -(y/h)*2 +1;
   }
 
+  // クリックイベントを登録
   this.domElement.addEventListener('click', onDocumentMouseClick, false);
+
   function onDocumentMouseClick(event) {
     if (self.INTERSECTED) {
       if (typeof callbackClicked === 'function') {
@@ -51,46 +80,63 @@ var ObjectSelection = function (parameters) {
     }
   }
 
+  // 光線を飛ばすレイキャスター
+  var raycaster = new THREE.Raycaster();
+
+  // アニメーションの中でこのrender()関数を呼ぶことで、選択したオブジェクトの色を変える
   this.render = function (scene, camera) {
-    var vector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
-    vector.unproject(camera);
 
-    var raycaster = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
+    // カメラからマウス座標に向かって光線を飛ばす
+    raycaster.setFromCamera(mouse, camera);
 
+    // オブジェクトに光線がぶつかっているか、判定する
     var intersects = raycaster.intersectObject(scene, true);
 
     if (intersects.length > 0) {
-      if (intersects[0].object.name == "grid_helper") {
-      } else {
-        if (this.INTERSECTED != intersects[0].object) {
-          if (this.INTERSECTED) {
-            this.INTERSECTED.material.color.setHex(this.INTERSECTED.currentHex);
-          }
 
-          this.INTERSECTED = intersects[0].object;
-          this.INTERSECTED.currentHex = this.INTERSECTED.material.color.getHex();
-          this.INTERSECTED.material.color.setHex(0xff0000);
-          if (typeof callbackSelected === 'function') {
-            callbackSelected(this.INTERSECTED);
-          }
+      // 光線がオブジェクトにぶつかっていれば、
+      if (this.INTERSECTED != intersects[0].object) {
+
+        // 前回と違うオブジェクトに光線が当たっているなら、古いオブジェクトは元の色に戻す
+        if (this.INTERSECTED) {
+          this.INTERSECTED.material.color.setHex(this.INTERSECTED.currentHex);
         }
 
+        // 新しいオブジェクトを選択して、
+        this.INTERSECTED = intersects[0].object;
+
+        // その色を変える
+        this.INTERSECTED.currentHex = this.INTERSECTED.material.color.getHex();
+        this.INTERSECTED.material.color.setHex(0xff0000);
+
+        // コールバック関数を渡されているならそれを実行する
+        if (typeof callbackSelected === 'function') {
+          callbackSelected(this.INTERSECTED);
+        }
       }
 
     } else {
+
+      // 光線がオブジェクトにぶつかっていないなら
+
       if (this.INTERSECTED) {
+        // 古いオブジェクトは元の色に戻す
         this.INTERSECTED.material.color.setHex(this.INTERSECTED.currentHex);
       }
+
       this.INTERSECTED = null;
+
       if (typeof callbackSelected === 'function') {
-        callbackSelected(this.INTERSECTED);
+        // 選択から外れたことをコールバック関数で知らせる
+        callbackSelected(null);
       }
+
     }
   };
 };
 
 
-var Label = function(text, parameters) {
+export var Label = function(text, parameters) {
   parameters = parameters || {};
 
   var labelCanvas = document.createElement( "canvas" );
@@ -135,102 +181,130 @@ var Label = function(text, parameters) {
 
 
 
-var CreateGraph = function (options) {
+export class Graph {
 
-  let cy;
+  constructor(elements) {
+    this.elements = [];
 
-  function init() {
-    cytoscape.warnings(false);
-    cy = window.cy = cytoscape({
-      container: document.getElementById('cy'),
-      minZoom: 0.5,
-      maxZoom: 3,
-      wheelSensitivity: 0.2,
+    let eles;
+    if (elements === undefined || elements === null) {
+      eles = [];
+    } else if (typeof elements === "object") {
+      elements = [elements];
+    }
 
-      boxSelectionEnabled: false,
-      autounselectify: true,
-      hideEdgesOnViewport: false, // hide edges during dragging ?
-      textureOnViewport: false,
-
-      layout: { 'name': "preset" },
-      style: [],
-      elements: []
+    eles.forEach((ele) => {
+      if ("data" in ele === false || "id" in ele.data === false) {
+        throw new Error("element.data.id is required");
+      }
+      if ("source" in ele.data && "target" in ele.data) {
+        this.addEdge(ele);
+      } else {
+        this.addNode(ele);
+      }
     });
-    cytoscape.warnings(true);
+  }
+
+  getElementById(id) {
+    return this.elements.find((element) => element.data.id === id);
+  }
+
+  addNode(node) {
+    if ("data" in node === false || "id" in node.data === false) {
+      throw new Error("node.data.id is required");
+    }
+    if ("group" in node === false) {
+      node["group"] = "nodes";
+    }
+    this.elements.push(node);
+  }
+
+  addEdge(edge) {
+    if ("data" in edge === false || "id" in edge.data === false) {
+      throw new Error("edge.data.id is required");
+    }
+    if ("group" in edge === false) {
+      node["group"] = "edges"
+    }
+    this.elements.push(edge);
+  }
+
+  getNodes() {
+    return this.elements.filter((element) => element.group === "nodes");
+  }
+
+  getEdges() {
+    return this.elements.filter((element) => element.group === "edges");
   }
 
 
-  function create_graph() {
+}
 
-    let id = 1;
-    let node_id = `node_${id}`;
-    id += 1;
 
-    cy.add(
-      {
+function create_graph(options) {
+
+  let id = 1;
+  let node_id = `node_${id}`;
+  id += 1;
+
+  const graph = new Graph();
+
+  // ルートノードを追加
+  const root = {
+    group: 'nodes',
+    data: {
+      id: node_id,
+      label: `This is the root node ${id}`
+    }
+  };
+
+  graph.addNode(root);
+
+  const nodes = [root];
+  let steps = 1;
+  let num_steps = 5;
+  while(nodes.length !== 0 && steps < num_steps) {
+
+    // nodesから先頭のノードを取り出す
+    let source_node = nodes.shift();
+
+    var num_edges = 5;
+    for(let i=1; i <= num_edges; i++) {
+      let target_node_id = `node_${id}`;
+      id += 1;
+      let target_node = {
         group: 'nodes',
         data: {
-          id: node_id,
-          label: `This is the root node ${id}`
+          id: target_node_id,
+          label: `Node ${target_node_id}`
         }
-      }
-    );
+      };
+      graph.addNode(target_node);
 
-    const root_node = cy.getElementById(node_id);
+      // nodesにtarget_nodeを追加し、target_nodeの先にもノードを追加していく
+      nodes.push(target_node);
 
-    let nodes = [];
-    nodes.push(root_node);
-
-    let steps = 1;
-    let num_steps = 10;
-    while(nodes.length !== 0 && steps < num_steps) {
-
-      // nodesから先頭のノードを取り出す
-      let source_node = nodes.shift();
-
-      var num_edges = 10;
-      for(let i=1; i <= num_edges; i++) {
-        let target_node_id = `node_${id}`;
-        id += 1;
-        cy.add(
+      // エッジを追加
+      graph.addEdge(
         {
-          group: 'nodes',
+          group: 'edges',
           data: {
-            id: target_node_id,
-            label: `This is node ${target_node_id}`
+            id: 'edge_' + source_node.data.id + '_' + target_node.data.id,
+            source: source_node.data.id,
+            target: target_node.data.id
           }
-        });
-        let target_node = cy.getElementById(target_node_id);
-
-        // nodesにtarget_nodeを追加し、target_nodeの先にもノードを追加していく
-        nodes.push(target_node);
-
-        // エッジを追加
-        cy.add(
-          {
-            group: 'edges',
-            data: {
-              id: 'edge_' + source_node.id() + '_' + target_node.id(),
-              source: source_node.id(),
-              target: target_node.id()
-            }
-          }
-        );
-      }
-      steps++;
+        }
+      );
     }
+    steps++;
   }
 
-
-  init();
-  create_graph();
-
-  return cy;
+  return graph;
 }
 
 
 
-var NetworkDiagram = function (options) {
+export var NetworkDiagram = function (options) {
 
   // 引数が渡されなかった場合は空のオブジェクトを代入
   options = options || {};
@@ -238,8 +312,8 @@ var NetworkDiagram = function (options) {
   // アロー関数内でthisを使うと混乱するのでselfに代入
   const self = this;
 
-  // cytoscape.jsのインスタンス
-  self.cy = options.cy;
+  // Graphクラスのインスタンス
+  self.graph = options.graph;
 
   // オブジェクトを選択できるかどうか
   self.selection_enabled = options.selection || true;
@@ -251,7 +325,12 @@ var NetworkDiagram = function (options) {
   let object_selection;
 
   // UIデバッグ
-  const gui = new GUI();
+  const gui = new GUI({ container: document.getElementById("gui_wrapper") });
+
+  // カメラ位置をGUIで変更できるようにする
+  const camera_params = {
+    position: new THREE.Vector3(10000, 10000, 10000)
+  }
 
   // サイズ
   const sizes = {
@@ -265,6 +344,9 @@ var NetworkDiagram = function (options) {
   // マウス操作のコントロール
   let controls;
 
+  // stats.js のインスタンス
+  let stats;
+
   // ノードを表現するジオメトリ、これをもとにメッシュを作成する
   let node_geometry; // = new THREE.SphereGeometry(50);
 
@@ -273,12 +355,18 @@ var NetworkDiagram = function (options) {
   let geometries = [];
 
   // 情報表示
+  let info_text_element = document.getElementById("info_text");
   let info_text = {};
 
   //
   // 初期化
   //
   function init() {
+
+    // ここ、直したい
+    const right_panel = document.getElementsByClassName("right_panel")[0];
+    sizes.width = right_panel.clientWidth;
+    sizes.height = right_panel.clientHeight;
 
     // シーンを初期化
     scene = new THREE.Scene();
@@ -290,21 +378,19 @@ var NetworkDiagram = function (options) {
       1,                          // 開始距離
       100000                      // 終了距離
     );
-    camera.position.x = 10000;
-    camera.position.y = 10000;
-    camera.position.z = 10000;
+    camera.position.set(camera_params.position.x, camera_params.position.y, camera_params.position.z);
 
     // レンダラーを初期化
     renderer = new THREE.WebGLRenderer({
-      canvas: document.querySelector("#threejs"),
+      canvas: document.getElementById("threejs"),
       alpha: true,
       antialias: true
     });
-    // 画面サイズいっぱいにレンダラを設定
     renderer.setSize(sizes.width, sizes.height);
     renderer.setPixelRatio(window.devicePixelRatio);
+
     // レンダラーをHTMLの要素に加えてブラウザでレンダリングできるようにする
-    document.body.appendChild(renderer.domElement);
+    // document.body.appendChild(renderer.domElement);
 
     // グリッドヘルパー
     // const grid_helper = new THREE.GridHelper(10000, 10000);
@@ -315,10 +401,13 @@ var NetworkDiagram = function (options) {
     // ノードを球体で表現
     node_geometry = new THREE.SphereGeometry(50);
 
-    // マウス操作のコントロール OrbitControls
+    // マウス操作のコントロール
+
+    // OrbitControls
     // controls = new OrbitControls(camera, renderer.domElement);
     // controls.enableDamping = true;
 
+    // TrackballControls
     controls = new TrackballControls(camera, renderer.domElement);
     controls.rotateSpeed = 10;
     controls.zoomSpeed = 2.0;
@@ -327,8 +416,26 @@ var NetworkDiagram = function (options) {
     controls.noPan = false;
     controls.staticMoving = false;
     controls.dynamicDampingFactor = 0.3;
-    controls.addEventListener('change', render);
+    controls.addEventListener('change', () => {
+      // camera_paramsに変更を反映
+      camera_params.position.copy( camera.position );
+      // カメラ位置が変わったらレンダーを呼んで反映
+      render();
+    });
 
+    // GUIでカメラ位置を変更できるようにする
+    const camera_gui = gui.addFolder('camera');
+    camera_gui.add(camera_params.position, 'x').min(-10000).max(10000).name('position x').listen().onChange((value) => { camera.position.x = value; });
+    camera_gui.add(camera_params.position, 'y').min(-10000).max(10000).name('position y').listen().onChange((value) => { camera.position.y = value; });
+    camera_gui.add(camera_params.position, 'z').min(-10000).max(10000).name('position z').listen().onChange((value) => { camera.position.z = value; })
+
+    // stats.jsを初期化
+    stats = new Stats();
+    stats.dom.style.position = "relative";
+    stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+    document.getElementById("stats_wrapper").appendChild(stats.dom);
+
+    // ObjectSelectionを初期化
     // selectionが有効な場合はイベントハンドラを登録
     if (self.selection_enabled) {
       object_selection = new ObjectSelection({
@@ -336,13 +443,17 @@ var NetworkDiagram = function (options) {
         selected: function (obj) {
           // display info
           if (obj !== null) {
-              info_text.select = "Object " + obj.id;
-              // console.log(obj);
+              const node = obj.node;
+              if (!node) {
+                return;
+              }
+              info_text.select = node.data.id;
+
               const world_position = obj.getWorldPosition(new THREE.Vector3());
               const projection = world_position.project(camera);
-              const screen_x = Math.round((projection.x + 1) / 2 * window.innerWidth);
-              const screen_y = Math.round(-(projection.y - 1) / 2 * window.innerHeight);
-              console.log(`${obj.id} (${screen_x}, ${screen_y})`);
+              const screen_x = Math.round((projection.x + 1) / 2 * sizes.width);
+              const screen_y = Math.round(-(projection.y - 1) / 2 * sizes.height);
+              console.log(`${node.data.id} (${screen_x}, ${screen_y})`);
           } else {
             delete info_text.select;
           }
@@ -351,13 +462,6 @@ var NetworkDiagram = function (options) {
       });
     }
 
-    // info_textを表示する要素を追加
-    let info = document.createElement("div");
-    let id_attr = document.createAttribute("id");
-    id_attr.nodeValue = "info_text";
-    info.setAttributeNode(id_attr);
-    document.body.appendChild(info);
-
     // ブラウザのリサイズイベントを登録
     function onWindowResize() {
       renderer.setSize(sizes.width, sizes.height);
@@ -365,19 +469,20 @@ var NetworkDiagram = function (options) {
       camera.updateProjectionMatrix();
     }
     window.addEventListener("resize", onWindowResize);
+
   }
 
 
   //
-  // draw cytoscape.js graph
+  // Graphクラスのインスタンスを描画する
   //
   function draw_graph() {
-    cy.nodes().forEach(function (node) {
+    self.graph.getNodes().forEach(function (node) {
       draw_node(node);
     });
 
-    cy.edges().forEach(function (edge) {
-      draw_edge(edge.source(), edge.target());
+    self.graph.getEdges().forEach(function (edge) {
+      draw_edge(edge.data.source, edge.data.target);
     });
   }
 
@@ -386,12 +491,12 @@ var NetworkDiagram = function (options) {
 
     if (self.show_labels) {
       let label_object;
-      if (node.data('label') !== undefined) {
-        label_object = new Label(node.data('label'));
+      if (node.data.label !== undefined) {
+        label_object = new Label(node.data.label);
       } else {
-        label_object = new Label(node.id());
+        label_object = new Label(node.data.id);
       }
-      node.data('label_object', label_object);
+      node.data.label_object = label_object;
       scene.add(label_object);
     }
 
@@ -402,24 +507,32 @@ var NetworkDiagram = function (options) {
     draw_object.position.y = Math.floor(Math.random() * (area + area + 1) - area);
     draw_object.position.z = Math.floor(Math.random() * (area + area + 1) - area);
 
-    node.data('draw_object', draw_object);
+    // three.jsのオブジェクトにグラフのノードを紐付ける
+    draw_object.node = node;
 
+    // 逆に、グラフのノードにthree.jsのオブジェクトを紐付ける
+    node.data.draw_object = draw_object;
+
+    // シーンに追加
     scene.add(draw_object);
   }
 
 
-  function draw_edge(source, target) {
+  function draw_edge(source_id, target_id) {
+
+    let source = self.graph.getElementById(source_id);
+    let target = self.graph.getElementById(target_id);
 
     let material = new THREE.LineBasicMaterial({ color: 0x606060 });
 
     let tmp_geo = new THREE.BufferGeometry();
     let vertices = [];
-    vertices.push(source.data('draw_object').position.x);
-    vertices.push(source.data('draw_object').position.y);
-    vertices.push(source.data('draw_object').position.z);
-    vertices.push(target.data('draw_object').position.x);
-    vertices.push(target.data('draw_object').position.y);
-    vertices.push(target.data('draw_object').position.z);
+    vertices.push(source.data.draw_object.position.x);
+    vertices.push(source.data.draw_object.position.y);
+    vertices.push(source.data.draw_object.position.z);
+    vertices.push(target.data.draw_object.position.x);
+    vertices.push(target.data.draw_object.position.y);
+    vertices.push(target.data.draw_object.position.z);
     tmp_geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
     geometries.push(tmp_geo);
 
@@ -445,18 +558,18 @@ var NetworkDiagram = function (options) {
 
 
     // ラベル表示
-    cy.nodes().forEach(function (node) {
-      const draw_object = node.data('draw_object');
+    self.graph.getNodes().forEach(function (node) {
+      const draw_object = node.data.draw_object;
 
       // show_labelsフラグがtrueの場合はラベルを表示
       if (self.show_labels) {
-        const label_object = node.data('label_object');
+        const label_object = node.data.label_object;
         // node.data('label_object')がundefinedの場合はラベルを追加
         if (label_object === undefined) {
-          const node_label = node.data('label') || node.id();
+          const node_label = node.data.label || node.data.id;
           const label_object = new Label(node_label, draw_object);
           // ノードに保存しておいて、次回のrender()時に位置を更新する
-          node.data('label_object', label_object);
+          node.data.label_object = label_object;
           scene.add(label_object);
         } else {
           // すでにあるなら、位置を更新
@@ -467,47 +580,12 @@ var NetworkDiagram = function (options) {
         }
       } else {
         // show_labelsフラグがfalseの場合はラベルを削除
-        if (node.data('label_object') !== undefined) {
-          scene.remove(node.data('label_object'));
-          node.data('label_object', undefined);
+        if (node.data.label_object !== undefined) {
+          scene.remove(node.data.label_object);
+          node.data.label_object = undefined;
         }
       }
     });
-
-    /*
-
-    const nodes = cy.nodes();
-    if (self.show_labels) {
-      for (let i = 0; i < nodes.length; i++) {
-        let node = nodes[i];
-        if (node.data('label_object') !== undefined) {
-          node.data('label_object').position.x = node.data('draw_object').position.x;
-          node.data('label_object').position.y = node.data('draw_object').position.y - 100;
-          node.data('label_object').position.z = node.data('draw_object').position.z;
-          node.data('label_object').lookAt(camera.position);
-        } else {
-          var label_object;
-          if (node.data('label') !== undefined) {
-            label_object = new Label(node.data('label'), node.data('draw_object'));
-          } else {
-            label_object = new Label(node.id(), node.data.draw_object);
-          }
-          node.data.label_object = label_object;
-          scene.add(node.data.label_object);
-        }
-      }
-    } else {
-      for (let i=0; i < nodes.length; i++) {
-        let node = nodes[i];
-        if (node.data('label_object') !== undefined) {
-          scene.remove(node.data('label_object'));
-          node.data('label_object', undefined);
-        }
-      }
-
-    }
-
-    */
 
     // render selection
     if (self.selection_enabled) {
@@ -527,11 +605,14 @@ var NetworkDiagram = function (options) {
       }
       str += info_text[index];
     }
-    document.getElementById("info_text").innerHTML = str;
+    info_text_element.innerHTML = str;
   }
 
 
   function animate() {
+    // stats.jsを更新
+    stats.update();
+
     // マウスコントロールを更新
     controls.update();
 
@@ -554,11 +635,14 @@ var NetworkDiagram = function (options) {
   animate();
 };
 
+export let main = function() {
 
-const cy = CreateGraph();
+  const graph = create_graph();
 
-new NetworkDiagram({
-  cy: cy,
-  selection: true,
-  show_labels: true,
-});
+  new NetworkDiagram({
+    graph: graph,
+    selection: true,
+    show_labels: true,
+  });
+
+};
