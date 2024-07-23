@@ -124,14 +124,26 @@
     }
 
 
+    #threejs_wrapper {
+      position: relative;
+      top: 0px;
+      left: 0px;
+      width: 100%;
+      height: 100%;
+      margin: 0px;
+      padding: 0px;
+      border: 0px;
+    }
+
+
     #info_text {
       position: absolute;
       top: 0px;
       left: 100px;
       margin: 0px;
+      padding: 0px;
       background-color: #ffffe0;
       color: #333;
-      padding: 5px 10px;
     }
 
     #stats_wrapper {
@@ -171,7 +183,6 @@
 
 
 <body>
-
   <div class="wrapper">
 
     <div class="header_panel">
@@ -181,33 +192,33 @@
         <a id="idData2" name="dataChangeMenu">図3.7</a>
       </span>
       <span style="float: right">
-        <a href="https://github.com/takamitsu-iida/dijkstra" target="_blank" rel="noopener noreferrer">source code</a> (github)
+        <a href="https://github.com/takamitsu-iida/threejs-practice" target="_blank" rel="noopener noreferrer">source code</a> (github)
       </span>
     </div>
 
-    <div class="left_panel"></div>
+    <div class="left_panel">
+      <button id="idButton1">Button1</button>
+
+
+    </div>
 
     <div class="right_panel">
-      <canvas id="threejs"></canvas>
+      <div id="threejs_wrapper"><canvas id="threejs_canvas"></canvas></div>
       <div id="stats_wrapper"></div>
       <div id="gui_wrapper"></div>
       <div id="info_text"></div>
     </div>
 
   </div>
-
 </body>
 
 
-
 <script type="module">
-
   import { main } from "/static/site/js/nwdiagram.js";
 
   window.addEventListener("load", () => {
     main();
   });
-
 </script>
 
 </html>

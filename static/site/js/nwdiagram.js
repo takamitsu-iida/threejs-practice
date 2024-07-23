@@ -1,4 +1,3 @@
-
 import * as THREE from "three";
 import { TrackballControls } from "TrackballControls";
 /*
@@ -48,19 +47,19 @@ export var ObjectSelection = function (parameters) {
   this.domElement.addEventListener('mousemove', onDocumentMouseMove, false);
 
   function onDocumentMouseMove(event) {
-    // DOM要素(canvas)を取得
-    // eventから取得してもよいし、parametersで渡されたものを使ってもよい
+    // DOM要素(canvas)を取得する
+    // これはeventから取得してもよいし、parametersで渡されたものを使ってもよい
     // const element = self.domElement;
     const element = event.currentTarget;
 
     // その要素の位置を取得
     const clientRect = element.getBoundingClientRect();
 
-    // 要素上のマウス座標
+    // canvas要素の左上を起点とするマウス座標
     const x = event.clientX - clientRect.x;
     const y = event.clientY - clientRect.y;
 
-    // 要素の幅、高さ (paddingが含まれるのでCSSで0にしておくこと)
+    // canvas要素の幅、高さ (paddingが含まれるのでCSSで0にしておくこと)
     const w = element.clientWidth;
     const h = element.clientHeight;
 
@@ -90,7 +89,7 @@ export var ObjectSelection = function (parameters) {
     raycaster.setFromCamera(mouse, camera);
 
     // オブジェクトに光線がぶつかっているか、判定する
-    var intersects = raycaster.intersectObject(scene, true);
+    const intersects = raycaster.intersectObject(scene, true);
 
     if (intersects.length > 0) {
 
@@ -136,7 +135,7 @@ export var ObjectSelection = function (parameters) {
 };
 
 
-export var Label = function(text, parameters) {
+export let Label = function(text, parameters) {
   parameters = parameters || {};
 
   var labelCanvas = document.createElement( "canvas" );
@@ -237,6 +236,9 @@ export class Graph {
     return this.elements.filter((element) => element.group === "edges");
   }
 
+  dispose() {
+    this.elements = [];
+  }
 
 }
 
@@ -257,22 +259,21 @@ function create_graph(options) {
       label: `This is the root node ${id}`
     }
   };
-
   graph.addNode(root);
 
   const nodes = [root];
+  const num_steps = 5;
+  const num_edges = 5;
   let steps = 1;
-  let num_steps = 5;
   while(nodes.length !== 0 && steps < num_steps) {
 
     // nodesから先頭のノードを取り出す
-    let source_node = nodes.shift();
+    const source_node = nodes.shift();
 
-    var num_edges = 5;
     for(let i=1; i <= num_edges; i++) {
       let target_node_id = `node_${id}`;
       id += 1;
-      let target_node = {
+      const target_node = {
         group: 'nodes',
         data: {
           id: target_node_id,
@@ -304,7 +305,7 @@ function create_graph(options) {
 
 
 
-export var NetworkDiagram = function (options) {
+export let NetworkDiagram = function (options) {
 
   // 引数が渡されなかった場合は空のオブジェクトを代入
   options = options || {};
@@ -321,21 +322,32 @@ export var NetworkDiagram = function (options) {
   // ノードのラベルを表示するかどうか
   self.show_labels = options.show_labels || true;
 
-  // SelectionObject()のインスタンス
+  // SelectionObjectのインスタンス
   let object_selection;
 
   // UIデバッグ
-  const gui = new GUI({ container: document.getElementById("gui_wrapper") });
+  const gui_wrapper = document.getElementById("gui_wrapper");
+  const gui = new GUI({ container: gui_wrapper });
+
 
   // カメラ位置をGUIで変更できるようにする
   const camera_params = {
-    position: new THREE.Vector3(10000, 10000, 10000)
+    position: new THREE.Vector3(4000, 4000, 4000)
   }
+
+  // canvas要素を格納するDIVとcanvas要素
+  const threejs_wrapper = document.getElementById("threejs_wrapper");
+  const threejs_canvas = document.getElementById("threejs_canvas");
 
   // サイズ
   const sizes = {
-    width: window.innerWidth,
-    height: window.innerHeight,
+    // 画面いっぱいに表示する場合
+    // width: window.innerWidth,
+    // height: window.innerHeight,
+
+    // canvasを入れるdiv要素のサイズに合わせる場合
+    width: threejs_wrapper.clientWidth,
+    height: threejs_wrapper.clientHeight
   };
 
   // シーン、カメラ、レンダラ
@@ -343,6 +355,9 @@ export var NetworkDiagram = function (options) {
 
   // マウス操作のコントロール
   let controls;
+
+  // stats.jsを格納する要素
+  const stats_wrapper = document.getElementById("stats_wrapper");
 
   // stats.js のインスタンス
   let stats;
@@ -363,17 +378,12 @@ export var NetworkDiagram = function (options) {
   //
   function init() {
 
-    // ここ、直したい
-    const right_panel = document.getElementsByClassName("right_panel")[0];
-    sizes.width = right_panel.clientWidth;
-    sizes.height = right_panel.clientHeight;
-
     // シーンを初期化
     scene = new THREE.Scene();
 
     // カメラを初期化
     camera = new THREE.PerspectiveCamera(
-      45,                         // 視野角度
+      60,                         // 視野角度
       sizes.width / sizes.height, // アスペクト比 width/height
       1,                          // 開始距離
       100000                      // 終了距離
@@ -382,17 +392,14 @@ export var NetworkDiagram = function (options) {
 
     // レンダラーを初期化
     renderer = new THREE.WebGLRenderer({
-      canvas: document.getElementById("threejs"),
+      canvas: threejs_canvas,
       alpha: true,
       antialias: true
     });
     renderer.setSize(sizes.width, sizes.height);
     renderer.setPixelRatio(window.devicePixelRatio);
 
-    // レンダラーをHTMLの要素に加えてブラウザでレンダリングできるようにする
-    // document.body.appendChild(renderer.domElement);
-
-    // グリッドヘルパー
+    // グリッドヘルパーを追加すると重くなる
     // const grid_helper = new THREE.GridHelper(10000, 10000);
     // grid_helper.name = "grid_helper";
     // scene.add(grid_helper);
@@ -401,7 +408,9 @@ export var NetworkDiagram = function (options) {
     // ノードを球体で表現
     node_geometry = new THREE.SphereGeometry(50);
 
+    //
     // マウス操作のコントロール
+    //
 
     // OrbitControls
     // controls = new OrbitControls(camera, renderer.domElement);
@@ -433,7 +442,7 @@ export var NetworkDiagram = function (options) {
     stats = new Stats();
     stats.dom.style.position = "relative";
     stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
-    document.getElementById("stats_wrapper").appendChild(stats.dom);
+    stats_wrapper.appendChild(stats.dom);
 
     // ObjectSelectionを初期化
     // selectionが有効な場合はイベントハンドラを登録
@@ -462,14 +471,48 @@ export var NetworkDiagram = function (options) {
       });
     }
 
+    document.getElementById("idButton1").addEventListener("click", function() {
+      dispose();
+      self.graph.dispose();
+    });
+
+
     // ブラウザのリサイズイベントを登録
     function onWindowResize() {
+      sizes.width = threejs_wrapper.clientWidth;
+      sizes.height = threejs_wrapper.clientHeight;
       renderer.setSize(sizes.width, sizes.height);
       camera.aspect = sizes.width / sizes.height;
       camera.updateProjectionMatrix();
     }
     window.addEventListener("resize", onWindowResize);
+  }
 
+
+  function dispose() {
+    // console.log(scene.children);
+
+    self.graph.getNodes().forEach(node => {
+      if (node.data.draw_object) {
+        scene.remove(node.data.draw_object);
+        node.data.draw_object.material.dispose();
+        node.data.draw_object.geometry.dispose();
+      }
+
+      if (node.data.label_object) {
+        scene.remove(node.data.label_object);
+        node.data.label_object.material.dispose();
+        node.data.label_object.geometry.dispose();
+      }
+    });
+
+    self.graph.getEdges().forEach(edge => {
+      scene.remove(edge.data.line_object);
+      edge.data.line_object.material.dispose();
+      edge.data.line_object.geometry.dispose();
+    });
+
+    // console.log(scene.children);
   }
 
 
@@ -482,7 +525,7 @@ export var NetworkDiagram = function (options) {
     });
 
     self.graph.getEdges().forEach(function (edge) {
-      draw_edge(edge.data.source, edge.data.target);
+      draw_edge(edge);
     });
   }
 
@@ -502,7 +545,7 @@ export var NetworkDiagram = function (options) {
 
     let draw_object = new THREE.Mesh(node_geometry, new THREE.MeshBasicMaterial({ color: Math.random() * 0xe0e0e0, opacity: 0.8 }));
 
-    const area = 5000;
+    const area = 3000;
     draw_object.position.x = Math.floor(Math.random() * (area + area + 1) - area);
     draw_object.position.y = Math.floor(Math.random() * (area + area + 1) - area);
     draw_object.position.z = Math.floor(Math.random() * (area + area + 1) - area);
@@ -518,10 +561,10 @@ export var NetworkDiagram = function (options) {
   }
 
 
-  function draw_edge(source_id, target_id) {
+  function draw_edge(edge) {
 
-    let source = self.graph.getElementById(source_id);
-    let target = self.graph.getElementById(target_id);
+    let source = self.graph.getElementById(edge.data.source);
+    let target = self.graph.getElementById(edge.data.target);
 
     let material = new THREE.LineBasicMaterial({ color: 0x606060 });
 
@@ -540,6 +583,8 @@ export var NetworkDiagram = function (options) {
     line.scale.x = line.scale.y = line.scale.z = 1;
     line.originalScale = 1;
 
+    edge.data.line_object = line;
+
     scene.add(line);
   }
 
@@ -550,12 +595,11 @@ export var NetworkDiagram = function (options) {
   function render() {
 
     /*
-    // ノードを移動させているなら、renderの中で更新する
+    // ノードの位置をプログラムの中で変更しているなら、renderの中で更新を指示する
     for (let i = 0; i < geometries.length; i++) {
       geometries[i].attributes.position.needsUpdate = true;
     }
     */
-
 
     // ラベル表示
     self.graph.getNodes().forEach(function (node) {
@@ -630,19 +674,27 @@ export var NetworkDiagram = function (options) {
   }
 
 
-  init();
-  draw_graph();
-  animate();
+  this.draw = function() {
+    init();
+    draw_graph();
+    animate();
+  };
+
 };
+
 
 export let main = function() {
 
+  // グラフを作成して、
   const graph = create_graph();
 
-  new NetworkDiagram({
+  // NetworkDiagramのインスタンスを作成
+  const diagram = new NetworkDiagram({
     graph: graph,
     selection: true,
     show_labels: true,
   });
+
+  diagram.draw();
 
 };
