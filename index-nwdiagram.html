@@ -170,14 +170,11 @@
     {
       "imports": {
         "three": "/static/build/three.module.js",
-        "OrbitControls": "/static/controls/OrbitControls.js",
-        "TrackballControls": "/static/controls/TrackballControls.js"
+        "three/libs/": "/static/libs/",
+        "three/controls/": "/static/controls/"
       }
     }
   </script>
-
-  <!-- stats.js -->
-  <script src="/static/stats.js/stats.min.js"></script>
 
 </head>
 
@@ -203,7 +200,7 @@
     </div>
 
     <div class="right_panel">
-      <div id="threejs_wrapper"><canvas id="threejs_canvas"></canvas></div>
+      <div id="threejs_wrapper"></div>
       <div id="stats_wrapper"></div>
       <div id="gui_wrapper"></div>
       <div id="info_text"></div>
