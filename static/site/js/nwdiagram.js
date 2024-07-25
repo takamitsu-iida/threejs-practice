@@ -1,9 +1,10 @@
 import * as THREE from "three";
 
 // マウス操作
-import { TrackballControls } from "three/controls/TrackballControls.js";
+import { OrbitControls } from 'three/controls/OrbitControls.js';
 
-// ラベル表示
+// CSS2Dを用いたラベル表示
+// 参考 https://github.com/mrdoob/three.js/blob/master/examples/css2d_label.html
 import { CSS2DRenderer, CSS2DObject } from 'three/libs/CSS2DRenderer.js';
 
 // lil-gui
@@ -339,7 +340,7 @@ function create_graph(options) {
   };
   graph.addNode(root);
 
-  const area = 500;
+  const area = 300;
   const nodes = [root];
   const num_steps = 5;
   const num_edges = 5;
@@ -416,11 +417,6 @@ export let NetworkDiagram = function (options) {
   const gui_wrapper = document.getElementById("gui_wrapper");
   let gui;
 
-  // カメラ位置をGUIで変更するためのパラメータ
-  const camera_params = {
-    position: new THREE.Vector3(1000, 1000, 3000)
-  }
-
   // レンダラーのDOMを格納するdiv要素
   const threejs_wrapper = document.getElementById("threejs_wrapper");
 
@@ -452,7 +448,7 @@ export let NetworkDiagram = function (options) {
   let stats;
 
   // ノードを表現するジオメトリ、これをもとにメッシュを作成する
-  let node_geometry; // = new THREE.SphereGeometry(50);
+  let node_geometry;
 
   // エッジのジオメトリを格納したもの
   // ノードの位置を変えたときに、対応するエッジの位置も変えるのに必要
@@ -470,16 +466,16 @@ export let NetworkDiagram = function (options) {
 
     // シーンを初期化
     scene = new THREE.Scene();
-    scene.background = new THREE.Color( 0x050505 );
+    scene.background = new THREE.Color( 0x000000 );
 
     // カメラを初期化
     camera = new THREE.PerspectiveCamera(
-      60,                         // 視野角度 FOV
+      70,                         // 視野角度 FOV
       sizes.width / sizes.height, // アスペクト比
       1,                          // 開始距離
-      100000                      // 終了距離
+      10000                       // 終了距離
     );
-    camera.position.set(camera_params.position.x, camera_params.position.y, camera_params.position.z);
+    camera.position.set(200, 200, 600);
 
     // ラベル用にlayer 1を有効化
     camera.layers.enable(1);
@@ -525,14 +521,17 @@ export let NetworkDiagram = function (options) {
     // 20面体
     // (radius : Float, detail : Integer)を指定する
     // detailを3にするとほぼ球体になる
-    node_geometry = new THREE.IcosahedronGeometry(30, 2);
+    node_geometry = new THREE.IcosahedronGeometry(10, 2);
 
-    // マウス操作のコントロール
     // OrbitControls
-    // controls = new OrbitControls(camera, renderer.domElement);
-    // controls.enableDamping = true;
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.autoRotate = false;
+    controls.autoRotateSpeed = 1.0;
 
+    /*
     // TrackballControls
+    // import { TrackballControls } from "three/controls/TrackballControls.js";
     controls = new TrackballControls(camera, renderer.domElement);
     controls.rotateSpeed = 10;
     controls.zoomSpeed = 2.0;
@@ -541,42 +540,10 @@ export let NetworkDiagram = function (options) {
     controls.noPan = false;
     controls.staticMoving = false;
     controls.dynamicDampingFactor = 0.3;
-    controls.addEventListener('change', () => {
-      // camera_paramsに位置の変更を反映
-      camera_params.position.copy(camera.position);
-
-      // animate()してない環境では、個別にrender()を呼んでカメラ位置の変更を反映
-      // render();
-    });
+    */
 
     if (gui_wrapper) {
       gui = new GUI({ container: gui_wrapper });
-
-      // これ、いらないかな・・・
-
-      // GUIでカメラ位置を変更できるようにする
-      const camera_gui = gui.addFolder('Camera');
-      camera_gui
-        .add(camera_params.position, 'x')
-        .min(-10000)
-        .max(10000)
-        .name('position x')
-        .listen()
-        .onChange((value) => { camera.position.x = value; });
-      camera_gui
-        .add(camera_params.position, 'y')
-        .min(-10000)
-        .max(10000)
-        .name('position y')
-        .listen()
-        .onChange((value) => { camera.position.y = value; });
-      camera_gui
-        .add(camera_params.position, 'z')
-        .min(-10000)
-        .max(10000)
-        .name('position z')
-        .listen()
-        .onChange((value) => { camera.position.z = value; })
 
       // GUIでラベル表示のON/OFFを切り替える
       const label_gui = gui.addFolder('Label');
@@ -603,6 +570,11 @@ export let NetworkDiagram = function (options) {
             label.classList.add(value.toLowerCase());
           });
         });
+
+      const orbit_gui = gui.addFolder('OrbitControls');
+      orbit_gui
+        .add(controls, 'autoRotate')
+        .name('auto rotate')
     }
 
     // stats.jsを初期化
@@ -673,17 +645,19 @@ export let NetworkDiagram = function (options) {
 
       let node_mesh = scene.getObjectByName(node.data.id);
       if (node_mesh) {
+
+        // 対応するラベルオブジェクトを削除
+        let label_object = node_mesh.label_object;
+        if (label_object) {
+          // console.log(`remove ${label_object.name}`);
+          // 親子関係を解除すると、オブジェクトも削除される
+          node_mesh.remove(label_object);
+        }
+
         // console.log(`remove ${node_mesh.name}`);
         scene.remove(node_mesh);
         node_mesh.material.dispose();
         node_mesh.geometry.dispose();
-
-        // ノードに対応するラベルオブジェクトを削除
-        let label_object = node_mesh.label_object;
-        if (label_object) {
-          // console.log(`remove ${label_object.name}`);
-          scene.remove(label_object);
-        }
       }
 
     });
@@ -748,15 +722,24 @@ export let NetworkDiagram = function (options) {
 
     // このノードに対応するラベル(CSS2DObject)を作成する
     let div = document.createElement('div');
+    // CSSクラスを設定
     div.className = 'label';
+    // CSSクラスを追加
     div.classList.add(label_params.font_size.toLowerCase());
+    // テキストを設定
     div.textContent = node.data.label || node.data.id;
     const label_object = new CSS2DObject(div);
     label_object.name = `${node.data.id}_label`;
+    // この座標は親になるノードからの相対位置
+    label_object.position.set(0, 15, 0);
+    // レイヤー 1 を設定
     label_object.layers.set(1);
-    scene.add(label_object);
+    // シーンに加える必要はなく、
+    // scene.add(label_object);
+    // ノードの子にすればよい
+    node_mesh.add(label_object);
 
-    // node_meshからlabel_objectを辿れるように参照を保存
+    // node_meshからlabel_objectを辿れるように参照を保存（childに追加しているので必要ないかも）
     node_mesh.label_object = label_object;
   }
 
@@ -814,7 +797,8 @@ export let NetworkDiagram = function (options) {
     }
     */
 
-    // ラベルの位置を更新
+    // ラベルをノードの子にしていない場合、ラベルの位置を個別に更新しなければいけない
+    /*
     if (label_params.show_labels) {
       self.graph.getNodes().forEach(function (node) {
         // ノードに対応するオブジェクトを取得して、
@@ -828,6 +812,7 @@ export let NetworkDiagram = function (options) {
       });
       label_renderer.render(scene, camera);
     }
+    */
 
     // render selection
     if (self.selection_enabled) {
@@ -836,6 +821,9 @@ export let NetworkDiagram = function (options) {
 
     // render scene
     renderer.render(scene, camera);
+
+    // render label
+    label_renderer.render(scene, camera);
   }
 
 
