@@ -1,8 +1,10 @@
 import * as THREE from "three";
 
+// マウス操作
 import { TrackballControls } from "three/controls/TrackballControls.js";
 
-import { LineMaterial } from "three/libs/LineMaterial.js";
+// ラベル表示
+import { CSS2DRenderer, CSS2DObject } from 'three/libs/CSS2DRenderer.js';
 
 // lil-gui
 import { GUI } from "three/libs/lil-gui.module.min.js";
@@ -11,6 +13,8 @@ import { GUI } from "three/libs/lil-gui.module.min.js";
 import Stats from 'three/libs/stats.module.js';
 
 /*
+  HTMLではこの指定が必要
+
   <script type="importmap">
     {
       "imports": {
@@ -21,8 +25,8 @@ import Stats from 'three/libs/stats.module.js';
     }
   </script>
 
-three.jsのソースコードから、
-以下のようなディレクトリ配置になるようにbuild、controls、libsディレクトリをコピーする。
+以下のようなディレクトリ配置になるようにbuild、controls、libsディレクトリを作成し
+three.jsのソースコードから必要なファイルをコピーする。
 
 static
 ├── build
@@ -49,10 +53,8 @@ static
 export var ObjectSelection = function (parameters) {
 
   // 参照
-  // 初めてのThree.js 第二版
-  // P235
+  // 初めてのThree.js 第二版 P235
   // https://github.com/oreilly-japan/learning-three-js-2e-ja-support
-
 
   parameters = parameters || {};
 
@@ -114,9 +116,10 @@ export var ObjectSelection = function (parameters) {
     // オブジェクトに光線がぶつかっているか、判定する
     const intersects = raycaster.intersectObject(scene, true);
 
+    // 光線がオブジェクトにぶつかっていれば、
     if (intersects.length > 0) {
 
-      // 光線がオブジェクトにぶつかっていれば、
+      // 前回と違うオブジェクトに光線が当たっているなら、
       if (this.INTERSECTED != intersects[0].object) {
 
         // 前回と違うオブジェクトに光線が当たっているなら、古いオブジェクトは元の色に戻す
@@ -138,7 +141,6 @@ export var ObjectSelection = function (parameters) {
       }
 
     } else {
-
       // 光線がオブジェクトにぶつかっていないなら
 
       if (this.INTERSECTED) {
@@ -157,33 +159,56 @@ export var ObjectSelection = function (parameters) {
   };
 };
 
+//
+// 2024.07.25 CSS2DRenderer.jsを利用することにしたので使っていないが、こっちの方が性能がよければ復活させる
+//
+export let CanvasLabel = function(parameters) {
 
-export let Label = function(parameters) {
+  /*
+  使い方
+
+  const label_text = "This is a label";
+  const label_name = "label_1";
+  const label_object = new CanvasLabel({label_text: label_text, label_name: label_name });
+
+  // node_objectの位置に合わせる
+  label_object.position.x = node_object.position.x;
+  label_object.position.y = node_object.position.y + 20;
+  label_object.position.z = node_object.position.z;
+  label_object.lookAt(camera.position);
+
+  */
+
   if (parameters === undefined) {
     return null;
   }
 
   const label_text = parameters.label_text;
   const label_name = parameters.label_name;
+  const label_layer = parameters.label_layer || 1; // 指定がない場合はレイヤ 1 に設定
 
   let label_canvas = document.createElement( "canvas" );
 
   function create() {
-    const context = label_canvas.getContext("2d");
-    const font_size = 40; // "40pt"
+    const ctx = label_canvas.getContext("2d");
 
-    // set font size to measure the text
-    context.font = `${font_size}pt Arial`;
-    const len = context.measureText(label_text).width;
+    // canvasのデフォルトフォントは "10px sans-serif" になっているのでフォントを大きくする
 
+    // measureTextで必要な幅を調べる
+    const font_size = 40;
+    ctx.font = `${font_size}pt Arial`;
+    const len = ctx.measureText(label_text).width;
+
+    // canvasのサイズを必要な幅に設定
     label_canvas.setAttribute('width', len);
 
-    // set font size again cause it will be reset when setting a new width
-    context.font = `${font_size}pt Arial`;
-    context.textBaseline = 'top';
-    context.fillText(label_text, 0, 0);
+    // canvasの幅を変更したので、再度フォントの設定を行う
+    ctx.font = `${font_size}pt Arial`;
+    ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+    ctx.textBaseline = 'top';
+    ctx.fillText(label_text, 0, 0);
 
-    // width, height, depth
+    // (width, height, depth)
     const geometry = new THREE.BoxGeometry(len, 100, 0);
 
     const material = new THREE.MeshBasicMaterial({
@@ -203,7 +228,11 @@ export let Label = function(parameters) {
     // set text canvas to cube geometry
     var labelObject = new THREE.Mesh(geometry, material);
 
+    // オブジェクトに名前を設定
     labelObject.name = label_name;
+
+    // ラベルはレイヤ 1 に設定
+    labelObject.layers.set(label_layer);
 
     return labelObject;
   }
@@ -375,14 +404,17 @@ export let NetworkDiagram = function (options) {
   self.selection_enabled = options.selection || true;
 
   // ノードのラベルを表示するかどうか
-  self.show_labels = options.show_labels || true;
+  const label_params = {
+    show_labels: options.show_labels || true,
+    font_size: options.font_size || "Medium"  // "Small", "Medium", "Large"
+  }
 
   // ObjectSelectionのインスタンス
   let object_selection;
 
   // lil-gui
   const gui_wrapper = document.getElementById("gui_wrapper");
-  const gui = new GUI({ container: gui_wrapper });
+  let gui;
 
   // カメラ位置をGUIで変更するためのパラメータ
   const camera_params = {
@@ -406,27 +438,28 @@ export let NetworkDiagram = function (options) {
   // シーン、カメラ、レンダラ
   let scene, camera, renderer;
 
-  // ライト
-  // MeshBasicMaterialを使うなら光源は不要
-  let light;
+  // ラベル表示用のCSS2Dレンダラ
+  let label_renderer;
+
+  // ライト、MeshBasicMaterialを使うならライトは不要
+  let light1, light2;
 
   // マウス操作のコントロール
   let controls;
 
-  // stats.jsを格納するdiv要素
+  // stats.jsを格納するdiv要素とstats.jsのインスタンス
   const stats_wrapper = document.getElementById("stats_wrapper");
-
-  // stats.js のインスタンス
   let stats;
 
   // ノードを表現するジオメトリ、これをもとにメッシュを作成する
   let node_geometry; // = new THREE.SphereGeometry(50);
 
   // エッジのジオメトリを格納したもの
-  // render()時に更新を指示するために使う
+  // ノードの位置を変えたときに、対応するエッジの位置も変えるのに必要
+  // ただ、ノードの位置は変えないのでいまのところは使っていない
   let edge_geometries = [];
 
-  // 情報表示
+  // 情報表示用のDOMエレメントとテキストを格納するオブジェクト
   let info_text_element = document.getElementById("info_text");
   let info_text = {};
 
@@ -437,15 +470,28 @@ export let NetworkDiagram = function (options) {
 
     // シーンを初期化
     scene = new THREE.Scene();
+    scene.background = new THREE.Color( 0x050505 );
 
     // カメラを初期化
     camera = new THREE.PerspectiveCamera(
-      60,                         // 視野角度
-      sizes.width / sizes.height, // アスペクト比 width/height
+      60,                         // 視野角度 FOV
+      sizes.width / sizes.height, // アスペクト比
       1,                          // 開始距離
       100000                      // 終了距離
     );
     camera.position.set(camera_params.position.x, camera_params.position.y, camera_params.position.z);
+
+    // ラベル用にlayer 1を有効化
+    camera.layers.enable(1);
+
+    // ライトを初期化
+    light1 = new THREE.DirectionalLight(0xFFFFFF, 2.5);
+    light1.position.set(1, 1, 1);
+    scene.add(light1);
+
+    light2 = new THREE.DirectionalLight(0xFFFFFF, 1.5);
+    light2.position.set(-1, -1, 1);
+    scene.add(light2);
 
     // レンダラーを初期化
     renderer = new THREE.WebGLRenderer({
@@ -454,24 +500,17 @@ export let NetworkDiagram = function (options) {
     });
     renderer.setSize(sizes.width, sizes.height);
     renderer.setPixelRatio(window.devicePixelRatio);
-
-    // 背景色を設定
-    // renderer.setClearColor(new THREE.Color(0x00000));
-
-    // レンダラーのDOMをthreejs_wrapperに追加
     threejs_wrapper.appendChild(renderer.domElement);
 
-    // 平行光源
-    light = new THREE.DirectionalLight(0xFFFFFF);
-    light.position.set(0, 0, 10000);
-    scene.add(light);
+    // ラベル用のCSS2Dレンダラを初期化
+    label_renderer = new CSS2DRenderer();
+    label_renderer.setSize(sizes.width, sizes.height);
+    label_renderer.domElement.style.position = 'absolute';
+    label_renderer.domElement.style.top = '0px';
+    label_renderer.domElement.style.pointerEvents = 'none';
+    threejs_wrapper.appendChild(label_renderer.domElement);
 
-    // グリッドヘルパーを追加すると重くなる
-    // const grid_helper = new THREE.GridHelper(10000, 10000);
-    // grid_helper.name = "grid_helper";
-    // scene.add(grid_helper);
-
-    // show axes in the screen
+    // 軸を表示
     //
     //   Y(green)
     //    |
@@ -482,14 +521,13 @@ export let NetworkDiagram = function (options) {
     const axesHelper = new THREE.AxesHelper(10000);
     scene.add(axesHelper);
 
-    // ノードを球体で表現するためのジオメトリ
-    node_geometry = new THREE.SphereGeometry(30);
-    // node_geometry = new THREE.BoxGeometry(30, 30, 30);
+    // ノードのジオメトリ
+    // 20面体
+    // (radius : Float, detail : Integer)を指定する
+    // detailを3にするとほぼ球体になる
+    node_geometry = new THREE.IcosahedronGeometry(30, 2);
 
-    //
     // マウス操作のコントロール
-    //
-
     // OrbitControls
     // controls = new OrbitControls(camera, renderer.domElement);
     // controls.enableDamping = true;
@@ -504,28 +542,76 @@ export let NetworkDiagram = function (options) {
     controls.staticMoving = false;
     controls.dynamicDampingFactor = 0.3;
     controls.addEventListener('change', () => {
-      // camera_paramsに変更を反映
-      camera_params.position.copy( camera.position );
+      // camera_paramsに位置の変更を反映
+      camera_params.position.copy(camera.position);
 
       // animate()してない環境では、個別にrender()を呼んでカメラ位置の変更を反映
       // render();
     });
 
-    // GUIでカメラ位置を変更できるようにする
-    const camera_gui = gui.addFolder('Camera');
-    camera_gui.add(camera_params.position, 'x').min(-10000).max(10000).name('position x').listen().onChange((value) => { camera.position.x = value; });
-    camera_gui.add(camera_params.position, 'y').min(-10000).max(10000).name('position y').listen().onChange((value) => { camera.position.y = value; });
-    camera_gui.add(camera_params.position, 'z').min(-10000).max(10000).name('position z').listen().onChange((value) => { camera.position.z = value; })
+    if (gui_wrapper) {
+      gui = new GUI({ container: gui_wrapper });
 
-    // GUIでラベル表示のON/OFFを切り替える
-    const show_labels_gui = gui.addFolder('Label');
-    show_labels_gui.add(self, 'show_labels').name('show_labels').listen().onChange((value) => { self.show_labels = value; });
+      // これ、いらないかな・・・
+
+      // GUIでカメラ位置を変更できるようにする
+      const camera_gui = gui.addFolder('Camera');
+      camera_gui
+        .add(camera_params.position, 'x')
+        .min(-10000)
+        .max(10000)
+        .name('position x')
+        .listen()
+        .onChange((value) => { camera.position.x = value; });
+      camera_gui
+        .add(camera_params.position, 'y')
+        .min(-10000)
+        .max(10000)
+        .name('position y')
+        .listen()
+        .onChange((value) => { camera.position.y = value; });
+      camera_gui
+        .add(camera_params.position, 'z')
+        .min(-10000)
+        .max(10000)
+        .name('position z')
+        .listen()
+        .onChange((value) => { camera.position.z = value; })
+
+      // GUIでラベル表示のON/OFFを切り替える
+      const label_gui = gui.addFolder('Label');
+      label_gui
+        .add(label_params, 'show_labels')
+        .name('show node label')
+        .onChange((value) => {
+          // レイヤでラベルを表示するかどうかを切り替える
+          camera.layers.toggle(1);
+
+          // 非表示に変更したら、render()を呼んで画面上から消す
+          if (camera.layers.test(1) === false) {
+            label_renderer.render(scene, camera);
+          }
+        });
+
+      label_gui
+        .add(label_params, 'font_size')
+        .options(['Small', 'Medium', 'Large'])
+        .name('font size')
+        .onChange((value) => {
+          document.querySelectorAll('.label').forEach((label) => {
+            label.classList.remove('small', 'medium', 'large');
+            label.classList.add(value.toLowerCase());
+          });
+        });
+    }
 
     // stats.jsを初期化
-    stats = new Stats();
-    stats.dom.style.position = "relative";
-    stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
-    stats_wrapper.appendChild(stats.dom);
+    if (stats_wrapper) {
+      stats = new Stats();
+      stats.dom.style.position = "relative";
+      stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+      stats_wrapper.appendChild(stats.dom);
+    }
 
     // ObjectSelectionを初期化
     // selectionが有効な場合はイベントハンドラを登録
@@ -558,6 +644,8 @@ export let NetworkDiagram = function (options) {
       });
     }
 
+    // テスト用
+    // ボタンを押したら全削除
     document.getElementById("idButton1").addEventListener("click", function() {
       dispose();
       self.graph.dispose();
@@ -572,37 +660,37 @@ export let NetworkDiagram = function (options) {
       camera.aspect = sizes.width / sizes.height;
       camera.updateProjectionMatrix();
       renderer.setSize(sizes.width, sizes.height);
+      label_renderer.setSize(sizes.width, sizes.height);
     }
     window.addEventListener("resize", onWindowResize);
   }
 
 
   function dispose() {
-    // console.log(scene.children);
 
+    // シーン上のノードオブジェクトと、対応するラベルオブジェクトを削除
     self.graph.getNodes().forEach(node => {
 
-      // シーン上のノードオブジェクトを取得して削除
       let node_mesh = scene.getObjectByName(node.data.id);
       if (node_mesh) {
         // console.log(`remove ${node_mesh.name}`);
         scene.remove(node_mesh);
         node_mesh.material.dispose();
         node_mesh.geometry.dispose();
+
+        // ノードに対応するラベルオブジェクトを削除
+        let label_object = node_mesh.label_object;
+        if (label_object) {
+          // console.log(`remove ${label_object.name}`);
+          scene.remove(label_object);
+        }
       }
 
-      // シーン上のラベルオブジェクトを取得して削除
-      let label_mesh = scene.getObjectByName(node.data.id + "_label");
-      if (label_mesh) {
-        // console.log(`remove ${label_mesh.name}`);
-        scene.remove(label_mesh);
-        label_mesh.material.dispose();
-        label_mesh.geometry.dispose();
-      }
     });
 
+    // シーン上のラインオブジェクトを取得して削除
     self.graph.getEdges().forEach(edge => {
-      // シーン上のラインオブジェクトを取得して削除
+
       let line_mesh = scene.getObjectByName(edge.data.id);
       if (line_mesh) {
         // console.log(`remove ${line_mesh.name}`);
@@ -614,9 +702,9 @@ export let NetworkDiagram = function (options) {
 
     edge_geometries = [];
 
+    // シーンに残っているオブジェクトを表示する
     console.log(scene.children);
   }
-
 
   //
   // Graphクラスのインスタンスを描画する
@@ -657,6 +745,19 @@ export let NetworkDiagram = function (options) {
 
     // シーンに追加
     scene.add(node_mesh);
+
+    // このノードに対応するラベル(CSS2DObject)を作成する
+    let div = document.createElement('div');
+    div.className = 'label';
+    div.classList.add(label_params.font_size.toLowerCase());
+    div.textContent = node.data.label || node.data.id;
+    const label_object = new CSS2DObject(div);
+    label_object.name = `${node.data.id}_label`;
+    label_object.layers.set(1);
+    scene.add(label_object);
+
+    // node_meshからlabel_objectを辿れるように参照を保存
+    node_mesh.label_object = label_object;
   }
 
 
@@ -687,9 +788,8 @@ export let NetworkDiagram = function (options) {
 
     const material = new THREE.LineBasicMaterial(
       {
-        color: 0xababab,
-        linewidth: 1,  // 多くのプラットフォームで無視される
-        vertexColors: true
+        color: 0xffffff,
+        linewidth: 1  // 多くのプラットフォームで無視される
       }
     );
 
@@ -705,9 +805,6 @@ export let NetworkDiagram = function (options) {
   }
 
 
-  //
-  // render
-  //
   function render() {
 
     /*
@@ -717,43 +814,20 @@ export let NetworkDiagram = function (options) {
     }
     */
 
-    // ラベルの作成、表示、削除
-    self.graph.getNodes().forEach(function (node) {
+    // ラベルの位置を更新
+    if (label_params.show_labels) {
+      self.graph.getNodes().forEach(function (node) {
+        // ノードに対応するオブジェクトを取得して、
+        const node_mesh = scene.getObjectByName(node.data.id);
+        const label_object = node_mesh.label_object
 
-      // グラフのノードに対応するラベルオブジェクトを取得
-      const label_name = node.data.id + "_label";
-      const label_object = scene.getObjectByName(label_name);
-
-      if (self.show_labels) {
-        // show_labelsフラグがtrueの場合はラベルを表示
-
-        if (label_object) {
-          // すでにラベルオブジェクトが作られているなら位置を更新
-
-          // グラフのノードに対応するオブジェクトを取得
-          const node_mesh = scene.getObjectByName(node.data.id);
-
-          // そのノードの位置にラベルを表示
-          label_object.position.x = node_mesh.position.x;
-          label_object.position.y = node_mesh.position.y + 20;
-          label_object.position.z = node_mesh.position.z;
-          label_object.lookAt(camera.position);
-        } else {
-          // まだ作成してないなら作成してシーンに追加
-          const label_text = node.data.label || node.data.id;
-          const label_object = new Label({label_text: label_text, label_name: label_name });
-          scene.add(label_object);
-        }
-
-      } else {
-        // show_labelsフラグがfalseの場合はラベルを削除
-        if (label_object) {
-          scene.remove(label_object);
-          label_object.material.dispose();
-          label_object.geometry.dispose();
-        }
-      }
-    });
+        // ノードの位置にラベルを移動
+        label_object.position.x = node_mesh.position.x;
+        label_object.position.y = node_mesh.position.y + 20;
+        label_object.position.z = node_mesh.position.z;
+      });
+      label_renderer.render(scene, camera);
+    }
 
     // render selection
     if (self.selection_enabled) {
@@ -785,9 +859,7 @@ export let NetworkDiagram = function (options) {
     controls.update();
 
     // レンダラーを更新する際に、パラメータ変更にあわせて再描画したいので、render()を呼び出す
-    // render()内部で
-    // renderer.render(scene, camera);
-    // をコールしている
+    // render()の中で renderer.render(scene, camera); をコールしている
     render();
 
     // マウス操作で選択したオブジェクトの情報を表示
@@ -817,8 +889,10 @@ export let main = function() {
     graph: graph,
     selection: true,
     show_labels: true,
+    font_size: "Medium"
   });
 
+  // 描画
   diagram.draw();
 
 };
