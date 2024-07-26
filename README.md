@@ -3,12 +3,22 @@
 
 <br>
 
-個人的な学習のためのリポジトリです。
+Github Pagesを使うためにPublicにしていますが、このリポジトリは個人的な学習のためのものです。
 
-ただいまテスト中。
+テスト中のページ
 
 https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html
 
+
+<br>
+
+three.jsではWebGLを使いますので、グラフィックボードを持たないシンクライアントやWebGLをサポートしていないブラウザでは、
+
+```
+Your graphics card does not seem to support WebGL
+```
+
+とだけ表示されます。
 
 <br>
 

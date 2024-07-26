@@ -3,7 +3,7 @@ import * as THREE from "three";
 // マウス操作
 import { OrbitControls } from 'three/controls/OrbitControls.js';
 
-// CSS2Dを用いたラベル表示
+// CSS2DRendererを用いたラベル表示
 // 参考 https://github.com/mrdoob/three.js/blob/master/examples/css2d_label.html
 import { CSS2DRenderer, CSS2DObject } from 'three/libs/CSS2DRenderer.js';
 
@@ -108,12 +108,16 @@ export var ObjectSelection = function (parameters) {
     // マウス座標を(-1, 1)の範囲に変換
     mouse.x = +(x/w)*2 -1;
     mouse.y = -(y/h)*2 +1;
+
   }
 
   // クリックイベントを登録
   this.domElement.addEventListener('click', onDocumentMouseClick, false);
 
   function onDocumentMouseClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
     if (self.INTERSECTED) {
       if (typeof callbackClicked === 'function') {
         callbackClicked(self.INTERSECTED);
@@ -142,14 +146,18 @@ export var ObjectSelection = function (parameters) {
         // 前回と違うオブジェクトに光線が当たっているなら、古いオブジェクトは元の色に戻す
         if (this.INTERSECTED) {
           this.INTERSECTED.material.color.setHex(this.INTERSECTED.currentHex);
+          // this.INTERSECTED.material.wireframe = true;
         }
 
         // 新しいオブジェクトを選択して、
         this.INTERSECTED = intersects[0].object;
 
-        // その色を変える
+        // 現在の色をオブジェクト内に保存して、
         this.INTERSECTED.currentHex = this.INTERSECTED.material.color.getHex();
+
+        // 色を変える
         this.INTERSECTED.material.color.setHex(0xff0000);
+        // this.INTERSECTED.material.wireframe = true;
 
         // コールバック関数を渡されているならそれを実行する
         if (typeof callbackSelected === 'function') {
@@ -163,6 +171,7 @@ export var ObjectSelection = function (parameters) {
       if (this.INTERSECTED) {
         // 古いオブジェクトは元の色に戻す
         this.INTERSECTED.material.color.setHex(this.INTERSECTED.currentHex);
+        // this.INTERSECTED.material.wireframe = false;
       }
 
       this.INTERSECTED = null;
@@ -177,7 +186,8 @@ export var ObjectSelection = function (parameters) {
 };
 
 //
-// 2024.07.25 CSS2DRenderer.jsを利用することにしたので使っていないが、こっちの方が性能がよければ復活させる
+// 2024.07.25 CSS2DRenderer.jsを利用することにしたので使っていないが、
+// こっちの方が性能がよければ復活させる
 //
 export let CanvasLabel = function(parameters) {
 
@@ -326,7 +336,7 @@ export class Graph {
     if (found_edge) {
       return found_edge;
     }
-    return undefined;
+    return null;
   }
 
 }
@@ -425,7 +435,6 @@ export let NetworkDiagram = function (options) {
   let object_selection;
 
   // lil-gui
-  const gui_wrapper = document.getElementById("gui_wrapper");
   let gui;
 
   // レンダラーのDOMを格納するdiv要素
@@ -455,11 +464,10 @@ export let NetworkDiagram = function (options) {
   let controls;
 
   // stats.jsを格納するdiv要素とstats.jsのインスタンス
-  const stats_wrapper = document.getElementById("stats_wrapper");
   let stats;
 
-  // ノードを表現するジオメトリ、これをもとにメッシュを作成する
-  let node_geometry;
+  // ノードを表現するジオメトリ
+  let node_geometry, node_cone_geometry;
 
   // エッジのジオメトリを格納したもの
   // ノードの位置を変えたときに、対応するエッジの位置も変えるのに必要
@@ -467,8 +475,10 @@ export let NetworkDiagram = function (options) {
   let edge_geometries = [];
 
   // 情報表示用のDOMエレメントとテキストを格納するオブジェクト
-  let info_text_element = document.getElementById("info_text");
-  let info_text = {};
+  let info_params = {
+    element: document.getElementById("info_text"),
+    selected: null
+  };
 
   //
   // 初期化
@@ -534,6 +544,9 @@ export let NetworkDiagram = function (options) {
     // detailを3にするとほぼ球体になる
     node_geometry = new THREE.IcosahedronGeometry(10, 2);
 
+    // ノードの上に注目を集めるためのConeGeometryを追加する
+    node_cone_geometry = new THREE.ConeGeometry(5, 15, 32);
+
     // OrbitControls
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -553,6 +566,7 @@ export let NetworkDiagram = function (options) {
     controls.dynamicDampingFactor = 0.3;
     */
 
+    const gui_wrapper = document.getElementById("gui_wrapper");
     if (gui_wrapper) {
       gui = new GUI({ container: gui_wrapper });
 
@@ -589,6 +603,7 @@ export let NetworkDiagram = function (options) {
     }
 
     // stats.jsを初期化
+    const stats_wrapper = document.getElementById("stats_wrapper");
     if (stats_wrapper) {
       stats = new Stats();
       stats.dom.style.position = "relative";
@@ -602,28 +617,42 @@ export let NetworkDiagram = function (options) {
       object_selection = new ObjectSelection({
         domElement: renderer.domElement,
         selected: function (obj) {
-          // display info
-          if (obj !== null) {
-              const element_id = obj.name;
-              if (!element_id) {
-                return;
-              }
-              const element = self.graph.getElementById(element_id);
-              if (!element) {
-                return;
-              }
-              info_text.select = element.data.id;
-
-              const world_position = obj.getWorldPosition(new THREE.Vector3());
-              const projection = world_position.project(camera);
-              const screen_x = Math.round((projection.x + 1) / 2 * sizes.width);
-              const screen_y = Math.round(-(projection.y - 1) / 2 * sizes.height);
-              console.log(`${element.data.id} (${screen_x}, ${screen_y})`);
+          if (obj === null) {
+            // フォーカスが外れるとnullが渡される
+            info_params.selected = null;
           } else {
-            delete info_text.select;
+            // フォーカスが当たるとオブジェクトが渡される
+            if (!obj.name) {
+              return;
+            }
+            const element = self.graph.getElementById(obj.name);
+            if (!element) {
+              return;
+            }
+            info_params.selected = element.data.id;
           }
         },
-        clicked: function (obj) { }
+        clicked: function (obj) {
+          if (obj) {
+            if (!obj.name) {
+              return;
+            }
+
+            // スクリーン座標を求める
+            const element = self.graph.getElementById(obj.name);
+            const world_position = obj.getWorldPosition(new THREE.Vector3());
+            const projection = world_position.project(camera);
+            const screen_x = Math.round((projection.x + 1) / 2 * sizes.width);
+            const screen_y = Math.round(-(projection.y - 1) / 2 * sizes.height);
+            console.log(`${element.data.id} (${screen_x}, ${screen_y})`);
+
+            const cone = obj.getObjectByName(`${element.data.id}_cone`);
+            if (cone) {
+              cone.visible = !cone.visible;
+            }
+
+          }
+        }
       });
     }
 
@@ -705,6 +734,8 @@ export let NetworkDiagram = function (options) {
 
   function draw_node(node) {
 
+    // マテリアルを作成
+
     // MeshBasicMaterialは光源に反応せず平面的に
     // const material = new THREE.MeshBasicMaterial({ color: Math.random() * 0xe0e0e0, opacity: 0.8 });
 
@@ -714,10 +745,10 @@ export let NetworkDiagram = function (options) {
     // const material = new THREE.MeshNormalMaterial({transparent: true, opacity: 0.5});
 
     // MeshLambertMaterialは光源に反応する
-    const material = new THREE.MeshLambertMaterial({ color: 0x00ff00, opacity: 0.8 });
+    const node_material = new THREE.MeshLambertMaterial({ color: 0x00ff00, opacity: 1.0 });
 
-    // メッシュ化
-    let node_mesh = new THREE.Mesh(node_geometry, material);
+    // メッシュを作成
+    let node_mesh = new THREE.Mesh(node_geometry, node_material);
 
     // 位置を設定
     node_mesh.position.set(node.position.x, node.position.y, node.position.z);
@@ -729,20 +760,32 @@ export let NetworkDiagram = function (options) {
     // シーンに追加
     scene.add(node_mesh);
 
-    // このノードに対応するラベル(CSS2DObject)を作成する
+    // このノードに対応するラベル(CSS2DObject)を作成
+
+    // DOM要素を作成
     let div = document.createElement('div');
+
     // CSSクラスを設定
     div.className = 'label';
+
     // CSSクラスを追加
     div.classList.add(label_params.font_size.toLowerCase());
+
     // テキストを設定
     div.textContent = node.data.label || node.data.id;
+
+    // CSS2DObjectを作成
     const label_object = new CSS2DObject(div);
+
+    // 名前を設定
     label_object.name = `${node.data.id}_label`;
-    // この座標は親になるノードからの相対位置
+
+    // 親になるノードからの相対で位置を設定
     label_object.position.set(0, 15, 0);
-    // レイヤー 1 を設定
+
+    // レイヤーを 1 に設定
     label_object.layers.set(1);
+
     // シーンに加える必要はなく、
     // scene.add(label_object);
     // ノードの子にすればよい
@@ -750,6 +793,16 @@ export let NetworkDiagram = function (options) {
 
     // node_meshからlabel_objectを辿れるように参照を保存（childに追加しているので必要ないかも）
     node_mesh.label_object = label_object;
+
+    // 注目を集めるためのConeGeometryを追加する
+    // (radius, height, radialSegments)
+    const node_cone_material = new THREE.MeshBasicMaterial( {color: 0xff0000} );
+    const node_cone_mesh = new THREE.Mesh(node_cone_geometry, node_cone_material);
+    node_cone_mesh.name = `${node.data.id}_cone`;
+    node_cone_mesh.rotateX(Math.PI);
+    node_cone_mesh.position.set(0, 15, 0);
+    node_cone_mesh.visible = false;
+    node_mesh.add(node_cone_mesh);
   }
 
 
@@ -806,7 +859,8 @@ export let NetworkDiagram = function (options) {
     }
     */
 
-    // ラベルをノードの子にしていない場合、ラベルの位置を個別に更新しなければいけない
+    // ラベルをノードの子にしていない場合は
+    // ラベルの位置を個別に更新しなければいけない
     /*
     if (label_params.show_labels) {
       self.graph.getNodes().forEach(function (node) {
@@ -835,16 +889,12 @@ export let NetworkDiagram = function (options) {
     label_renderer.render(scene, camera);
   }
 
-
   function print_info_text() {
-    var str = '';
-    for(var index in info_text) {
-      if(str !== '' && info_text[index] !== '') {
-        str += " - ";
-      }
-      str += info_text[index];
+    if (info_params.selected) {
+      info_params.element.innerHTML = `Selected: ${info_params.selected}`;
+    } else {
+      info_params.element.innerHTML = "";
     }
-    info_text_element.innerHTML = str;
   }
 
 
