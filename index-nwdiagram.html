@@ -189,15 +189,14 @@
       "imports": {
         "three": "/static/build/three.module.js",
         "three/libs/": "/static/libs/",
-        "three/controls/": "/static/controls/",
-        "nwdiagram": "/static/site/js/nwdiagram.js"
+        "three/controls/": "/static/controls/"
       }
     }
   </script>
 
   <script type="module">
-    import WebGL from 'three/libs/capabilities/WebGL.js';
-    import { main } from "nwdiagram";
+    import WebGL from '/static/libs/capabilities/WebGL.js';
+    import { main } from "/static/site/js/nwdiagram.js";
 
     window.addEventListener("load", () => {
       if (WebGL.isWebGLAvailable()) {
