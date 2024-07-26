@@ -3,9 +3,11 @@
 
 <br>
 
-ただいまテスト中
+個人的な学習のためのリポジトリです。
 
-https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram-github-pages.html
+ただいまテスト中。
+
+https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html
 
 
 <br>
@@ -43,47 +45,50 @@ three.jsをどこから読み込むか、によってHTML、JavaScriptの記述�
 
 プロジェクトのディレクトリ構成。
 
-index.htmlはプロジェクト直下に配置。その他の静的コンテンツは/staticの下に配置する。
-
-/static/buildにはthree.js本体を配置。
-
-/static/controlsに各種コントローラを配置。実体は `three.js-master/examples/jsm/controls` からコピーしたもの。
-
 ```bash
-.
 ├── README.md
 ├── index-nwdiagram.html
-├── index-particles.html
-├── index-terrain.html
-├── index-u.html
-├── static
-│   ├── build
-│   │   ├── three.module.js
-│   │   └── three.module.min.js
-│   ├── controls
-│   │   ├── ArcballControls.js
-│   │   ├── DragControls.js
-│   │   ├── FirstPersonControls.js
-│   │   ├── FlyControls.js
-│   │   ├── MapControls.js
-│   │   ├── OrbitControls.js
-│   │   ├── PointerLockControls.js
-│   │   ├── TrackballControls.js
-│   │   └── TransformControls.js
-│   └── site
-│       ├── css
-│       │   ├── practice.css
-│       │   └── style.css
-│       ├── img
-│       │   ├── earth.jpg
-│       │   ├── particle.png
-│       │   └── space.jpg
-│       └── js
-│           ├── nwdiagram.js
-│           ├── particles.js
-│           ├── practice.js
-│           └── terrain.js
-└```
+└── static
+    ├── build
+    │   ├── three.module.js
+    │   └── three.module.min.js
+    ├── controls
+    │   ├── OrbitControls.js
+    │   ├── TrackballControls.js
+    │   └── TransformControls.js
+    ├── libs
+    │   ├── CSS2DRenderer.js
+    │   ├── CSS3DRenderer.js
+    │   ├── capabilities
+    │   │   ├── WebGL.js
+    │   │   └── WebGPU.js
+    │   ├── lil-gui.module.min.js
+    │   ├── stats.module.js
+    │   └── tween.module.js
+    └── site
+        ├── css
+        │   └── style.css
+        ├── img
+        │   ├── earth.jpg
+        │   ├── favicon.ico
+        │   ├── particle.png
+        │   └── space.jpg
+        └── js
+            ├── nwdiagram.js
+            ├── particles.js
+            ├── practice.js
+            └── terrain.js
+```
+
+github pagesで表示するHTMLはプロジェクト直下に配置。
+
+その他の静的コンテンツは./staticの下に配置する。
+
+./static/buildにはthree.js本体を配置。
+
+./static/controlsに各種コントローラを配置。実体は `three.js-master/examples/jsm/controls` からコピーしたもの。
+
+./static/libsにはThree.jsに関連したアドオンやライブラリをコピーしておく。
 
 <br>
 
@@ -101,8 +106,8 @@ three.jsのバージョンを切り替えて試行するならこの方法がよ
   <script type="importmap">
     {
       "imports": {
-        "three": "/threejs/three.js-r145/build/three.module.js",
-        "OrbitControls": /threejs/three.js-r145/examples/jsm/controls/OrbitControls.js"
+        "three": "./threejs/three.js-r145/build/three.module.js",
+        "OrbitControls": ./threejs/three.js-r145/examples/jsm/controls/OrbitControls.js"
       }
     }
   </script>
@@ -130,10 +135,6 @@ import { OrbitControls } from "OrbitControls";
 
 ### ２．ローカルに必要なものだけをコピーして参照
 
-three.jsのdistフォルダと、examples/jsm/controlsを/staticにコピーして利用する。
-
-こうしておけばgithub pagesでそのまま動作する。
-
 <br>
 
 > [!NOTE]
@@ -150,27 +151,42 @@ three.jsのdistフォルダと、examples/jsm/controlsを/staticにコピーし�
 
 <br>
 
-
-- index.htmlでの指定
+- HTMLでの指定
 
 ```html
-    <!-- three.js -->
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "/static/build/three.module.js",
-          "OrbitControls": "/static/controls/OrbitControls.js",
-          "TrackballControls": "/static/controls/TrackballControls.js"
-        }
+  <!-- three.js -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./static/build/three.module.js",
+        "three/libs/": "./static/libs/",
+        "three/controls/": "./static/controls/"
       }
-    </script>
+    }
+  </script>
+
+  <script type="module">
+    import WebGL from './static/libs/capabilities/WebGL.js';
+    import { main } from "./static/site/js/nwdiagram.js";
+
+    window.addEventListener("load", () => {
+      if (WebGL.isWebGLAvailable()) {
+        main();
+      } else {
+        document.getElementById("threejs_wrapper").appendChild(WebGL.getWebGLErrorMessage());
+      }
+    });
+  </script>
 ```
 
 - JavaScriptでのインポート指定
 
 ```js
 import * as THREE from "three";
-import { TrackballControls } from "TrackballControls";
+import { OrbitControls } from 'three/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/libs/CSS2DRenderer.js';
+import { GUI } from "three/libs/lil-gui.module.min.js";
+import Stats from 'three/libs/stats.module.js';
 ```
 
 <br>
