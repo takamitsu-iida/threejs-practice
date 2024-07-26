@@ -14,17 +14,30 @@ import { GUI } from "three/libs/lil-gui.module.min.js";
 import Stats from 'three/libs/stats.module.js';
 
 /*
-  HTMLではこの指定が必要
+  HTMLではこのように指定する
 
   <!-- three.js -->
   <script type="importmap">
     {
       "imports": {
-        "three": "static/build/three.module.js",
-        "three/libs/": "static/libs/",
-        "three/controls/": "static/controls/"
+        "three": "./static/build/three.module.js",
+        "three/libs/": "./static/libs/",
+        "three/controls/": "./static/controls/"
       }
     }
+  </script>
+
+  <script type="module">
+    import WebGL from './static/libs/capabilities/WebGL.js';
+    import { main } from "./static/site/js/nwdiagram.js";
+
+    window.addEventListener("load", () => {
+      if (WebGL.isWebGLAvailable()) {
+        main();
+      } else {
+        document.getElementById("threejs_wrapper").appendChild(WebGL.getWebGLErrorMessage());
+      }
+    });
   </script>
 
 以下のようなディレクトリ配置になるようにbuild、controls、libsディレクトリを作成し
@@ -35,20 +48,22 @@ static
 │   ├── three.module.js
 │   └── three.module.min.js
 ├── controls
-│   ├── ArcballControls.js
-│   ├── DragControls.js
-│   ├── FirstPersonControls.js
-│   ├── FlyControls.js
-│   ├── MapControls.js
 │   ├── OrbitControls.js
-│   ├── PointerLockControls.js
 │   ├── TrackballControls.js
 │   └── TransformControls.js
 ├── libs
+│   ├── CSS2DRenderer.js
+│   ├── CSS3DRenderer.js
+│   ├── capabilities
+│   │   ├── WebGL.js
+│   │   └── WebGPU.js
 │   ├── lil-gui.module.min.js
 │   ├── stats.module.js
 │   └── tween.module.js
 └── site
+    ├── css
+    ├── img
+    └── js
 */
 
 
