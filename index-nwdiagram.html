@@ -6,6 +6,8 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <link rel="shortcut icon" type="image/x-icon" href="./static/site/img/favicon.ico">
+
   <title>Network Diagram</title>
 
   <style type="text/css">
@@ -187,14 +189,15 @@
       "imports": {
         "three": "/static/build/three.module.js",
         "three/libs/": "/static/libs/",
-        "three/controls/": "/static/controls/"
+        "three/controls/": "/static/controls/",
+        "nwdiagram": "/static/site/js/nwdiagram.js"
       }
     }
   </script>
 
   <script type="module">
-    import WebGL from '/static/libs/capabilities/WebGL.js';
-    import { main } from "/static/site/js/nwdiagram.js";
+    import WebGL from 'three/libs/capabilities/WebGL.js';
+    import { main } from "nwdiagram";
 
     window.addEventListener("load", () => {
       if (WebGL.isWebGLAvailable()) {
