@@ -192,6 +192,19 @@
     }
   </script>
 
+  <script type="module">
+    import WebGL from '/static/libs/capabilities/WebGL.js';
+    import { main } from "/static/site/js/nwdiagram.js";
+
+    window.addEventListener("load", () => {
+      if (WebGL.isWebGLAvailable()) {
+        main();
+      } else {
+        document.getElementById("threejs_wrapper").appendChild(WebGL.getWebGLErrorMessage());
+      }
+    });
+  </script>
+
 </head>
 
 
@@ -224,14 +237,5 @@
 
   </div>
 </body>
-
-
-<script type="module">
-  import { main } from "/static/site/js/nwdiagram.js";
-
-  window.addEventListener("load", () => {
-    main();
-  });
-</script>
 
 </html>

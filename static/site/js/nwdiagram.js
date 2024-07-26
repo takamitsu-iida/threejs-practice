@@ -313,11 +313,6 @@ export class Graph {
     return undefined;
   }
 
-  dispose() {
-    this.nodes = [];
-    this.edges = [];
-  }
-
 }
 
 
@@ -617,10 +612,9 @@ export let NetworkDiagram = function (options) {
     }
 
     // テスト用
-    // ボタンを押したら全削除
+    // ボタンを押したらシーン上のグラフを全て削除
     document.getElementById("idButton1").addEventListener("click", function() {
       dispose();
-      self.graph.dispose();
     });
 
     // ブラウザのリサイズイベントを登録
@@ -640,18 +634,17 @@ export let NetworkDiagram = function (options) {
 
   function dispose() {
 
-    // シーン上のノードオブジェクトと、対応するラベルオブジェクトを削除
+    // シーン上のノードオブジェクトを削除する
     self.graph.getNodes().forEach(node => {
 
       let node_mesh = scene.getObjectByName(node.data.id);
       if (node_mesh) {
 
-        // 対応するラベルオブジェクトを削除
-        let label_object = node_mesh.label_object;
-        if (label_object) {
-          // console.log(`remove ${label_object.name}`);
-          // 親子関係を解除すると、オブジェクトも削除される
-          node_mesh.remove(label_object);
+        while (node_mesh.children.length) {
+          // ラベルを含む全ての子オブジェクトを削除
+          const obj = node_mesh.children[0];
+          console.log(`remove ${obj.name}`);
+          obj.parent.remove(obj);
         }
 
         // console.log(`remove ${node_mesh.name}`);
