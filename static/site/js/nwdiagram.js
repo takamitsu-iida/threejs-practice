@@ -16,12 +16,13 @@ import Stats from 'three/libs/stats.module.js';
 /*
   HTMLではこの指定が必要
 
+  <!-- three.js -->
   <script type="importmap">
     {
       "imports": {
-        "three": "/static/build/three.module.js",
-        "three/libs/": "/static/libs/",
-        "three/controls/": "/static/controls/"
+        "three": "static/build/three.module.js",
+        "three/libs/": "static/libs/",
+        "three/controls/": "static/controls/"
       }
     }
   </script>

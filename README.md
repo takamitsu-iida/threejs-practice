@@ -5,7 +5,7 @@
 
 ただいまテスト中
 
-https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html
+https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram-github-pages.html
 
 
 <br>
