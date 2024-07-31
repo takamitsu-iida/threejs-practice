@@ -11,13 +11,6 @@
   <title>Network Diagram</title>
 
   <style type="text/css">
-    _body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-    }
-
-
     html {
       font-size: 62.5%;
     }
@@ -126,7 +119,7 @@
     }
 
 
-    #threejs_wrapper {
+    #threejsContainer {
       position: relative;
       top: 0px;
       left: 0px;
@@ -137,7 +130,25 @@
       border: 0px;
     }
 
-    #info_text {
+    #statsContainer {
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      margin: 0px;
+      padding: 0px;
+      border: 0px;
+    }
+
+    #guiContainer {
+      position: absolute;
+      top: 0px;
+      right: 0px;
+      margin: 0px;
+      padding: 0px;
+      border: 0px;
+    }
+
+    #infoContainer {
       position: absolute;
       top: 0px;
       left: 100px;
@@ -147,23 +158,6 @@
       color: #333;
     }
 
-    #stats_wrapper {
-      position: absolute;
-      top: 0px;
-      left: 0px;
-      margin: 0px;
-      padding: 0px;
-      border: 0px;
-    }
-
-    #gui_wrapper {
-      position: absolute;
-      top: 0px;
-      right: 0px;
-      margin: 0px;
-      padding: 0px;
-      border: 0px;
-    }
 
     .label {
       text-shadow: -1px 1px 1px rgb(0, 0, 0);
@@ -196,13 +190,19 @@
 
   <script type="module">
     import WebGL from './static/libs/capabilities/WebGL.js';
-    import { main } from "./static/site/js/nwdiagram.js";
+    import { Diagram, createSampleGraph } from "./static/site/js/nwdiagram.js";
 
     window.addEventListener("load", () => {
       if (WebGL.isWebGLAvailable()) {
-        main();
+        const graph = createSampleGraph();
+        new Diagram({
+          graph: graph,
+          selection: true,
+          showLabels: true,
+          labelFontSize: "Medium" // Small, Medium, Large
+        });
       } else {
-        document.getElementById("threejs_wrapper").appendChild(WebGL.getWebGLErrorMessage());
+        document.getElementById("threejsContainer").appendChild(WebGL.getWebGLErrorMessage());
       }
     });
   </script>
@@ -229,10 +229,10 @@
     </div>
 
     <div class="right_panel">
-      <div id="threejs_wrapper"></div>
-      <div id="stats_wrapper"></div>
-      <div id="gui_wrapper"></div>
-      <div id="info_text"></div>
+      <div id="threejsContainer"></div>
+      <div id="statsContainer"></div>
+      <div id="guiContainer"></div>
+      <div id="infoContainer"></div>
     </div>
 
   </div>
