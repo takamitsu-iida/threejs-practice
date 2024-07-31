@@ -481,6 +481,168 @@ export function createSampleGraph(options) {
 }
 
 
+export function createSampleGraph2(options) {
+  const clusters = [
+    {
+      clusterId: 1,
+      numTier3: 20
+    },
+    {
+      clusterId: 2,
+      numTier3: 20
+    },
+    {
+      clusterId: 3,
+      numTier3: 20
+    },
+    {
+      clusterId: 4,
+      numTier3: 20
+    },
+    {
+      clusterId: 5,
+      numTier3: 20
+    },
+    {
+      clusterId: 6,
+      numTier3: 20
+    },
+    {
+      clusterId: 7,
+      numTier3: 20
+    },
+    {
+      clusterId: 8,
+      numTier3: 20
+    },
+    {
+      clusterId: 9,
+      numTier3: 20
+    },
+    {
+      clusterId: 10,
+      numTier3: 20
+    },
+  ];
+
+  return new FiveStageClosGraph({ clusters: clusters }).circularLayout();
+}
+
+
+export class FiveStageClosGraph {
+
+  clusters;
+  /*
+  クラスタオブジェクトの配列
+  clusters = [
+    {
+      clusterId: 1,
+      numTier3: 10
+    }
+  ];
+  */
+
+  tier3Radius = 200;
+  tier3Interval = 30;
+
+  tier2Radius = 160;
+  tier2Height = 100;
+
+  // Graphクラスのインスタンス
+  graph;
+
+  constructor(options) {
+    this.options = options || {};
+
+    this.clusters = options.hasOwnProperty("clusters") ? options.clusters : [];
+
+    this.tier3Radius = options.hasOwnProperty("tier3Radius") ? options.tier3Radius : this.tier3Radius;
+    this.tier3Interval = options.hasOwnProperty("tier3Interval") ? options.tier3Interval : this.tier3Interval;
+
+    this.graph = new Graph();
+  }
+
+
+  circularLayout() {
+
+    const numClusters = this.clusters.length;
+    const tier3Theta = 2 * Math.PI / numClusters;
+
+    this.clusters.forEach((cluster, index) => {
+      const clusterId = cluster.clusterId;
+      const numTier3 = cluster.numTier3;
+
+      const theta = tier3Theta * index;
+      console.log(tier3Theta);
+
+      // tier3のノードを追加
+      for (let i = 0; i < numTier3; i++) {
+        const nodeId = `cluster${clusterId}_tier3_${i}`;
+        const radius = this.tier3Radius + this.tier3Interval * i;
+        const x = radius * Math.cos(theta);
+        const y = 0;
+        const z = radius * Math.sin(theta);
+
+        const node = {
+          group: 'nodes',
+          data: {
+            id: nodeId,
+            label: nodeId
+          },
+          position: {x, y, z}
+        };
+        this.graph.addNode(node);
+      }
+
+      // tier2のノード 0系, 1系 を追加
+      for (let i = 0; i < 2; i++) {
+
+        const nodeId = `cluster${clusterId}_tier2_${i}`;
+        const radius = this.tier2Radius;
+        const deltaTheta = (2 * Math.PI /(numClusters * 2)) / 2;
+        let tier2Theta = (i === 0) ? theta + deltaTheta : theta - deltaTheta;
+        const x = radius * Math.cos(tier2Theta);
+        const y = this.tier2Height;
+        const z = radius * Math.sin(tier2Theta);
+
+        const node = {
+          group: 'nodes',
+          data: {
+            id: nodeId,
+            label: nodeId
+          },
+          position: {x, y, z}
+        };
+        this.graph.addNode(node);
+
+        // tier2とtier3をつなぐエッジを追加
+        for (let j = 0; j < numTier3; j++) {
+          const tier3NodeId = `cluster${clusterId}_tier3_${j}`;
+          const edge = {
+            group: 'edges',
+            data: {
+              id: `edge_${nodeId}_${tier3NodeId}`,
+              source: nodeId,
+              target: tier3NodeId
+            }
+          };
+          this.graph.addEdge(edge);
+        }
+
+
+      }
+
+
+    });
+    return this.graph;
+  }
+
+
+}
+
+
+
+
 class Node extends THREE.Group {
 
   // ノードを表現するメッシュ

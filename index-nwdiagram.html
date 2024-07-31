@@ -190,11 +190,11 @@
 
   <script type="module">
     import WebGL from './static/libs/capabilities/WebGL.js';
-    import { Diagram, createSampleGraph } from "./static/site/js/nwdiagram.js";
+    import { Diagram, createSampleGraph2 } from "./static/site/js/nwdiagram.js";
 
     window.addEventListener("load", () => {
       if (WebGL.isWebGLAvailable()) {
-        const graph = createSampleGraph();
+        const graph = createSampleGraph2();
         new Diagram({
           graph: graph,
           selection: true,
