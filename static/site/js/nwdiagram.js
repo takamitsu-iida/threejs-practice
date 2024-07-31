@@ -257,16 +257,16 @@ export let CanvasLabel = function (parameters) {
 
 function makeTextSprite(message, parameters) {
   /*
-		var spritey = makeTextSprite( " " + i + " ", { fontsize: 32, backgroundColor: {r:255, g:100, b:100, a:1} } );
-		spritey.position = topo.vertex[i].vector3.clone().multiplyScalar(1.1);
-		scene.add( spritey );
+    var spritey = makeTextSprite( " " + i + " ", { fontsize: 32, backgroundColor: {r:255, g:100, b:100, a:1} } );
+    spritey.position = topo.vertex[i].vector3.clone().multiplyScalar(1.1);
+    scene.add( spritey );
   */
 
   if (parameters === undefined) parameters = {};
 
   var fontface = parameters.hasOwnProperty("fontface") ? parameters["fontface"] : "Arial";
   var fontsize = parameters.hasOwnProperty("fontsize") ? parameters["fontsize"] : 18;
-  var borderThickness = parameters.hasOwnProperty("borderThickness") ?  parameters["borderThickness"] : 4;
+  var borderThickness = parameters.hasOwnProperty("borderThickness") ? parameters["borderThickness"] : 4;
   var borderColor = parameters.hasOwnProperty("borderColor") ? parameters["borderColor"] : { r: 0, g: 0, b: 0, a: 1.0 };
   var backgroundColor = parameters.hasOwnProperty("backgroundColor") ? parameters["backgroundColor"] : { r: 255, g: 255, b: 255, a: 1.0 };
 
@@ -718,9 +718,11 @@ export class Diagram {
     labelFontSize: "Medium"  // "Small", "Medium", "Large"
   }
 
+
   constructor(options) {
     this.options = options || {};
 
+    // optionsに渡された値を保存
     this.graph = this.options.hasOwnProperty("graph") ? this.options.graph : [];
     this.selectionEnabled = this.options.hasOwnProperty("selection") ? this.options.selection : true;
     this.labelParams.showLabels = this.options.hasOwnProperty("showLabels") ? this.options.showLabels : this.labelParams.showLabels;
@@ -733,16 +735,18 @@ export class Diagram {
     this.initObjectSelection();
     this.initEventHandler();
 
+    // Graphクラスの情報を元にシーンにノードとエッジを追加
     this.drawGraph(this.graph);
 
     this.animate();
   }
 
   //
-  // 初期化
+  // Three.js初期化処理
   //
   init() {
 
+    // アロー関数内でthisを使うと混乱するのでselfに代入しておく
     self = this;
 
     // コンテナ要素を取得
@@ -807,10 +811,11 @@ export class Diagram {
     //
     const axesHelper = new THREE.AxesHelper(10000);
     this.scene.add(axesHelper);
-
   }
 
- initControls() {
+
+  // マウス操作のコントロールを初期化
+  initControls() {
     // OrbitControls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
@@ -829,119 +834,139 @@ export class Diagram {
     this.controls.staticMoving = false;
     this.controls.dynamicDampingFactor = 0.3;
     */
- }
+  }
 
- initStats() {
-    // stats.jsを初期化
-    const statsContainer = document.getElementById("statsContainer");
-    if (statsContainer) {
-      this.statsjs = new Stats();
-      this.statsjs.dom.style.position = "relative";
-      this.statsjs.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
-      statsContainer.appendChild(this.statsjs.dom);
+
+  // stats.jsを初期化
+  initStats() {
+    let container = document.getElementById("statsjsContainer");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "statsjsContainer";
+      this.container.appendChild(container);
     }
- }
+
+    this.statsjs = new Stats();
+    this.statsjs.dom.style.position = "relative";
+    this.statsjs.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+    container.appendChild(this.statsjs.dom);
+  }
 
 
- initGui() {
-  const guiContainer = document.getElementById("guiContainer");
-  if (guiContainer) {
-    const gui = new GUI({ container: guiContainer });
+  // lil-guiを初期化
+  initGui() {
+    let container = document.getElementById("guiContainer");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "guiContainer";
+      this.container.appendChild(container);
+    }
+
+    const gui = new GUI({ container: container });
 
     // GUIでラベル表示のON/OFFを切り替える
-    const labelGui = gui.addFolder('Label');
-    labelGui
-      .add(this.labelParams, 'showLabels')
-      .name('show node label')
-      .onChange((value) => {
-        // レイヤでラベルを表示するかどうかを切り替える
-        self.camera.layers.toggle(1);
+    {
+      const folder = gui.addFolder('Label');
+      folder
+        .add(this.labelParams, 'showLabels')
+        .name('show node label')
+        .onChange((value) => {
+          // レイヤでラベルを表示するかどうかを切り替える
+          self.camera.layers.toggle(1);
 
-        // 非表示に変更したら、render()を呼んで画面上から消す
-        if (self.camera.layers.test(1) === false) {
-          self.labelRenderer.render(self.scene, self.camera);
-        }
-      });
-
-    labelGui
-      .add(this.labelParams, 'labelFontSize')
-      .options(['Small', 'Medium', 'Large'])
-      .name('font size')
-      .onChange((value) => {
-        // CSS2DObjectはDIVを元にしているので、CSSクラスを変更するだけでフォントサイズを変えられる
-        document.querySelectorAll('.label').forEach((label) => {
-          label.classList.remove('small', 'medium', 'large');
-          label.classList.add(value.toLowerCase());
+          // 非表示に変更したら、render()を呼んで画面上から消す
+          if (self.camera.layers.test(1) === false) {
+            self.labelRenderer.render(self.scene, self.camera);
+          }
         });
-      });
 
-    const orbitGui = gui.addFolder('OrbitControls');
-    orbitGui
-      .add(this.controls, 'autoRotate')
-      .name('auto rotate')
+      folder
+        .add(this.labelParams, 'labelFontSize')
+        .options(['Small', 'Medium', 'Large'])
+        .name('font size')
+        .onChange((value) => {
+          // CSS2DObjectはDIVを元にしているので、CSSクラスを変更するだけでフォントサイズを変えられる
+          document.querySelectorAll('.label').forEach((label) => {
+            label.classList.remove('small', 'medium', 'large');
+            label.classList.add(value.toLowerCase());
+          });
+        });
+    }
+
+    // GUIでOrbitControlsの設定を変更する
+    {
+      const folder = gui.addFolder('OrbitControls');
+      folder
+        .add(this.controls, 'autoRotate')
+        .name('auto rotate')
+    }
+
   }
- }
 
 
- initObjectSelection() {
+  // ObjectSelectionを初期化
+  initObjectSelection() {
+    if (this.selectionEnabled === false) {
+      return;
+    }
 
     // ObjectSelectionを初期化
-    if (this.selectionEnabled) {
-      this.objectSelection = new ObjectSelection({
-        domElement: this.renderer.domElement,
-        selected: function (obj) {
-          if (obj === null) {
-            // フォーカスが外れるとnullが渡される
-            self.infoParams.selected = null;
-          } else {
-            // フォーカスが当たるとオブジェクトが渡される
-            if (!obj.name) {
-              return;
-            }
-
-            console.log(obj.name);
-            const element = self.graph.getElementById(obj.name);
-            if (!element) {
-              return;
-            }
-            self.infoParams.selected = element.data.id;
+    this.objectSelection = new ObjectSelection({
+      domElement: this.renderer.domElement,
+      selected: function (obj) {
+        if (obj === null) {
+          // フォーカスが外れるとnullが渡される
+          self.infoParams.selected = null;
+        } else {
+          // フォーカスが当たるとオブジェクトが渡される
+          if (!obj.name) {
+            return;
           }
-        },
-        clicked: function (obj) {
-          if (obj) {
-            if (!obj.name) {
-              return;
-            }
 
-            // 参考までに、
-            // スクリーン座標を求めて表示する
-            const element = self.graph.getElementById(obj.name);
-            const worldPosition = obj.getWorldPosition(new THREE.Vector3());
-            const projection = worldPosition.project(self.camera);
-            const screenX = Math.round((projection.x + 1) / 2 * self.sizes.width);
-            const screenY = Math.round(-(projection.y - 1) / 2 * self.sizes.height);
-            console.log(`${element.data.id} (${screenX}, ${screenY})`);
-
-            // ノードの場合は強調表示のコーンを表示/非表示する
-            // クリックされているのはノード本体なので、親のグループを取得する
-            if (obj.parent && obj.parent.constructor.name === "Node") {
-              const cone = obj.parent.getObjectByName(`${element.data.id}_cone`);
-              if (cone) {
-                cone.visible = !cone.visible;
-              }
-            }
-
+          console.log(obj.name);
+          const element = self.graph.getElementById(obj.name);
+          if (!element) {
+            return;
           }
+          self.infoParams.selected = element.data.id;
         }
-      });
-    }
- }
+      },
+      clicked: function (obj) {
+        if (obj) {
+          if (!obj.name) {
+            return;
+          }
 
- initEventHandler() {
+          // 参考までに、
+          // スクリーン座標を求めて表示する
+          const element = self.graph.getElementById(obj.name);
+          const worldPosition = obj.getWorldPosition(new THREE.Vector3());
+          const projection = worldPosition.project(self.camera);
+          const screenX = Math.round((projection.x + 1) / 2 * self.sizes.width);
+          const screenY = Math.round(-(projection.y - 1) / 2 * self.sizes.height);
+          console.log(`${element.data.id} (${screenX}, ${screenY})`);
+
+          // ノードの場合は強調表示のコーンを表示/非表示する
+          // クリックされているのはノード本体なので、親のグループを取得する
+          if (obj.parent && obj.parent.constructor.name === "Node") {
+            const cone = obj.parent.getObjectByName(`${element.data.id}_cone`);
+            if (cone) {
+              cone.visible = !cone.visible;
+            }
+          }
+
+        }
+      }
+    });
+
+  }
+
+  // イベントハンドラを登録
+  initEventHandler() {
     // テスト用
     // ボタンを押したらシーン上のグラフを全て削除
     document.getElementById("idButton1").addEventListener("click", function () {
-      self.dispose();
+      self.removeGraph();
     });
 
     // ブラウザのリサイズイベントを登録
@@ -957,7 +982,8 @@ export class Diagram {
     }
 
     window.addEventListener("resize", onWindowResize);
- }
+  }
+
 
   render() {
 
@@ -978,8 +1004,8 @@ export class Diagram {
 
     // render label
     this.labelRenderer.render(this.scene, this.camera);
-
   }
+
 
   animate() {
 
@@ -989,18 +1015,20 @@ export class Diagram {
     }
 
     // マウスコントロールを更新
-    self.controls.update();
+    if (self.controls) {
+      self.controls.update();
+    }
 
-    // レンダラーを更新する際に、パラメータ変更にあわせて再描画したいので、render()を呼び出す
-    // render()の中で renderer.render(scene, camera); をコールしている
+    // レンダリング
     self.render();
 
-    // マウス操作で選択したオブジェクトの情報を表示
+    // infoParamsに表示する情報があれば表示する
     self.printInfo();
 
     // 再帰処理
     requestAnimationFrame(self.animate);
   }
+
 
   printInfo() {
     if (this.infoParams.selected) {
@@ -1009,6 +1037,7 @@ export class Diagram {
       this.infoParams.element.innerHTML = "";
     }
   }
+
 
   //
   // Graphクラスのインスタンスの情報をもとにノードとエッジをシーン上に作成する
@@ -1039,7 +1068,7 @@ export class Diagram {
   //
   // シーン上のノードとエッジを削除する
   //
-  dispose() {
+  removeGraph() {
 
     // シーン上のNodeオブジェクトを削除する
     self.graph.getNodes().forEach(node => {
@@ -1073,8 +1102,5 @@ export class Diagram {
     // シーンに残っているオブジェクトを表示する
     console.log(self.scene.children);
   }
-
-
-
 
 }
