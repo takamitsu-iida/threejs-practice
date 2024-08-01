@@ -133,7 +133,7 @@ export var ObjectSelection = function (parameters) {
   raycaster.layers.enable(2);
   raycaster.layers.enable(3);
 
-  // アニメーションの中でこのrender()関数を呼ぶことで、選択したオブジェクトの色を変える
+  // アニメーションの中でこのrender()関数を呼ぶ
   this.render = function (scene, camera) {
 
     // カメラからマウス座標に向かって光線を飛ばす
@@ -572,6 +572,48 @@ export function createSampleGraph2(options) {
       clusterId: 20,
       numTier3: 30
     },
+    {
+      clusterId: 21,
+      numTier3: 30
+    },
+    {
+      clusterId: 22,
+      numTier3: 30
+    },
+    {
+      clusterId: 23,
+      numTier3: 30
+    },
+    {
+      clusterId: 24,
+      numTier3: 30
+    },
+    {
+      clusterId: 25,
+      numTier3: 30
+    },
+    {
+      clusterId: 26,
+      numTier3: 30
+    },
+    {
+      clusterId: 27,
+      numTier3: 30
+    },
+    {
+      clusterId: 28,
+      numTier3: 30
+    },
+    {
+      clusterId: 29,
+      numTier3: 30
+    },
+    {
+      clusterId: 30,
+      numTier3: 30
+    },
+
+
   ];
 
   return new FiveStageClosGraph({ clusters: clusters }).circularLayout();
@@ -709,7 +751,7 @@ export class FiveStageClosGraph {
     let tier3Interval = 25;
     tier3Interval = options.hasOwnProperty("tier3Interval") ? options.tier3Interval : tier3Interval;
 
-    let tier2Radius = 300;
+    let tier2Radius = 400;
     tier2Radius = options.hasOwnProperty("tier2Radius") ? options.tier2Radius : tier2Radius;
 
     let tier2Height = 100;
@@ -975,40 +1017,31 @@ class Edge extends THREE.Group {
       color = edge.data.redundantId === 0 ? this.COLOR_REDUNDANT_0 : this.COLOR_REDUNDANT_1;
     }
 
-    // グラフのエッジのデータを保持しておく
+    // グラフのエッジ情報を保持しておく
     this.edge = edge;
 
     // グループに名前を設定
     this.name = `${this.edge.data.id}_group`
 
     // 線のジオメトリを作成
-    const geometry = new THREE.BufferGeometry();
-
-    // 2点間の座標をverticesに追加
-    const vertices = [];
-    vertices.push(source.position.x);
-    vertices.push(source.position.y);
-    vertices.push(source.position.z);
-
-    vertices.push(target.position.x);
-    vertices.push(target.position.y);
-    vertices.push(target.position.z);
-
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    // Tier1ノードとの接続は曲線、それ以外は直線
+    let geometry;
+    if (source.data.tier === 1 || target.data.tier === 1) {
+      geometry = this.createCurveGeometry(source, target);
+    } else {
+      geometry = this.createLineGeometry(source, target);
+    }
 
     // マテリアルを作成
-    const material = new THREE.LineBasicMaterial(
-      {
-        color: color,
-        linewidth: 1  // 多くのプラットフォームで無視される
-      }
-    );
+    const material = new THREE.LineBasicMaterial({ color: color });
 
-    this.line = new THREE.LineSegments(geometry, material);
-    this.line.scale.x = this.line.scale.y = this.line.scale.z = 1;
-    this.line.originalScale = 1;
+    // メッシュ化
+    this.line = new THREE.Line(geometry, material);
+
+    // 名前を設定しておく
     this.line.name = edge.data.id;
 
+    // redundantIdにあわせてレイヤーを設定
     if (edge.data.hasOwnProperty("redundantId")) {
       if (edge.data.redundantId === 0) {
         this.line.layers.set(this.LAYER_REDUNDANT_0);
@@ -1025,8 +1058,48 @@ class Edge extends THREE.Group {
 
     this.add(this.line);
   }
-}
 
+  createLineGeometry(source, target) {
+    const vertices = [];
+
+    vertices.push(source.position.x);
+    vertices.push(source.position.y);
+    vertices.push(source.position.z);
+
+    vertices.push(target.position.x);
+    vertices.push(target.position.y);
+    vertices.push(target.position.z);
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+
+    return geometry;
+  }
+
+  createCurveGeometry(source, target) {
+    const sourcePosition = new THREE.Vector3(source.position.x, source.position.y, source.position.z);
+    const targetPosition = new THREE.Vector3(target.position.x, target.position.y, target.position.z);
+    const middlePosition = new THREE.Vector3(
+      (sourcePosition.x + targetPosition.x) / 2,
+      (sourcePosition.y + targetPosition.y) / 2,
+      (sourcePosition.z + targetPosition.z) / 2
+    );
+    middlePosition.multiplyScalar(1.4);
+
+    const bezier = new THREE.QuadraticBezierCurve3(sourcePosition, middlePosition, targetPosition);
+    const curvePath = new THREE.CurvePath();
+    curvePath.add(bezier);
+
+    const geometry = new THREE.BufferGeometry();
+
+    const points = curvePath.getPoints(12); // Default is 12
+
+    geometry.setFromPoints(points);
+
+    return geometry;
+  }
+
+}
 
 
 export class Diagram {
@@ -1065,6 +1138,9 @@ export class Diagram {
   light1;
   light2;
 
+  // XYZ軸を表示するかどうか
+  axesHelper;
+
   // マウス操作のコントロール
   controls;
 
@@ -1097,6 +1173,7 @@ export class Diagram {
     this.selectionEnabled = this.options.hasOwnProperty("selection") ? this.options.selection : true;
     this.labelParams.showLabels = this.options.hasOwnProperty("showLabels") ? this.options.showLabels : this.labelParams.showLabels;
     this.labelParams.labelFontSize = this.options.hasOwnProperty("labelFontSize") ? this.options.labelFontSize : this.labelParams.labelFontSize;
+    this.axesHelperEnabled = this.options.hasOwnProperty("axesHelper") ? this.options.axesHelper : true;
 
     this.init();
     this.initControls();
@@ -1183,10 +1260,12 @@ export class Diagram {
     //   /
     //  Z(blue)
     //
-    const axesHelper = new THREE.AxesHelper(10000);
-    this.scene.add(axesHelper);
+    this.axesHelper = new THREE.AxesHelper(10000);
+    this.scene.add(this.axesHelper);
+    if (this.axesHelperEnabled === false) {
+      this.axesHelper.visible = false;
+    }
   }
-
 
   // マウス操作のコントロールを初期化
   initControls() {
@@ -1238,7 +1317,7 @@ export class Diagram {
 
     const gui = new GUI({ container: container });
 
-    // GUIでラベル表示のON/OFFを切り替える
+    // ラベル表示のON/OFFを切り替える
     {
       const folder = gui.addFolder('Label');
       folder
@@ -1267,15 +1346,42 @@ export class Diagram {
         });
     }
 
-    // GUIでOrbitControlsの設定を変更する
+    // axesHelperの表示をON/OFFする
+    {
+      const folder = gui.addFolder('AxesHelper');
+      folder
+        .add(this, 'axesHelperEnabled')
+        .name('show AxesHelper')
+        .onChange((value) => {
+          this.axesHelper.visible = value;
+        });
+    }
+
+    // OrbitControlsの自動回転のON/OFFを変更する
     {
       const folder = gui.addFolder('OrbitControls');
       folder
         .add(this.controls, 'autoRotate')
         .name('auto rotate')
+        .onChange((value) => {
+          if (value) {
+            // 回転中はマウス操作を無効にする
+            this.selectionEnabled = false;
+          }
+        });
     }
 
-    // GUIでredundantIdが0と1の表示を切り替える
+    // selectionEnabledのON/OFFを変更する
+    {
+      const folder = gui.addFolder('ObjectSelection');
+      folder
+        .add(this, 'selectionEnabled')
+        .name('selectionEnabled')
+        .listen();
+    }
+
+
+    // グラフのredundantIdの表示ON/OFFを切り替える
     {
       const folder = gui.addFolder('Redundunt');
       folder
@@ -1296,11 +1402,7 @@ export class Diagram {
 
   // ObjectSelectionを初期化
   initObjectSelection() {
-    if (this.selectionEnabled === false) {
-      return;
-    }
 
-    // ObjectSelectionを初期化
     this.objectSelection = new ObjectSelection({
       domElement: this.renderer.domElement,
       mouseover: function (obj) {
@@ -1360,13 +1462,13 @@ export class Diagram {
     // ブラウザのリサイズイベントを登録
     function onWindowResize() {
       // コンテナ要素のサイズに合わせてsizesを更新する
-      this.sizes.width = self.container.clientWidth;
-      this.sizes.height = self.container.clientHeight;
+      self.sizes.width = self.container.clientWidth;
+      self.sizes.height = self.container.clientHeight;
 
-      this.camera.aspect = self.sizes.width / self.sizes.height;
-      this.camera.updateProjectionMatrix();
-      this.renderer.setSize(self.sizes.width, self.sizes.height);
-      this.labelRenderer.setSize(self.sizes.width, self.sizes.height);
+      self.camera.aspect = self.sizes.width / self.sizes.height;
+      self.camera.updateProjectionMatrix();
+      self.renderer.setSize(self.sizes.width, self.sizes.height);
+      self.labelRenderer.setSize(self.sizes.width, self.sizes.height);
     }
 
     window.addEventListener("resize", onWindowResize);
@@ -1407,7 +1509,7 @@ export class Diagram {
       self.controls.update();
     }
 
-    // レンダリング
+    // 各種レンダリング
     self.render();
 
     // infoParamsに表示する情報があれば表示する

@@ -197,9 +197,10 @@
         const graph = createSampleGraph2();
         new Diagram({
           graph: graph,
-          selection: true,
-          showLabels: false,
-          labelFontSize: "Medium" // Small, Medium, Large
+          selection: false, // Default: true
+          showLabels: false, // Default: true
+          labelFontSize: "Small", // Small, Medium, Large, Default: Medium
+          axesHelper: false, // Default: true
         });
       } else {
         document.getElementById("threejsContainer").appendChild(WebGL.getWebGLErrorMessage());
