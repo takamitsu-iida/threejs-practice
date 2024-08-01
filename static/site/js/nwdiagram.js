@@ -67,7 +67,7 @@ static
 */
 
 
-export var ObjectSelection = function (parameters) {
+export let ObjectSelection = function (parameters) {
 
   // 参照
   // 初めてのThree.js 第二版 P235
@@ -77,18 +77,27 @@ export var ObjectSelection = function (parameters) {
 
   this.INTERSECTED = null;
 
-  var self = this;
-  var callbackMouseover = parameters.mouseover || none;
-  var callbackClicked = parameters.clicked || none;
-  var mouse = new THREE.Vector2()
+  const self = this;
+
+  // マウスカーソルが上に乗ったときのコールバック関数
+  const callbackMouseover = parameters.mouseover || none;
+
+  // マウスをクリックしたときのコールバック関数
+  const callbackClicked = parameters.clicked || none;
+
+  // マウス位置
+  const mousePosition = new THREE.Vector2()
 
   // スクリーン上のDOM要素
   this.domElement = parameters.domElement || document;
 
-  // マウスが動いたときのイベントを登録
-  this.domElement.addEventListener('mousemove', onDocumentMouseMove, false);
+  // mousemoveイベントを登録
+  this.domElement.addEventListener('mousemove', onMouseMove, false);
 
-  function onDocumentMouseMove(event) {
+  function onMouseMove(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
     // DOM要素(canvas)を取得する
     // これはeventから取得してもよいし、parametersで渡されたものを使ってもよい
     // const element = self.domElement;
@@ -106,15 +115,14 @@ export var ObjectSelection = function (parameters) {
     const h = element.clientHeight;
 
     // マウス座標を(-1, 1)の範囲に変換
-    mouse.x = +(x / w) * 2 - 1;
-    mouse.y = -(y / h) * 2 + 1;
-
+    mousePosition.x = +(x / w) * 2 - 1;
+    mousePosition.y = -(y / h) * 2 + 1;
   }
 
-  // クリックイベントを登録
-  this.domElement.addEventListener('click', onDocumentMouseClick, false);
+  // clickイベントを登録
+  this.domElement.addEventListener('click', onMouseClick, false);
 
-  function onDocumentMouseClick(event) {
+  function onMouseClick(event) {
     event.preventDefault();
     event.stopPropagation();
 
@@ -126,18 +134,18 @@ export var ObjectSelection = function (parameters) {
   }
 
   // 光線を飛ばすレイキャスター
-  var raycaster = new THREE.Raycaster();
+  const raycaster = new THREE.Raycaster();
 
-  // レイキャスターがどのレイヤーを見るかを設定
-  // レイヤ1はラベル用なので、選択されないようにする
+  // レイキャスターが対象にするレイヤーを指定
+  // レイヤ1はラベル用なので選択されないようにする
   raycaster.layers.enable(2);
   raycaster.layers.enable(3);
 
-  // アニメーションの中でこのrender()関数を呼ぶ
+  // animate()の中でこのrender()関数を呼ぶ
   this.render = function (scene, camera) {
 
     // カメラからマウス座標に向かって光線を飛ばす
-    raycaster.setFromCamera(mouse, camera);
+    raycaster.setFromCamera(mousePosition, camera);
 
     // オブジェクトに光線がぶつかっているか、判定する
     const intersects = raycaster.intersectObject(scene, true);
@@ -148,7 +156,7 @@ export var ObjectSelection = function (parameters) {
       // 前回と違うオブジェクトに光線が当たっているなら、
       if (this.INTERSECTED != intersects[0].object) {
 
-        // 前回と違うオブジェクトに光線が当たっているなら、古いオブジェクトは元の色に戻す
+        // 古いオブジェクトは元の色に戻す
         if (this.INTERSECTED) {
           if (this.INTERSECTED.material.color) {
             this.INTERSECTED.material.color.setHex(this.INTERSECTED.currentHex);
@@ -158,7 +166,7 @@ export var ObjectSelection = function (parameters) {
         // 新しいオブジェクトを選択して、
         this.INTERSECTED = intersects[0].object;
 
-        // マテリアルに色の属性があるなら、
+        // そのオブジェクトに色の属性があるなら、
         if (this.INTERSECTED.material.color) {
           // 現在の色をオブジェクト内に保存して、
           this.INTERSECTED.currentHex = this.INTERSECTED.material.color.getHex();
@@ -171,19 +179,19 @@ export var ObjectSelection = function (parameters) {
         if (typeof callbackMouseover === 'function') {
           callbackMouseover(this.INTERSECTED);
         }
-
       }
 
     } else {
       // 光線がオブジェクトにぶつかっていないなら
 
+      // 古いオブジェクトは元の色に戻す
       if (this.INTERSECTED) {
         if (this.INTERSECTED.material.color) {
-          // 古いオブジェクトは元の色に戻す
           this.INTERSECTED.material.color.setHex(this.INTERSECTED.currentHex);
         }
       }
 
+      // 選択を外して
       this.INTERSECTED = null;
 
       if (typeof callbackMouseover === 'function') {
@@ -385,7 +393,7 @@ export class Graph {
       throw new Error("edge.data.id is required");
     }
     if ("group" in edge === false) {
-      node["group"] = "edges"
+      edge["group"] = "edges"
     }
 
     this.edges.push(edge);
@@ -612,11 +620,10 @@ export function createSampleGraph2(options) {
       clusterId: 30,
       numTier3: 30
     },
-
-
   ];
 
-  return new FiveStageClosGraph({ clusters: clusters }).circularLayout();
+  // return new FiveStageClosGraph({ clusters: clusters }).circularLayout().getGraph();
+  return new FiveStageClosGraph({ clusters: clusters }).circularLayout2().getGraph();
 }
 
 
@@ -641,6 +648,10 @@ export class FiveStageClosGraph {
     this.clusters = options.hasOwnProperty("clusters") ? options.clusters : [];
     this.graph = new Graph();
     this.createNodeEdge();
+  }
+
+  getGraph() {
+    return this.graph;
   }
 
   createNodeEdge() {
@@ -823,8 +834,93 @@ export class FiveStageClosGraph {
       }
     }
 
-    return this.graph;
+    return this;
   }
+
+
+  circularLayout2(options) {
+    options = options || {};
+
+    let tier3Radius = 200;
+    tier3Radius = options.hasOwnProperty("tier3Radius") ? options.tier3Radius : tier3Radius;
+
+    let tier3Interval = 25;
+    tier3Interval = options.hasOwnProperty("tier3Interval") ? options.tier3Interval : tier3Interval;
+
+    let tier2Radius = 400;
+    tier2Radius = options.hasOwnProperty("tier2Radius") ? options.tier2Radius : tier2Radius;
+
+    let tier2Height = 100;
+    tier2Height = options.hasOwnProperty("tier2Height") ? options.tier2Height : tier2Height;
+
+    let tier1Radius = 100;
+    tier1Radius = options.hasOwnProperty("tier1Radius") ? options.tier1Radius : tier1Radius;
+
+    let tier1Height = tier2Height + 150;
+    tier1Height = options.hasOwnProperty("tier1Height") ? options.tier1Height : tier1Height;
+
+    // クラスタの数
+    const numClusters = this.clusters.length;
+
+    // クラスタを放射線状に配置するときの角度
+    const tier3Theta = 2 * Math.PI / numClusters;
+
+    // 各クラスタについて
+    this.clusters.forEach((cluster, index) => {
+
+      // clusterIdとnumTier3を取り出しておく
+      const clusterId = cluster.clusterId;
+      const numTier3 = cluster.numTier3;
+
+      // 何番目のクラスタか、によって放射線状に配置する角度を決める
+      const theta = tier3Theta * index;
+
+      // tier3のノードの位置を決める
+      for (let i = 0; i < numTier3; i++) {
+        const nodeId = `c${clusterId}_t3_${i}`;
+        const radius = tier3Radius + tier3Interval * i;
+        const x = radius * Math.cos(theta);
+        const y = 0;
+        const z = radius * Math.sin(theta);
+        const n = this.graph.getElementById(nodeId);
+        if (n) {
+          n.position = { x, y, z };
+        }
+      }
+
+      // tier2のノードの位置を決める
+      for (let i = 0; i < 2; i++) {
+        const nodeId = `c${clusterId}_t2_${i}`;
+        const radius = tier2Radius;
+        const x = radius * Math.cos(theta);
+        const y = (i === 0) ? tier2Height : -tier2Height;
+        const z = radius * Math.sin(theta);
+        const n = this.graph.getElementById(nodeId);
+        if (n) {
+          n.position = { x, y, z };
+        }
+      }
+
+    });
+
+    // tier1のノードの位置を決める
+    for (let i = 0; i < 4; i++) {
+      const nodeId = `t1_${i}`;
+      const radius = tier1Radius;
+      const tier1Theta = 2 * Math.PI / 4;
+      const theta = tier1Theta * i;
+      const x = radius * Math.cos(theta);
+      const y = (i%2 === 0) ? tier1Height : -1 * tier1Height;
+      const z = radius * Math.sin(theta);
+      const n = this.graph.getElementById(nodeId);
+      if (n) {
+        n.position = { x, y, z };
+      }
+    }
+
+    return this;
+  }
+
 }
 
 
