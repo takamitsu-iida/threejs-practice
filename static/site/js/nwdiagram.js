@@ -523,6 +523,49 @@ export function createSampleGraph2(options) {
       clusterId: 10,
       numTier3: 20
     },
+    {
+      clusterId: 11,
+      numTier3: 20
+    },
+    {
+      clusterId: 12,
+      numTier3: 20
+    },
+    {
+      clusterId: 13,
+      numTier3: 20
+    },
+    {
+      clusterId: 14,
+      numTier3: 20
+    },
+    {
+      clusterId: 15,
+      numTier3: 20
+    },
+    {
+      clusterId: 16,
+      numTier3: 20
+    },
+    {
+      clusterId: 17,
+      numTier3: 20
+    },
+    {
+      clusterId: 18,
+      numTier3: 20
+    },
+    {
+      clusterId: 19,
+      numTier3: 20
+    },
+    {
+      clusterId: 20,
+      numTier3: 20
+    },
+
+
+
   ];
 
   return new FiveStageClosGraph({ clusters: clusters }).circularLayout();
@@ -533,7 +576,7 @@ export class FiveStageClosGraph {
 
   clusters;
   /*
-  クラスタオブジェクトの配列
+  このようなものを想定
   clusters = [
     {
       clusterId: 1,
@@ -542,43 +585,58 @@ export class FiveStageClosGraph {
   ];
   */
 
-  tier3Radius = 200;
-  tier3Interval = 30;
-
-  tier2Radius = 160;
-  tier2Height = 100;
-
   // Graphクラスのインスタンス
   graph;
 
   constructor(options) {
     this.options = options || {};
-
     this.clusters = options.hasOwnProperty("clusters") ? options.clusters : [];
-
-    this.tier3Radius = options.hasOwnProperty("tier3Radius") ? options.tier3Radius : this.tier3Radius;
-    this.tier3Interval = options.hasOwnProperty("tier3Interval") ? options.tier3Interval : this.tier3Interval;
 
     this.graph = new Graph();
   }
 
 
-  circularLayout() {
+  circularLayout(options) {
+    options = options || {};
 
+    let tier3Radius = 200;
+    tier3Radius = options.hasOwnProperty("tier3Radius") ? options.tier3Radius : tier3Radius;
+
+    let tier3Interval = 25;
+    tier3Interval = options.hasOwnProperty("tier3Interval") ? options.tier3Interval : tier3Interval;
+
+    let tier2Radius = 300;
+    tier2Radius = options.hasOwnProperty("tier2Radius") ? options.tier2Radius : tier2Radius;
+
+    let tier2Height = 100;
+    tier2Height = options.hasOwnProperty("tier2Height") ? options.tier2Height : tier2Height;
+
+    let tier1Radius = 100;
+    tier1Radius = options.hasOwnProperty("tier1Radius") ? options.tier1Radius : tier1Radius;
+
+    let tier1Height = tier2Height + 150;
+    tier1Height = options.hasOwnProperty("tier1Height") ? options.tier1Height : tier1Height;
+
+    // クラスタの数
     const numClusters = this.clusters.length;
+
+    // クラスタを放射線状に配置するときの角度
     const tier3Theta = 2 * Math.PI / numClusters;
 
+    // 各クラスタについて
     this.clusters.forEach((cluster, index) => {
+
+      // clusterIdとnumTier3を取り出しておく
       const clusterId = cluster.clusterId;
       const numTier3 = cluster.numTier3;
 
+      // 何番目のクラスタか、によって放射線状に配置する角度を決める
       const theta = tier3Theta * index;
-      console.log(tier3Theta);
 
-      // tier3のノードを追加
+      // tier3のノードを指定された数だけ作成
       for (let i = 0; i < numTier3; i++) {
-        const nodeId = `cluster${clusterId}_tier3_${i}`;
-        const radius = this.tier3Radius + this.tier3Interval * i;
+        const nodeId = `c${clusterId}_t3_${i}`;
+        const radius = tier3Radius + tier3Interval * i;
         const x = radius * Math.cos(theta);
         const y = 0;
         const z = radius * Math.sin(theta);
@@ -587,7 +645,9 @@ export class FiveStageClosGraph {
           group: 'nodes',
           data: {
             id: nodeId,
-            label: nodeId
+            label: nodeId,
+            clusterId: clusterId,
+            tier: 3,
           },
           position: {x, y, z}
         };
@@ -597,41 +657,88 @@ export class FiveStageClosGraph {
       // tier2のノード 0系, 1系 を追加
       for (let i = 0; i < 2; i++) {
 
-        const nodeId = `cluster${clusterId}_tier2_${i}`;
-        const radius = this.tier2Radius;
+        const nodeId = `c${clusterId}_t2_${i}`;
+        const radius = tier2Radius;
         const deltaTheta = (2 * Math.PI /(numClusters * 2)) / 2;
         let tier2Theta = (i === 0) ? theta + deltaTheta : theta - deltaTheta;
         const x = radius * Math.cos(tier2Theta);
-        const y = this.tier2Height;
+        const y = tier2Height;
         const z = radius * Math.sin(tier2Theta);
 
         const node = {
           group: 'nodes',
           data: {
             id: nodeId,
-            label: nodeId
+            label: nodeId,
+            clusterId: clusterId,
+            tier: 2,
+            redundantId: i // 0系, 1系
           },
           position: {x, y, z}
         };
         this.graph.addNode(node);
 
-        // tier2とtier3をつなぐエッジを追加
+        // このtier2ノードからtier3ノードに向かうエッジを追加
         for (let j = 0; j < numTier3; j++) {
-          const tier3NodeId = `cluster${clusterId}_tier3_${j}`;
+          const tier3NodeId = `c${clusterId}_t3_${j}`;
           const edge = {
             group: 'edges',
             data: {
               id: `edge_${nodeId}_${tier3NodeId}`,
               source: nodeId,
-              target: tier3NodeId
+              target: tier3NodeId,
+              redundantId: i // 0系, 1系
             }
           };
           this.graph.addEdge(edge);
         }
-
-
       }
 
+      // tier1のノードを追加
+      // 0系で2台、1系で2台、合計4台
+      for (let i = 0; i < 4; i++) {
+        const nodeId = `t1_${i}`;
+        const radius = tier1Radius;
+        const tier1Theta = 2 * Math.PI / 4;
+        const theta = tier1Theta * i;
+
+        const x = radius * Math.cos(theta);
+        const y = tier1Height;
+        const z = radius * Math.sin(theta);
+
+        // 0系, 1系
+        // const redundantId = i < 2 ? 0 : 1;
+        const redundantId = i%2;
+
+        const node = {
+          group: 'nodes',
+          data: {
+            id: nodeId,
+            label: nodeId,
+            tier: 1,
+            redundantId: redundantId
+          },
+          position: {x, y, z}
+        };
+        this.graph.addNode(node);
+
+        // このtier1ノードからtier2ノードに向かうエッジを追加
+        this.clusters.forEach((cluster, index) => {
+          const clusterId = cluster.clusterId;
+          const tier2NodeId = `c${clusterId}_t2_${redundantId}`;
+          const edge = {
+            group: 'edges',
+            data: {
+              id: `edge_${nodeId}_${tier2NodeId}`,
+              source: nodeId,
+              target: tier2NodeId,
+              redundantId: redundantId
+            }
+          }
+          this.graph.addEdge(edge);
+        });
+
+      }
 
     });
     return this.graph;
@@ -657,6 +764,11 @@ class Node extends THREE.Group {
   // 元になったグラフのノードのデータ
   node;
 
+  // 色の定義
+  COLOR_DEFAULT     = 0xf0f0f0; // light gray
+  COLOR_REDUNDANT_0 = 0x00CC00; // green
+  COLOR_REDUNDANT_1 = 0xFFCC00; // orange
+
   constructor(node, options) {
 
     super();
@@ -676,6 +788,11 @@ class Node extends THREE.Group {
     // ノード本体を表現する20面体を作成
     //
     {
+      let color = 0xf0f0f0;
+      if (node.data.hasOwnProperty("redundantId")) {
+        color = node.data.redundantId === 0 ? this.COLOR_REDUNDANT_0 : this.COLOR_REDUNDANT_1;
+      }
+
       // ジオメトリを作成
       // 20面体は (radius : Float, detail : Integer) を指定して作成する
       // detailを3にするとほぼ球体になる
@@ -685,16 +802,22 @@ class Node extends THREE.Group {
 
       // マテリアルを作成
 
-      // テスト用
       // MeshBasicMaterialは光源に反応せず平面的に描画する
       // const material = new THREE.MeshBasicMaterial({ color: Math.random() * 0xe0e0e0, opacity: 0.8 });
-      // テスト用
+
       // MeshNormalMaterialはxyz軸の色に合わせて面の色も変化する(x=青、y=緑、z=赤)
       // 色の変化は光源によるものではなく、面の法線ベクトルによるもの
       // const material = new THREE.MeshNormalMaterial({transparent: true, opacity: 0.5});
 
       // MeshLambertMaterialは光源に反応する
-      const material = new THREE.MeshLambertMaterial({ color: 0x00ff00, opacity: 1.0 });
+      // const material = new THREE.MeshLambertMaterial({ color: color, opacity: 1.0 });
+
+      let material;
+      if (this.node.data.hasOwnProperty("tier") && this.node.data.tier !== 3) {
+        material = new THREE.MeshLambertMaterial({ color: color, opacity: 1.0 });
+      } else {
+        material = new THREE.MeshNormalMaterial({transparent: true, opacity: 0.5});
+      }
 
       // メッシュを作成
       this.sphere = new THREE.Mesh(geometry, material);
@@ -776,12 +899,22 @@ class Edge extends THREE.Group {
   // 元になったグラフのエッジのデータ
   edge;
 
+  // 色の定義
+  COLOR_DEFAULT     = 0xf0f0f0; // light gray
+  COLOR_REDUNDANT_0 = 0x00CC00; // green
+  COLOR_REDUNDANT_1 = 0xFFCC00; // orange
+
   // 位置を決めるためにsourceとtargetの情報をもらう
   constructor(edge, source, target, options) {
 
     super();
 
     options = options || {};
+
+    let color = this.COLOR_DEFAULT;
+    if (edge.data.hasOwnProperty("redundantId")) {
+      color = edge.data.redundantId === 0 ? this.COLOR_REDUNDANT_0 : this.COLOR_REDUNDANT_1;
+    }
 
     // グラフのエッジのデータを保持しておく
     this.edge = edge;
@@ -807,7 +940,7 @@ class Edge extends THREE.Group {
     // マテリアルを作成
     const material = new THREE.LineBasicMaterial(
       {
-        color: 0xffffff,
+        color: color,
         linewidth: 1  // 多くのプラットフォームで無視される
       }
     );
