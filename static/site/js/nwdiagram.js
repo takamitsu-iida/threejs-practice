@@ -78,8 +78,8 @@ export var ObjectSelection = function (parameters) {
   this.INTERSECTED = null;
 
   var self = this;
-  var callbackSelected = parameters.selected;
-  var callbackClicked = parameters.clicked;
+  var callbackMouseover = parameters.mouseover || none;
+  var callbackClicked = parameters.clicked || none;
   var mouse = new THREE.Vector2()
 
   // スクリーン上のDOM要素
@@ -128,6 +128,11 @@ export var ObjectSelection = function (parameters) {
   // 光線を飛ばすレイキャスター
   var raycaster = new THREE.Raycaster();
 
+  // レイキャスターがどのレイヤーを見るかを設定
+  // レイヤ1はラベル用なので、選択されないようにする
+  raycaster.layers.enable(2);
+  raycaster.layers.enable(3);
+
   // アニメーションの中でこのrender()関数を呼ぶことで、選択したオブジェクトの色を変える
   this.render = function (scene, camera) {
 
@@ -145,23 +150,26 @@ export var ObjectSelection = function (parameters) {
 
         // 前回と違うオブジェクトに光線が当たっているなら、古いオブジェクトは元の色に戻す
         if (this.INTERSECTED) {
-          this.INTERSECTED.material.color.setHex(this.INTERSECTED.currentHex);
-          // this.INTERSECTED.material.wireframe = true;
+          if (this.INTERSECTED.material.color) {
+            this.INTERSECTED.material.color.setHex(this.INTERSECTED.currentHex);
+          }
         }
 
         // 新しいオブジェクトを選択して、
         this.INTERSECTED = intersects[0].object;
 
-        // 現在の色をオブジェクト内に保存して、
-        this.INTERSECTED.currentHex = this.INTERSECTED.material.color.getHex();
+        // マテリアルに色の属性があるなら、
+        if (this.INTERSECTED.material.color) {
+          // 現在の色をオブジェクト内に保存して、
+          this.INTERSECTED.currentHex = this.INTERSECTED.material.color.getHex();
 
-        // 色を変える
-        this.INTERSECTED.material.color.setHex(0xff0000);
-        // this.INTERSECTED.material.wireframe = true;
+          // 色を変える
+          this.INTERSECTED.material.color.setHex(0xff0000);
+        }
 
         // コールバック関数を渡されているならそれを実行する
-        if (typeof callbackSelected === 'function') {
-          callbackSelected(this.INTERSECTED);
+        if (typeof callbackMouseover === 'function') {
+          callbackMouseover(this.INTERSECTED);
         }
 
       }
@@ -170,16 +178,17 @@ export var ObjectSelection = function (parameters) {
       // 光線がオブジェクトにぶつかっていないなら
 
       if (this.INTERSECTED) {
-        // 古いオブジェクトは元の色に戻す
-        this.INTERSECTED.material.color.setHex(this.INTERSECTED.currentHex);
-        // this.INTERSECTED.material.wireframe = false;
+        if (this.INTERSECTED.material.color) {
+          // 古いオブジェクトは元の色に戻す
+          this.INTERSECTED.material.color.setHex(this.INTERSECTED.currentHex);
+        }
       }
 
       this.INTERSECTED = null;
 
-      if (typeof callbackSelected === 'function') {
+      if (typeof callbackMouseover === 'function') {
         // 選択から外れたことをコールバック関数で知らせる
-        callbackSelected(null);
+        callbackMouseover(null);
       }
 
     }
@@ -485,87 +494,84 @@ export function createSampleGraph2(options) {
   const clusters = [
     {
       clusterId: 1,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 2,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 3,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 4,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 5,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 6,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 7,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 8,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 9,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 10,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 11,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 12,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 13,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 14,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 15,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 16,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 17,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 18,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 19,
-      numTier3: 20
+      numTier3: 30
     },
     {
       clusterId: 20,
-      numTier3: 20
+      numTier3: 30
     },
-
-
-
   ];
 
   return new FiveStageClosGraph({ clusters: clusters }).circularLayout();
@@ -591,8 +597,106 @@ export class FiveStageClosGraph {
   constructor(options) {
     this.options = options || {};
     this.clusters = options.hasOwnProperty("clusters") ? options.clusters : [];
-
     this.graph = new Graph();
+    this.createNodeEdge();
+  }
+
+  createNodeEdge() {
+
+    // 各クラスタについて
+    this.clusters.forEach((cluster, index) => {
+
+      // clusterIdとnumTier3を取り出しておく
+      const clusterId = cluster.clusterId;
+      const numTier3 = cluster.numTier3;
+
+      // tier3のノードを指定された数だけ作成
+      for (let i = 0; i < numTier3; i++) {
+        const nodeId = `c${clusterId}_t3_${i}`;
+        const node = {
+          group: 'nodes',
+          data: {
+            id: nodeId,
+            label: nodeId,
+            clusterId: clusterId,
+            tier: 3,
+          },
+          position: { x: 0, y: 0, z: 0 }
+        };
+        this.graph.addNode(node);
+      }
+
+      // tier2のノード 0系, 1系 を追加
+      for (let i = 0; i < 2; i++) {
+        const nodeId = `c${clusterId}_t2_${i}`;
+        const node = {
+          group: 'nodes',
+          data: {
+            id: nodeId,
+            label: nodeId,
+            clusterId: clusterId,
+            tier: 2,
+            redundantId: i // 0系, 1系
+          },
+          position: { x: 0, y: 0, z: 0 }
+        };
+        this.graph.addNode(node);
+
+        // このtier2ノードからtier3ノードに向かうエッジを追加
+        for (let j = 0; j < numTier3; j++) {
+          const tier3NodeId = `c${clusterId}_t3_${j}`;
+          const edge = {
+            group: 'edges',
+            data: {
+              id: `edge_${nodeId}_${tier3NodeId}`,
+              source: nodeId,
+              target: tier3NodeId,
+              redundantId: i // 0系, 1系
+            }
+          };
+          this.graph.addEdge(edge);
+        }
+      }
+    });
+
+    // tier1のノードを追加
+    // 0系で2台、1系で2台、合計4台
+    for (let i = 0; i < 4; i++) {
+      const nodeId = `t1_${i}`;
+
+      // 0系, 1系の定義
+      // const redundantId = i < 2 ? 0 : 1;
+      const redundantId = i % 2;
+
+      const node = {
+        group: 'nodes',
+        data: {
+          id: nodeId,
+          label: nodeId,
+          tier: 1,
+          redundantId: redundantId
+        },
+        position: { x: 0, y: 0, z: 0 }
+      };
+      this.graph.addNode(node);
+
+      // このtier1ノードからtier2ノードに向かうエッジを追加
+      this.clusters.forEach((cluster, index) => {
+        const clusterId = cluster.clusterId;
+        const tier2NodeId = `c${clusterId}_t2_${redundantId}`;
+        const edge = {
+          group: 'edges',
+          data: {
+            id: `edge_${nodeId}_${tier2NodeId}`,
+            source: nodeId,
+            target: tier2NodeId,
+            redundantId: redundantId
+          },
+          position: { x: 0, y: 0, z: 0 }
+        }
+        this.graph.addEdge(edge);
+      });
+    }
   }
 
 
@@ -633,120 +737,53 @@ export class FiveStageClosGraph {
       // 何番目のクラスタか、によって放射線状に配置する角度を決める
       const theta = tier3Theta * index;
 
-      // tier3のノードを指定された数だけ作成
+      // tier3のノードの位置を決める
       for (let i = 0; i < numTier3; i++) {
         const nodeId = `c${clusterId}_t3_${i}`;
         const radius = tier3Radius + tier3Interval * i;
         const x = radius * Math.cos(theta);
         const y = 0;
         const z = radius * Math.sin(theta);
-
-        const node = {
-          group: 'nodes',
-          data: {
-            id: nodeId,
-            label: nodeId,
-            clusterId: clusterId,
-            tier: 3,
-          },
-          position: {x, y, z}
-        };
-        this.graph.addNode(node);
-      }
-
-      // tier2のノード 0系, 1系 を追加
-      for (let i = 0; i < 2; i++) {
-
-        const nodeId = `c${clusterId}_t2_${i}`;
-        const radius = tier2Radius;
-        const deltaTheta = (2 * Math.PI /(numClusters * 2)) / 2;
-        let tier2Theta = (i === 0) ? theta + deltaTheta : theta - deltaTheta;
-        const x = radius * Math.cos(tier2Theta);
-        const y = tier2Height;
-        const z = radius * Math.sin(tier2Theta);
-
-        const node = {
-          group: 'nodes',
-          data: {
-            id: nodeId,
-            label: nodeId,
-            clusterId: clusterId,
-            tier: 2,
-            redundantId: i // 0系, 1系
-          },
-          position: {x, y, z}
-        };
-        this.graph.addNode(node);
-
-        // このtier2ノードからtier3ノードに向かうエッジを追加
-        for (let j = 0; j < numTier3; j++) {
-          const tier3NodeId = `c${clusterId}_t3_${j}`;
-          const edge = {
-            group: 'edges',
-            data: {
-              id: `edge_${nodeId}_${tier3NodeId}`,
-              source: nodeId,
-              target: tier3NodeId,
-              redundantId: i // 0系, 1系
-            }
-          };
-          this.graph.addEdge(edge);
+        const n = this.graph.getElementById(nodeId);
+        if (n) {
+          n.position = { x, y, z };
         }
       }
 
-      // tier1のノードを追加
-      // 0系で2台、1系で2台、合計4台
-      for (let i = 0; i < 4; i++) {
-        const nodeId = `t1_${i}`;
-        const radius = tier1Radius;
-        const tier1Theta = 2 * Math.PI / 4;
-        const theta = tier1Theta * i;
-
-        const x = radius * Math.cos(theta);
-        const y = tier1Height;
-        const z = radius * Math.sin(theta);
-
-        // 0系, 1系
-        // const redundantId = i < 2 ? 0 : 1;
-        const redundantId = i%2;
-
-        const node = {
-          group: 'nodes',
-          data: {
-            id: nodeId,
-            label: nodeId,
-            tier: 1,
-            redundantId: redundantId
-          },
-          position: {x, y, z}
-        };
-        this.graph.addNode(node);
-
-        // このtier1ノードからtier2ノードに向かうエッジを追加
-        this.clusters.forEach((cluster, index) => {
-          const clusterId = cluster.clusterId;
-          const tier2NodeId = `c${clusterId}_t2_${redundantId}`;
-          const edge = {
-            group: 'edges',
-            data: {
-              id: `edge_${nodeId}_${tier2NodeId}`,
-              source: nodeId,
-              target: tier2NodeId,
-              redundantId: redundantId
-            }
-          }
-          this.graph.addEdge(edge);
-        });
-
+      // tier2のノードの位置を決める
+      for (let i = 0; i < 2; i++) {
+        const nodeId = `c${clusterId}_t2_${i}`;
+        const radius = tier2Radius;
+        const deltaTheta = (2 * Math.PI / (numClusters * 2)) / 2;
+        const tier2Theta = (i === 0) ? theta + deltaTheta : theta - deltaTheta;
+        const x = radius * Math.cos(tier2Theta);
+        const y = tier2Height;
+        const z = radius * Math.sin(tier2Theta);
+        const n = this.graph.getElementById(nodeId);
+        if (n) {
+          n.position = { x, y, z };
+        }
       }
-
     });
+
+    // tier1のノードの位置を決める
+    for (let i = 0; i < 4; i++) {
+      const nodeId = `t1_${i}`;
+      const radius = tier1Radius;
+      const tier1Theta = 2 * Math.PI / 4;
+      const theta = tier1Theta * i;
+      const x = radius * Math.cos(theta);
+      const y = tier1Height + ( (i%2 === 0) ? 50 : -50);
+      const z = radius * Math.sin(theta);
+      const n = this.graph.getElementById(nodeId);
+      if (n) {
+        n.position = { x, y, z };
+      }
+    }
+
     return this.graph;
   }
-
-
 }
-
 
 
 
@@ -765,9 +802,14 @@ class Node extends THREE.Group {
   node;
 
   // 色の定義
-  COLOR_DEFAULT     = 0xf0f0f0; // light gray
+  COLOR_DEFAULT = 0xf0f0f0; // light gray
   COLOR_REDUNDANT_0 = 0x00CC00; // green
   COLOR_REDUNDANT_1 = 0xFFCC00; // orange
+
+  // レイヤー定義
+  LAYER_LABEL = 1;
+  LAYER_REDUNDANT_0 = 2;
+  LAYER_REDUNDANT_1 = 3;
 
   constructor(node, options) {
 
@@ -782,7 +824,7 @@ class Node extends THREE.Group {
     this.name = `${this.node.data.id}_group`
 
     // 位置を設定
-    this.position.set(this.node.position.x, this.node.position.y, this.node.position.z);
+    this.position.set(node.position.x, node.position.y, node.position.z);
 
     //
     // ノード本体を表現する20面体を作成
@@ -816,7 +858,7 @@ class Node extends THREE.Group {
       if (this.node.data.hasOwnProperty("tier") && this.node.data.tier !== 3) {
         material = new THREE.MeshLambertMaterial({ color: color, opacity: 1.0 });
       } else {
-        material = new THREE.MeshNormalMaterial({transparent: true, opacity: 0.5});
+        material = new THREE.MeshNormalMaterial({ transparent: true, opacity: 0.5 });
       }
 
       // メッシュを作成
@@ -827,6 +869,18 @@ class Node extends THREE.Group {
 
       // 選択可能にする
       this.sphere.selectable = true;
+
+      // 選択状態
+      this.sphere.selected = false;
+
+      // redundantIdにあわせてレイヤーを設定
+      if (this.node.data.hasOwnProperty("redundantId")) {
+        if (this.node.data.redundantId === 0) {
+          this.sphere.layers.set(this.LAYER_REDUNDANT_0);
+        } else if (this.node.data.redundantId === 1) {
+          this.sphere.layers.set(this.LAYER_REDUNDANT_1);
+        }
+      }
 
       // グループに追加
       this.add(this.sphere);
@@ -859,7 +913,7 @@ class Node extends THREE.Group {
       this.label.position.set(0, 15, 0);
 
       // レイヤーを 1 に設定
-      this.label.layers.set(1);
+      this.label.layers.set(this.LAYER_LABEL);
 
       // グループに追加
       this.add(this.label);
@@ -900,9 +954,14 @@ class Edge extends THREE.Group {
   edge;
 
   // 色の定義
-  COLOR_DEFAULT     = 0xf0f0f0; // light gray
+  COLOR_DEFAULT = 0xf0f0f0; // light gray
   COLOR_REDUNDANT_0 = 0x00CC00; // green
   COLOR_REDUNDANT_1 = 0xFFCC00; // orange
+
+  // レイヤー定義
+  LAYER_LABEL = 1;
+  LAYER_REDUNDANT_0 = 2;
+  LAYER_REDUNDANT_1 = 3;
 
   // 位置を決めるためにsourceとtargetの情報をもらう
   constructor(edge, source, target, options) {
@@ -950,8 +1009,19 @@ class Edge extends THREE.Group {
     this.line.originalScale = 1;
     this.line.name = edge.data.id;
 
+    if (edge.data.hasOwnProperty("redundantId")) {
+      if (edge.data.redundantId === 0) {
+        this.line.layers.set(this.LAYER_REDUNDANT_0);
+      } else if (edge.data.redundantId === 1) {
+        this.line.layers.set(this.LAYER_REDUNDANT_1);
+      }
+    }
+
     // 選択可能にする
     this.line.selectable = true;
+
+    // 選択状態
+    this.line.selected = false;
 
     this.add(this.line);
   }
@@ -1013,6 +1083,11 @@ export class Diagram {
     labelFontSize: "Medium"  // "Small", "Medium", "Large"
   }
 
+  // グラフ表示用のパラメータ
+  graphParams = {
+    redundant_0: true,
+    redundant_1: true
+  }
 
   constructor(options) {
     this.options = options || {};
@@ -1069,6 +1144,10 @@ export class Diagram {
     if (this.labelParams.showLabels === false) {
       this.camera.layers.toggle(1);
     }
+
+    // redundantIdによるレイヤーを有効化
+    this.camera.layers.enable(2);
+    this.camera.layers.enable(3);
 
     // ライトを初期化
     this.light1 = new THREE.DirectionalLight(0xFFFFFF, 2.5);
@@ -1196,6 +1275,22 @@ export class Diagram {
         .name('auto rotate')
     }
 
+    // GUIでredundantIdが0と1の表示を切り替える
+    {
+      const folder = gui.addFolder('Redundunt');
+      folder
+        .add(this.graphParams, 'redundant_0')
+        .name('show redundant 0')
+        .onChange((value) => {
+          self.camera.layers.toggle(2);
+        });
+      folder
+        .add(this.graphParams, 'redundant_1')
+        .name('show redundant 1')
+        .onChange((value) => {
+          self.camera.layers.toggle(3);
+        });
+    }
   }
 
 
@@ -1208,7 +1303,7 @@ export class Diagram {
     // ObjectSelectionを初期化
     this.objectSelection = new ObjectSelection({
       domElement: this.renderer.domElement,
-      selected: function (obj) {
+      mouseover: function (obj) {
         if (obj === null) {
           // フォーカスが外れるとnullが渡される
           self.infoParams.selected = null;
@@ -1217,7 +1312,6 @@ export class Diagram {
           if (!obj.name) {
             return;
           }
-
           console.log(obj.name);
           const element = self.graph.getElementById(obj.name);
           if (!element) {
@@ -1249,7 +1343,6 @@ export class Diagram {
               cone.visible = !cone.visible;
             }
           }
-
         }
       }
     });
@@ -1327,7 +1420,7 @@ export class Diagram {
 
   printInfo() {
     if (this.infoParams.selected) {
-      this.infoParams.element.innerHTML = `Selected: ${this.infoParams.selected}`;
+      this.infoParams.element.innerHTML = `Mouseover: ${this.infoParams.selected}`;
     } else {
       this.infoParams.element.innerHTML = "";
     }
