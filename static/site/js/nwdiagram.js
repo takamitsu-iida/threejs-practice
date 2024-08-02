@@ -1261,6 +1261,11 @@ export class Diagram {
     redundant_1: true
   }
 
+  // OrbitControlのパラメータ
+  orbitParams = {
+    autoRotate: false
+  }
+
   constructor(options) {
     this.options = options || {};
 
@@ -1270,6 +1275,7 @@ export class Diagram {
     this.labelParams.showLabels = this.options.hasOwnProperty("showLabels") ? this.options.showLabels : this.labelParams.showLabels;
     this.labelParams.labelFontSize = this.options.hasOwnProperty("labelFontSize") ? this.options.labelFontSize : this.labelParams.labelFontSize;
     this.axesHelperEnabled = this.options.hasOwnProperty("axesHelper") ? this.options.axesHelper : true;
+    this.orbitParams.autoRotate = this.options.hasOwnProperty("autoRotate") ? this.options.autoRotate: this.orbitParams.autoRotate;
 
     this.init();
     this.initControls();
@@ -1368,7 +1374,7 @@ export class Diagram {
     // OrbitControls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
-    this.controls.autoRotate = false;
+    this.controls.autoRotate = this.orbitParams.autoRotate;
     this.controls.autoRotateSpeed = 1.0;
 
     /*
@@ -1457,9 +1463,10 @@ export class Diagram {
     {
       const folder = gui.addFolder('OrbitControls');
       folder
-        .add(this.controls, 'autoRotate')
+        .add(this.orbitParams, 'autoRotate')
         .name('auto rotate')
         .onChange((value) => {
+          this.controls.autoRotate = value;
           if (value) {
             // 回転中はマウス操作を無効にする
             this.selectionEnabled = false;
@@ -1554,6 +1561,10 @@ export class Diagram {
     document.getElementById("idButton1").addEventListener("click", function () {
       self.removeGraph();
     });
+
+
+
+
 
     // ブラウザのリサイズイベントを登録
     function onWindowResize() {
