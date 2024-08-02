@@ -342,7 +342,6 @@ class TerrainDisplay {
     // メッシュ化
     this.mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({
 			reflectivity: 0,
-			// vertexColors: THREE.VertexColors,
 		}))
 
 		this.container.add(this.mesh)
