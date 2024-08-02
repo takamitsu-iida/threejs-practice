@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { OrbitControls } from 'three/controls/OrbitControls.js';
+import { OrbitControls } from "OrbitControls";
 
 // import { GUI } from "three/libs/lil-gui.module.min.js";
 
