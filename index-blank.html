@@ -119,7 +119,11 @@
       background: #000;
     }
 
-    /* ハンバーガーメニュー */
+    /*
+     右のハンバーガーメニュー
+     ボタンで実装
+     JavaScriptが必要
+     */
 
     /* ボタン本体 */
     .hamburger {
@@ -139,8 +143,7 @@
     /* ３本線 共通 */
     .hamburger span,
     .hamburger span::before,
-    .hamburger span::after
-    {
+    .hamburger span::after {
       content: "";
       position: absolute;
       display: block;
@@ -163,7 +166,7 @@
     .nav {
       position: fixed;
       width: 60%;
-      top: 50px;
+      top: 46px;
       right: -100%;
       background-color: gray;
       padding: 50px 0;
@@ -189,6 +192,121 @@
     .nav.open {
       right: 0;
     }
+
+
+    /* 変数定義 */
+    :root {
+      --menu-label-z: 999;
+      --menu-content-z: 998;
+    }
+
+    /*
+     ハンバーガーメニュー
+     チェックボックス利用、JavaScriptなし
+     */
+
+    /*
+     ラベルを表示しているので、このチェックボックスそのものは非表示でよい
+    */
+    #menu-checkbox {
+      display: none;
+    }
+
+    /* ハンバーガーメニューの線の実体は空っぽの<span> */
+    /* メニューオープン時は真ん中の線を透明にする */
+    #menu-checkbox:checked~.menu-label span {
+      background-color: rgba(255, 255, 255, 0);
+    }
+
+    /* メニューオープン時は上の線を45度傾けて X にする */
+    #menu-checkbox:checked~.menu-label span::before {
+      bottom: 0;
+      transform: rotate(45deg);
+    }
+
+    /* メニューオープン時は下の線を-45度傾けて X にする */
+    #menu-checkbox:checked~.menu-label span::after {
+      top: 0;
+      transform: rotate(-45deg);
+    }
+
+    /* メニューオープン時にメニューを画面の内に移動する */
+    #menu-checkbox:checked~.menu-content {
+      left: 0;
+    }
+
+    /* チェックボックスに紐づけるラベル */
+    .menu-label {
+      position: fixed;
+      /*top: 0px;*/
+      /*right: 0px;*/
+      display: flex;
+      width: 45px;
+      height: 32px;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      background-color: grey;
+      cursor: pointer;
+      justify-content: center;
+      align-items: center;
+      z-index: var(--menu-label-z, 999);
+    }
+
+    .menu-label span,
+    .menu-label span:before,
+    .menu-label span:after {
+      content: "";
+      position: absolute;
+      display: block;
+      width: 25px;
+      height: 3px;
+      border-radius: 3px;
+      background-color: #ffffff;
+      transition: all 0.5s;
+    }
+
+    .menu-label span:before {
+      bottom: 8px;
+    }
+
+    .menu-label span:after {
+      top: 8px;
+    }
+
+    /* 表示するメニューのDIV */
+    /* 通常時はメニューのleftを-100%にして画面の外に配置する */
+    /* z-indexはチェックボックスよりも小さくすれば数字自体はいくつでもよい */
+    .menu-content {
+      width: 40%;
+      height: 100%;
+      position: fixed;
+      top: 46px;
+      left: -100%;
+      z-index: var(--menu-content-z, 998);
+      background-color: gray;
+      transition: all 0.5s;
+    }
+
+    .menu-content ul {
+      padding: 70px 10px 0;
+    }
+
+    .menu-content ul li {
+      /* border-bottom: solid 1px #ffffff; */
+      list-style: none;
+    }
+
+    .menu-content ul li a {
+      display: block;
+      width: 100%;
+      font-size: 15px;
+      box-sizing: border-box;
+      color: #ffffff;
+      text-decoration: none;
+      padding: 9px 15px 10px 0;
+      position: relative;
+    }
   </style>
 
 </head>
@@ -199,10 +317,31 @@
 
     <div class="header_panel">
 
-      <span class="control_span">
+      <!-- 左側ハンバーガーメニュー JavaScriptなし チェックボックス型 -->
+      <span>
+        <input type="checkbox" id="menu-checkbox">
+        <label for="menu-checkbox" class="menu-label"><span></span></label>
+        <!-- メニュー ここから -->
+        <div class="menu-content">
+          <ul>
+            <li>
+              <a href="#">メニューリンク1</a>
+            </li>
+            <li>
+              <a href="#">メニューリンク2</a>
+            </li>
+            <li>
+              <a href="#">メニューリンク3</a>
+            </li>
+          </ul>
+        </div>
+        <!-- メニュー ここまで -->
+      </span>
+
+      <span class="control_span" style="padding-left: 60px;">
         [DATA]
-        <a id="idData1" name="dataChangeMenu" class="active">図3.6</a>
-        <a id="idData2" name="dataChangeMenu">図3.7</a>
+        <a id="idData1" name="dataChangeMenu" class="active">データ1</a>
+        <a id="idData2" name="dataChangeMenu">データ2</a>
       </span>
 
       <span style="float: right">
@@ -243,14 +382,37 @@
   {
     const hamburger = document.querySelector('.hamburger');
     const nav = document.querySelector('.nav');
-
     hamburger.addEventListener('click', function () {
       hamburger.classList.toggle('open');
       nav.classList.toggle('open');
     });
   }
-
 </script>
 
+<script>
+  {
+    ['idData1', 'idData2'].forEach(id => {
+      let tag = document.getElementById(id);
+      if (!tag) { return; }
+      tag.addEventListener('click', function (evt) {
+        evt.stopPropagation();
+        evt.preventDefault();
+        document.getElementsByName('dataChangeMenu').forEach(element => {
+          element.classList.remove('active');
+        });
+        evt.target.classList.add('active');
+
+        switch (id) {
+          case 'idData1':
+            console.log(id);
+            break;
+          case 'idData2':
+            console.log(id);
+            break;
+        }
+      });
+    });
+  }
+</script>
 
 </html>
