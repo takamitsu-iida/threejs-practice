@@ -393,7 +393,7 @@
     ['idData1', 'idData2'].forEach(id => {
       let tag = document.getElementById(id);
       if (!tag) { return; }
-      tag.addEventListener('click', function (evt) {
+      tag.addEventListener('click', (evt) => {
         evt.stopPropagation();
         evt.preventDefault();
         document.getElementsByName('dataChangeMenu').forEach(element => {

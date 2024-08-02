@@ -430,200 +430,262 @@ export class Graph {
 }
 
 
-export function createSampleGraph(options) {
-
-  let id = 1;
-  let nodeId = `node_${id}`;
-  id += 1;
-
-  const graph = new Graph();
-
-  // ルートノードを追加
-  const root = {
-    group: 'nodes',
-    data: {
-      id: nodeId,
-      label: `This is the root ${id}`
-    },
-    position: { x: 0, y: 0, z: 0 }
-  };
-  graph.addNode(root);
-
-  const area = 300;
-  const nodes = [root];
-  const numSteps = 5;
-  const numEdges = 5;
-  let steps = 1;
-  while (nodes.length !== 0 && steps < numSteps) {
-
-    // nodesから先頭のノードを取り出す
-    const sourceNode = nodes.shift();
-
-    // numEdgesの数だけそこからノードを追加
-    for (let i = 1; i <= numEdges; i++) {
-      let targetNodeId = `node_${id}`;
-      id += 1;
-      const targetNode = {
-        group: 'nodes',
-        data: {
-          id: targetNodeId,
-        },
-        position: {
-          x: Math.floor(Math.random() * (area + area + 1) - area),
-          y: Math.floor(Math.random() * (area + area + 1) - area),
-          z: Math.floor(Math.random() * (area + area + 1) - area)
-        }
-      };
-      graph.addNode(targetNode);
-
-      // nodesにtargetNodeを追加し、targetNodeの先にもノードを追加していく
-      nodes.push(targetNode);
-
-      // エッジを追加
-      graph.addEdge(
-        {
-          group: 'edges',
-          data: {
-            id: 'edge_' + sourceNode.data.id + '_' + targetNode.data.id,
-            source: sourceNode.data.id,
-            target: targetNode.data.id
-          }
-        }
-      );
-    }
-    steps++;
+const CLUSTERS_EXAMPLE_1 = [
+  {
+    clusterId: 1,
+    numTier3: 20
+  },
+  {
+    clusterId: 2,
+    numTier3: 20
+  },
+  {
+    clusterId: 3,
+    numTier3: 20
+  },
+  {
+    clusterId: 4,
+    numTier3: 20
+  },
+  {
+    clusterId: 5,
+    numTier3: 20
+  },
+  {
+    clusterId: 6,
+    numTier3: 20
+  },
+  {
+    clusterId: 7,
+    numTier3: 20
+  },
+  {
+    clusterId: 8,
+    numTier3: 20
+  },
+  {
+    clusterId: 9,
+    numTier3: 20
+  },
+  {
+    clusterId: 10,
+    numTier3: 20
   }
-
-  return graph;
-}
+];
 
 
-export function createSampleGraph2(options) {
-  const clusters = [
-    {
-      clusterId: 1,
-      numTier3: 30
-    },
-    {
-      clusterId: 2,
-      numTier3: 30
-    },
-    {
-      clusterId: 3,
-      numTier3: 30
-    },
-    {
-      clusterId: 4,
-      numTier3: 30
-    },
-    {
-      clusterId: 5,
-      numTier3: 30
-    },
-    {
-      clusterId: 6,
-      numTier3: 30
-    },
-    {
-      clusterId: 7,
-      numTier3: 30
-    },
-    {
-      clusterId: 8,
-      numTier3: 30
-    },
-    {
-      clusterId: 9,
-      numTier3: 30
-    },
-    {
-      clusterId: 10,
-      numTier3: 30
-    },
-    {
-      clusterId: 11,
-      numTier3: 30
-    },
-    {
-      clusterId: 12,
-      numTier3: 30
-    },
-    {
-      clusterId: 13,
-      numTier3: 30
-    },
-    {
-      clusterId: 14,
-      numTier3: 30
-    },
-    {
-      clusterId: 15,
-      numTier3: 30
-    },
-    {
-      clusterId: 16,
-      numTier3: 30
-    },
-    {
-      clusterId: 17,
-      numTier3: 30
-    },
-    {
-      clusterId: 18,
-      numTier3: 30
-    },
-    {
-      clusterId: 19,
-      numTier3: 30
-    },
-    {
-      clusterId: 20,
-      numTier3: 30
-    },
-    {
-      clusterId: 21,
-      numTier3: 30
-    },
-    {
-      clusterId: 22,
-      numTier3: 30
-    },
-    {
-      clusterId: 23,
-      numTier3: 30
-    },
-    {
-      clusterId: 24,
-      numTier3: 30
-    },
-    {
-      clusterId: 25,
-      numTier3: 30
-    },
-    {
-      clusterId: 26,
-      numTier3: 30
-    },
-    {
-      clusterId: 27,
-      numTier3: 30
-    },
-    {
-      clusterId: 28,
-      numTier3: 30
-    },
-    {
-      clusterId: 29,
-      numTier3: 30
-    },
-    {
-      clusterId: 30,
-      numTier3: 30
-    },
-  ];
+const CLUSTERS_EXAMPLE_2 = [
+  {
+    clusterId: 1,
+    numTier3: 30
+  },
+  {
+    clusterId: 2,
+    numTier3: 30
+  },
+  {
+    clusterId: 3,
+    numTier3: 30
+  },
+  {
+    clusterId: 4,
+    numTier3: 30
+  },
+  {
+    clusterId: 5,
+    numTier3: 30
+  },
+  {
+    clusterId: 6,
+    numTier3: 30
+  },
+  {
+    clusterId: 7,
+    numTier3: 30
+  },
+  {
+    clusterId: 8,
+    numTier3: 30
+  },
+  {
+    clusterId: 9,
+    numTier3: 30
+  },
+  {
+    clusterId: 10,
+    numTier3: 30
+  },
+  {
+    clusterId: 11,
+    numTier3: 30
+  },
+  {
+    clusterId: 12,
+    numTier3: 30
+  },
+  {
+    clusterId: 13,
+    numTier3: 30
+  },
+  {
+    clusterId: 14,
+    numTier3: 30
+  },
+  {
+    clusterId: 15,
+    numTier3: 30
+  },
+  {
+    clusterId: 16,
+    numTier3: 30
+  },
+  {
+    clusterId: 17,
+    numTier3: 30
+  },
+  {
+    clusterId: 18,
+    numTier3: 30
+  },
+  {
+    clusterId: 19,
+    numTier3: 30
+  },
+  {
+    clusterId: 20,
+    numTier3: 30
+  }
+];
 
-  // return new FiveStageClosGraph({ clusters: clusters }).circularLayout().getGraph();
-  return new FiveStageClosGraph({ clusters: clusters }).circularLayout2().getGraph();
+
+const CLUSTERS_EXAMPLE_3 = [
+  {
+    clusterId: 1,
+    numTier3: 30
+  },
+  {
+    clusterId: 2,
+    numTier3: 30
+  },
+  {
+    clusterId: 3,
+    numTier3: 30
+  },
+  {
+    clusterId: 4,
+    numTier3: 30
+  },
+  {
+    clusterId: 5,
+    numTier3: 30
+  },
+  {
+    clusterId: 6,
+    numTier3: 30
+  },
+  {
+    clusterId: 7,
+    numTier3: 30
+  },
+  {
+    clusterId: 8,
+    numTier3: 30
+  },
+  {
+    clusterId: 9,
+    numTier3: 30
+  },
+  {
+    clusterId: 10,
+    numTier3: 30
+  },
+  {
+    clusterId: 11,
+    numTier3: 30
+  },
+  {
+    clusterId: 12,
+    numTier3: 30
+  },
+  {
+    clusterId: 13,
+    numTier3: 30
+  },
+  {
+    clusterId: 14,
+    numTier3: 30
+  },
+  {
+    clusterId: 15,
+    numTier3: 30
+  },
+  {
+    clusterId: 16,
+    numTier3: 30
+  },
+  {
+    clusterId: 17,
+    numTier3: 30
+  },
+  {
+    clusterId: 18,
+    numTier3: 30
+  },
+  {
+    clusterId: 19,
+    numTier3: 30
+  },
+  {
+    clusterId: 20,
+    numTier3: 30
+  },
+  {
+    clusterId: 21,
+    numTier3: 30
+  },
+  {
+    clusterId: 22,
+    numTier3: 30
+  },
+  {
+    clusterId: 23,
+    numTier3: 30
+  },
+  {
+    clusterId: 24,
+    numTier3: 30
+  },
+  {
+    clusterId: 25,
+    numTier3: 30
+  },
+  {
+    clusterId: 26,
+    numTier3: 30
+  },
+  {
+    clusterId: 27,
+    numTier3: 30
+  },
+  {
+    clusterId: 28,
+    numTier3: 30
+  },
+  {
+    clusterId: 29,
+    numTier3: 30
+  },
+  {
+    clusterId: 30,
+    numTier3: 30
+  }
+];
+
+
+export function createSampleGraph(options) {
+  options = options || {}
+  const clusters = options.hasOwnProperty("clusters") ? options.clusters : CLUSTERS_EXAMPLE_1;
+  return new FiveStageClosGraph({ clusters: clusters }).circularLayout().getGraph();
 }
 
 
@@ -752,93 +814,7 @@ export class FiveStageClosGraph {
     }
   }
 
-
   circularLayout(options) {
-    options = options || {};
-
-    let tier3Radius = 200;
-    tier3Radius = options.hasOwnProperty("tier3Radius") ? options.tier3Radius : tier3Radius;
-
-    let tier3Interval = 25;
-    tier3Interval = options.hasOwnProperty("tier3Interval") ? options.tier3Interval : tier3Interval;
-
-    let tier2Radius = 400;
-    tier2Radius = options.hasOwnProperty("tier2Radius") ? options.tier2Radius : tier2Radius;
-
-    let tier2Height = 100;
-    tier2Height = options.hasOwnProperty("tier2Height") ? options.tier2Height : tier2Height;
-
-    let tier1Radius = 100;
-    tier1Radius = options.hasOwnProperty("tier1Radius") ? options.tier1Radius : tier1Radius;
-
-    let tier1Height = tier2Height + 150;
-    tier1Height = options.hasOwnProperty("tier1Height") ? options.tier1Height : tier1Height;
-
-    // クラスタの数
-    const numClusters = this.clusters.length;
-
-    // クラスタを放射線状に配置するときの角度
-    const tier3Theta = 2 * Math.PI / numClusters;
-
-    // 各クラスタについて
-    this.clusters.forEach((cluster, index) => {
-
-      // clusterIdとnumTier3を取り出しておく
-      const clusterId = cluster.clusterId;
-      const numTier3 = cluster.numTier3;
-
-      // 何番目のクラスタか、によって放射線状に配置する角度を決める
-      const theta = tier3Theta * index;
-
-      // tier3のノードの位置を決める
-      for (let i = 0; i < numTier3; i++) {
-        const nodeId = `c${clusterId}_t3_${i}`;
-        const radius = tier3Radius + tier3Interval * i;
-        const x = radius * Math.cos(theta);
-        const y = 0;
-        const z = radius * Math.sin(theta);
-        const n = this.graph.getElementById(nodeId);
-        if (n) {
-          n.position = { x, y, z };
-        }
-      }
-
-      // tier2のノードの位置を決める
-      for (let i = 0; i < 2; i++) {
-        const nodeId = `c${clusterId}_t2_${i}`;
-        const radius = tier2Radius;
-        const deltaTheta = (2 * Math.PI / (numClusters * 2)) / 2;
-        const tier2Theta = (i === 0) ? theta + deltaTheta : theta - deltaTheta;
-        const x = radius * Math.cos(tier2Theta);
-        const y = tier2Height;
-        const z = radius * Math.sin(tier2Theta);
-        const n = this.graph.getElementById(nodeId);
-        if (n) {
-          n.position = { x, y, z };
-        }
-      }
-    });
-
-    // tier1のノードの位置を決める
-    for (let i = 0; i < 4; i++) {
-      const nodeId = `t1_${i}`;
-      const radius = tier1Radius;
-      const tier1Theta = 2 * Math.PI / 4;
-      const theta = tier1Theta * i;
-      const x = radius * Math.cos(theta);
-      const y = tier1Height + ( (i%2 === 0) ? 50 : -50);
-      const z = radius * Math.sin(theta);
-      const n = this.graph.getElementById(nodeId);
-      if (n) {
-        n.position = { x, y, z };
-      }
-    }
-
-    return this;
-  }
-
-
-  circularLayout2(options) {
     options = options || {};
 
     let tier3Radius = 200;
@@ -1558,27 +1534,52 @@ export class Diagram {
   initEventHandler() {
     // テスト用
     // ボタンを押したらシーン上のグラフを全て削除
-    document.getElementById("idButton1").addEventListener("click", function () {
-      self.removeGraph();
-    });
-
-
-
-
-
-    // ブラウザのリサイズイベントを登録
-    function onWindowResize() {
-      // コンテナ要素のサイズに合わせてsizesを更新する
-      self.sizes.width = self.container.clientWidth;
-      self.sizes.height = self.container.clientHeight;
-
-      self.camera.aspect = self.sizes.width / self.sizes.height;
-      self.camera.updateProjectionMatrix();
-      self.renderer.setSize(self.sizes.width, self.sizes.height);
-      self.labelRenderer.setSize(self.sizes.width, self.sizes.height);
+    {
+      document.getElementById("idButton1").addEventListener("click", () => {
+        this.removeGraph();
+      });
     }
 
-    window.addEventListener("resize", onWindowResize);
+    // クリックでデータを切り替え
+    {
+      ['idData1', 'idData2', 'idData3'].forEach(id => {
+        const tag = document.getElementById(id);
+        if (!tag) { return; }
+        tag.addEventListener('click', (evt) => {
+          evt.stopPropagation();
+          evt.preventDefault();
+          document.getElementsByName('dataChangeMenu').forEach(element => {
+            element.classList.remove('active');
+          });
+          evt.target.classList.add('active');
+
+          this.removeGraph();
+          switch (id) {
+            case 'idData1':
+              this.graph = createSampleGraph({clusters: CLUSTERS_EXAMPLE_1});
+              break;
+            case 'idData2':
+              this.graph = createSampleGraph({clusters: CLUSTERS_EXAMPLE_2});
+              break;
+            case 'idData3':
+              this.graph = createSampleGraph({clusters: CLUSTERS_EXAMPLE_3});
+          }
+          this.drawGraph(this.graph);
+        });
+      });
+    }
+
+    // ブラウザのリサイズイベントを登録
+    window.addEventListener("resize", () => {
+      // コンテナ要素のサイズに合わせてsizesを更新する
+      this.sizes.width = this.container.clientWidth;
+      this.sizes.height = this.container.clientHeight;
+      this.camera.aspect = this.sizes.width / this.sizes.height;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(this.sizes.width, this.sizes.height);
+      this.labelRenderer.setSize(this.sizes.width, this.sizes.height);
+    });
+
   }
 
 
@@ -1675,7 +1676,7 @@ export class Diagram {
         while (nodeGroup.children.length) {
           // ラベルを含む全ての子オブジェクトを削除
           const obj = nodeGroup.children[0];
-          console.log(`remove ${obj.name}`);
+          // console.log(`remove ${obj.name}`);
           obj.parent.remove(obj);
         }
         self.scene.remove(nodeGroup);
@@ -1689,7 +1690,7 @@ export class Diagram {
       if (edgeGroup) {
         while (edgeGroup.children.length) {
           const obj = edgeGroup.children[0];
-          console.log(`remove ${obj.name}`);
+          // console.log(`remove ${obj.name}`);
           obj.parent.remove(obj);
         }
         self.scene.remove(edgeGroup);
@@ -1697,7 +1698,7 @@ export class Diagram {
     });
 
     // シーンに残っているオブジェクトを表示する
-    console.log(self.scene.children);
+    // console.log(self.scene.children);
   }
 
 }

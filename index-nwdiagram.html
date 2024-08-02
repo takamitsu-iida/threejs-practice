@@ -292,12 +292,13 @@
       </span>
 
       <span class="control_span" style="margin-left: 100px;">
-        [DATA]
-        <a id="idData1" name="dataChangeMenu" class="active">data1</a>
-        <a id="idData2" name="dataChangeMenu">data2</a>
+        [(clusters, nodes/cluster)]
+        <a id="idData1" name="dataChangeMenu" class="active">(10, 20)</a>
+        <a id="idData2" name="dataChangeMenu">(20, 30)</a>
+        <a id="idData3" name="dataChangeMenu">(30, 30)</a>
       </span>
 
-      <span><button id="idButton1">Button1</button></span>
+      <span><button id="idButton1">消去</button></span>
 
       <span></span>
       <span style="float: right">
@@ -328,11 +329,11 @@
 
 <script type="module">
   import WebGL from './static/libs/capabilities/WebGL.js';
-  import { Diagram, createSampleGraph2 } from "./static/site/js/nwdiagram.js";
+  import { Diagram, createSampleGraph } from "./static/site/js/nwdiagram.js";
 
   window.addEventListener("load", () => {
     if (WebGL.isWebGLAvailable()) {
-      const graph = createSampleGraph2();
+      const graph = createSampleGraph();
       new Diagram({
         graph: graph,
         selection: false, // Default: true
