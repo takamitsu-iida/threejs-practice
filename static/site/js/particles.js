@@ -1,24 +1,10 @@
 import * as THREE from "three";
-import { OrbitControls } from "OrbitControls";
-/*
-    <!-- three.js -->
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "/static/build/three.module.js",
-          "OrbitControls": "/static/controls/OrbitControls.js",
-        }
-      }
-    </script>
-*/
+import { OrbitControls } from 'three/controls/OrbitControls.js';
 
-// import * as THREE from "../../build/three.module.js";
-// import { OrbitControls } from "./controls/OrbitControls.js";
-
-import GUI from "https://cdn.jsdelivr.net/npm/lil-gui@0.15/+esm";
+// import { GUI } from "three/libs/lil-gui.module.min.js";
 
 // UIデバッグ
-const gui = new GUI();
+// const gui = new GUI();
 
 // サイズ
 const sizes = {
@@ -48,7 +34,7 @@ document.body.appendChild(renderer.domElement);
 
 // テクスチャ設定
 const textureLoader = new THREE.TextureLoader();
-const particlesTexture = textureLoader.load("/static/site/img/particle.png")
+const particlesTexture = textureLoader.load("./static/site/img/particle.png")
 
 //
 // グリッドヘルパー
