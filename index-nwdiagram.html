@@ -166,47 +166,19 @@
       margin-left: 24px;
       font-size: 14px;
     }
+
     .label.small {
       font-size: 10px;
     }
+
     .label.medium {
       font-size: 14px;
     }
+
     .label.large {
       font-size: 20px;
     }
   </style>
-
-  <!-- three.js -->
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "./static/build/three.module.js",
-        "three/libs/": "./static/libs/",
-        "three/controls/": "./static/controls/"
-      }
-    }
-  </script>
-
-  <script type="module">
-    import WebGL from './static/libs/capabilities/WebGL.js';
-    import { Diagram, createSampleGraph2 } from "./static/site/js/nwdiagram.js";
-
-    window.addEventListener("load", () => {
-      if (WebGL.isWebGLAvailable()) {
-        const graph = createSampleGraph2();
-        new Diagram({
-          graph: graph,
-          selection: false, // Default: true
-          showLabels: false, // Default: true
-          labelFontSize: "Small", // Small, Medium, Large, Default: Medium
-          axesHelper: false, // Default: true
-        });
-      } else {
-        document.getElementById("threejsContainer").appendChild(WebGL.getWebGLErrorMessage());
-      }
-    });
-  </script>
 
 </head>
 
@@ -239,5 +211,36 @@
 
   </div>
 </body>
+
+<!-- three.js -->
+<script type="importmap">
+    {
+      "imports": {
+        "three": "./static/build/three.module.js",
+        "three/libs/": "./static/libs/",
+        "three/controls/": "./static/controls/"
+      }
+    }
+  </script>
+
+<script type="module">
+  import WebGL from './static/libs/capabilities/WebGL.js';
+  import { Diagram, createSampleGraph2 } from "./static/site/js/nwdiagram.js";
+
+  window.addEventListener("load", () => {
+    if (WebGL.isWebGLAvailable()) {
+      const graph = createSampleGraph2();
+      new Diagram({
+        graph: graph,
+        selection: false, // Default: true
+        showLabels: false, // Default: true
+        labelFontSize: "Small", // Small, Medium, Large, Default: Medium
+        axesHelper: false, // Default: true
+      });
+    } else {
+      document.getElementById("threejsContainer").appendChild(WebGL.getWebGLErrorMessage());
+    }
+  });
+</script>
 
 </html>
