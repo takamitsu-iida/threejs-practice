@@ -262,6 +262,9 @@
     }
   </style>
 
+  <!-- CCapture.js -->
+  <script src="./static/libs/ccapture.js-1.0.9/CCapture.all.min.js"></script>
+
 </head>
 
 
@@ -277,33 +280,32 @@
         <!-- メニュー ここから -->
         <div class="menu-content">
           <ul>
-            <li>
-              <a href="#">メニューリンク1</a>
-            </li>
-            <li>
-              <a href="#">メニューリンク2</a>
-            </li>
-            <li>
-              <a href="#">メニューリンク3</a>
-            </li>
+            <li><a href="#">メニューリンク1</a></li>
+            <li><a href="#">メニューリンク2</a></li>
+            <li><a href="#">メニューリンク3</a></li>
           </ul>
         </div>
         <!-- メニュー ここまで -->
       </span>
 
-      <span class="control_span" style="margin-left: 100px;">
-        [(clusters, nodes/cluster)]
+      <span class="control_span" style="margin-left: 60px;">
+        (clusters, routers/cluster)&nbsp;
         <a id="idData1" name="dataChangeMenu" class="active">(10, 20)</a>
         <a id="idData2" name="dataChangeMenu">(20, 30)</a>
         <a id="idData3" name="dataChangeMenu">(30, 30)</a>
       </span>
 
-      <span><button id="idButton1">消去</button></span>
+      <span><button id="idButton1">グラフ消去</button></span>
 
-      <span></span>
+      <span style="padding-left: 50px;">
+        キャプチャ(30fps*5sec)
+        <button id="idButtonCaptureStart" disabled>開始</button>
+      </span>
+
       <span style="float: right">
         <a href="https://github.com/takamitsu-iida/threejs-practice" target="_blank" rel="noopener noreferrer">source code</a> (github)
       </span>
+
     </div>
 
     <div class="main_panel">
@@ -318,14 +320,14 @@
 
 <!-- three.js -->
 <script type="importmap">
-    {
-      "imports": {
-        "three": "./static/build/three.module.js",
-        "three/libs/": "./static/libs/",
-        "three/controls/": "./static/controls/"
-      }
+  {
+    "imports": {
+      "three": "./static/build/three.module.js",
+      "three/libs/": "./static/libs/",
+      "three/controls/": "./static/controls/"
     }
-  </script>
+  }
+</script>
 
 <script type="module">
   import WebGL from './static/libs/capabilities/WebGL.js';

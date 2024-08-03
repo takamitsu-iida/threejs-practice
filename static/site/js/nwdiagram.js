@@ -80,10 +80,10 @@ export let ObjectSelection = function (parameters) {
   const self = this;
 
   // マウスカーソルが上に乗ったときのコールバック関数
-  const callbackMouseover = parameters.mouseover || none;
+  const callbackMouseover = parameters.mouseover || null;
 
   // マウスをクリックしたときのコールバック関数
-  const callbackClicked = parameters.clicked || none;
+  const callbackClicked = parameters.clicked || null;
 
   // マウス位置
   const mousePosition = new THREE.Vector2()
@@ -1242,6 +1242,9 @@ export class Diagram {
     autoRotate: false
   }
 
+  // ccapture.jsのインスタンス
+  capture;
+
   constructor(options) {
     this.options = options || {};
 
@@ -1535,9 +1538,41 @@ export class Diagram {
     // テスト用
     // ボタンを押したらシーン上のグラフを全て削除
     {
-      document.getElementById("idButton1").addEventListener("click", () => {
+      document.getElementById("idButton1").addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
         this.removeGraph();
       });
+    }
+
+    // ccapture.js
+    {
+      const startButton = document.getElementById("idButtonCaptureStart");
+      if (startButton) {
+        startButton.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const options = {
+            verbose: false,
+            display: true,
+            framerate: 30,
+            format: 'gif',
+            workersPath: './static/libs/ccapture.js-1.0.9/',
+            timeLimit: 5,
+            onProgress: (p) => {
+              console.log(p);
+              if (p === 1) {
+                console.log("FINISHED!");
+                document.getElementById("idButtonCaptureStart").disabled = false;
+                this.capture = null;
+              }
+            }
+          };
+          document.getElementById("idButtonCaptureStart").disabled = true;
+          this.capture = new CCapture(options);
+          this.capture.start();
+        });
+      }
     }
 
     // クリックでデータを切り替え
@@ -1602,6 +1637,12 @@ export class Diagram {
 
     // render label
     this.labelRenderer.render(this.scene, this.camera);
+
+    // ccapture.js
+    if (this.capture) {
+      this.capture.capture(this.renderer.domElement);
+    }
+
   }
 
 

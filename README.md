@@ -224,3 +224,10 @@ import Stats from 'three/libs/stats.module.js';
 import * as THREE from "three";
 import { OrbitControls } from "OrbitControls"
 ```
+
+
+<br>
+
+## アニメーションGIFに保存
+
+https://github.com/spite/ccapture.js
