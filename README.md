@@ -36,6 +36,7 @@ Your graphics card does not seem to support WebGL
 
 [three.jsのPlaneGeometryで地形を作る](https://yomotsu.net/blog/2012/12/01/create-terrain-with-threejs.html)
 
+[WebGL開発に役立つ重要な三角関数の数式・概念まとめ（Three.js編）](https://ics.media/entry/10657/)
 
 <br>
 
