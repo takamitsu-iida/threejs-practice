@@ -94,6 +94,8 @@ scene.add(particles)
 // マウス操作
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+controls.enablePan = false;
+
 
 window.addEventListener("resize", onWindowResize);
 
