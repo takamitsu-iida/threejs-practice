@@ -156,10 +156,11 @@ export let ObjectSelection = function (parameters) {
       // 前回と違うオブジェクトに光線が当たっているなら、
       if (this.INTERSECTED != intersects[0].object) {
 
-        // 古いオブジェクトは元の色に戻す
+        // 前回のオブジェクトは元の色に戻す
         if (this.INTERSECTED) {
           if (this.INTERSECTED.material.color) {
             this.INTERSECTED.material.color.setHex(this.INTERSECTED.currentHex);
+            this.INTERSECTED.material.needsUpdate = true;
           }
         }
 
@@ -173,6 +174,7 @@ export let ObjectSelection = function (parameters) {
 
           // 色を変える
           this.INTERSECTED.material.color.setHex(0xff0000);
+          this.INTERSECTED.material.needsUpdate = true;
         }
 
         // コールバック関数を渡されているならそれを実行する
@@ -188,6 +190,7 @@ export let ObjectSelection = function (parameters) {
       if (this.INTERSECTED) {
         if (this.INTERSECTED.material.color) {
           this.INTERSECTED.material.color.setHex(this.INTERSECTED.currentHex);
+          this.INTERSECTED.material.needsUpdate = true;
         }
       }
 
@@ -1084,9 +1087,9 @@ class Edge extends THREE.Group {
 
     options = options || {};
 
-    let color = this.COLOR_DEFAULT;
+    let lineColor = this.COLOR_DEFAULT;
     if (edge.data.hasOwnProperty("redundantId")) {
-      color = edge.data.redundantId === 0 ? this.COLOR_REDUNDANT_0 : this.COLOR_REDUNDANT_1;
+      lineColor = edge.data.redundantId === 0 ? this.COLOR_REDUNDANT_0 : this.COLOR_REDUNDANT_1;
     }
 
     // グラフのエッジ情報を保持しておく
@@ -1105,7 +1108,12 @@ class Edge extends THREE.Group {
     }
 
     // マテリアルを作成
-    const material = new THREE.LineBasicMaterial({ color: color });
+    // WebGLの仕様のため線の太さは指定できない
+    const material = new THREE.LineBasicMaterial(
+      {
+        color: lineColor
+      }
+    );
 
     // メッシュ化
     this.line = new THREE.Line(geometry, material);
