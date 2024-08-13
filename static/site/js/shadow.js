@@ -5,9 +5,15 @@ export class Main {
 
   container;
 
+  sizes = {
+    width: 0,
+    height: 0
+  }
+
   scene;
   camera;
   renderer;
+
   directionalLight;
   controller;
 
@@ -16,17 +22,20 @@ export class Main {
     // コンテナ
     this.container = document.getElementById("threejs_container");
 
-    // リサイズイベント
+    // コンテナのサイズ
+    this.sizes.width = this.container.clientWidth;
+    this.sizes.height = this.container.clientHeight;
+
+    // resizeイベントのハンドラを登録
     window.addEventListener("resize", () => { this.onWindowResize(); }, false);
 
     // シーン
     this.scene = new THREE.Scene();
-    // this.scene.background = new THREE.Color(0xffffff);
 
     // カメラ
     this.camera = new THREE.PerspectiveCamera(
       75,
-      window.innerWidth / window.innerHeight,
+      this.sizes.width / this.sizes.height,
       1,
       1000
     );
@@ -35,8 +44,9 @@ export class Main {
 
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setSize(this.sizes.width, this.sizes.height);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
     // 影を出すにはレンダラに設定が必要
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
@@ -79,10 +89,6 @@ export class Main {
 
     // スポットライト用カメラヘルパー
     this.scene.add(new THREE.CameraHelper(spotLight.shadow.camera));
-
-
-
-
 
     // 影を作り出す球を一つ作成
     const sphereGeometry = new THREE.SphereGeometry(3, 32, 32);
@@ -131,7 +137,6 @@ export class Main {
     this.render();
   }
 
-
   render() {
     // カメラコントローラーの更新
     this.controller.update();
@@ -145,11 +150,14 @@ export class Main {
 
 
   onWindowResize() {
-    this.camera.aspect = window.innerWidth / window.innerHeight;
+    this.sizes.width = this.container.clientWidth;
+    this.sizes.height = this.container.clientHeight;
+
+    this.camera.aspect = this.sizes.width / this.sizes.height;
     this.camera.updateProjectionMatrix();
 
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(this.sizes.width, this.sizes.height);
   }
 
 }

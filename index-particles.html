@@ -8,25 +8,55 @@
 
   <link rel="shortcut icon" type="image/x-icon" href="./static/site/img/favicon.ico">
 
-  <link rel="stylesheet" href="./static/site/css/style.css" />
-
   <title>Particles</title>
 
-  <!-- three.js -->
-  <script type="importmap">
-      {
-        "imports": {
-          "three": "./static/build/three.module.js",
-          "OrbitControls": "./static/controls/OrbitControls.js"
-        }
-      }
-    </script>
+  <style type="text/css">
+    html {
+      font-size: 62.5%;
+    }
+
+    body {
+      font-size: 1.4em;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    #threejs_container {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
 
 </head>
 
 <body>
+  <div id="threejs_container"></div>
 </body>
 
-<script src="./static/site/js/particles.js" type="module"></script>
+<!-- three.js -->
+<script type="importmap">
+  {
+    "imports": {
+      "three": "./static/build/three.module.js",
+      "three/libs/": "./static/libs/",
+      "three/controls/": "./static/controls/"
+    }
+  }
+</script>
+
+<script type="module">
+  import WebGL from './static/libs/capabilities/WebGL.js';
+  import { Main } from "./static/site/js/particles.js";
+
+  window.addEventListener("load", () => {
+    if (WebGL.isWebGLAvailable()) {
+      new Main();
+    } else {
+      document.getElementById("threejs_container").appendChild(WebGL.getWebGLErrorMessage());
+    }
+  });
+</script>
 
 </html>

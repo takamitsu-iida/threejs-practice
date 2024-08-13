@@ -266,6 +266,12 @@ export class Main {
 
   container;
 
+  // 初期化時にDIV要素(container)のサイズに変更する
+  sizes = {
+    width: 0,
+    height: 0
+  };
+
   scene;
   camera;
   renderer;
@@ -291,13 +297,17 @@ export class Main {
     // コンテナ
     this.container = document.getElementById("threejs_container");
 
+    // コンテナ要素にあわせてサイズを初期化
+    this.sizes.width = this.container.clientWidth;
+    this.sizes.height = this.container.clientHeight;
+
     // シーン
     this.scene = new THREE.Scene();
 
     // カメラ
     this.camera = new THREE.PerspectiveCamera(
       45,
-      window.innerWidth / window.innerHeight,
+      this.sizes.width / this.sizes.height,
       1,
       2000
     );
@@ -306,8 +316,8 @@ export class Main {
 
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setSize(this.sizes.width, this.sizes.height);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.autoClear = false;
     this.renderer.setClearColor(0x000000, 0.0);
     this.renderer.shadowMap.enabled = true;
@@ -319,7 +329,7 @@ export class Main {
     this.controller.noPan = true;
     this.controller.minDistance = 200;
     this.controller.maxDistance = 1000;
-    this.container.dynamicDampingFactor = 0.05;
+    this.controller.dynamicDampingFactor = 0.05;
 
     // 地球
     this.earth = new Earth();
@@ -379,10 +389,21 @@ export class Main {
     this.satellite = new CityPoint(0xff0000, [0, 0]);
     this.scene.add(this.satellite);
 
+    // resizeイベントのハンドラを登録
+    window.addEventListener("resize", () => {
+      this.sizes.width = this.container.clientWidth;
+      this.sizes.height = this.container.clientHeight;
+
+      this.camera.aspect = this.sizes.width / this.sizes.height;
+      this.camera.updateProjectionMatrix();
+
+      this.renderer.setSize(this.sizes.width, this.sizes.height);
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    });
+
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
 
-    window.addEventListener("resize", () => { this.onWindowResize(); }, false);
   }
 
 
@@ -402,14 +423,5 @@ export class Main {
 
     requestAnimationFrame(() => { this.render(); });
   }
-
-  onWindowResize() {
-    this.camera.aspect = window.innerWidth / window.innerHeight;
-    this.camera.updateProjectionMatrix();
-
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-  }
-
 
 }

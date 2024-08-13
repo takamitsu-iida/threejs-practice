@@ -175,13 +175,12 @@ function animate() {
 
 // ブラウザのリサイズ
 function onWindowResize() {
-  sizes = {
-    width: window.innerWidth,
-    height: window.innerHeight,
-  };
+  sizes.width = window.innerWidth;
+  sizes.height = window.innerHeight;
 
   // レンダラーのサイズを更新
   renderer.setSize(sizes.width, sizes.height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
   // カメラのアスペクト比を更新
   camera.aspect = sizes.width / sizes.height;
@@ -199,7 +198,6 @@ window.addEventListener("load", init);
 // テクスチャ設定
 const textureLoader = new THREE.TextureLoader();
 const particlesTexture = textureLoader.load("/static/site/img/particle.png")
-
 
 //
 // パーティクル

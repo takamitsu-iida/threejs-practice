@@ -1330,7 +1330,8 @@ export class Diagram {
       antialias: true
     });
     this.renderer.setSize(this.sizes.width, this.sizes.height);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
     this.container.appendChild(this.renderer.domElement);
 
     // ラベル用のCSS2Dレンダラを初期化
@@ -1617,9 +1618,14 @@ export class Diagram {
       // コンテナ要素のサイズに合わせてsizesを更新する
       this.sizes.width = this.container.clientWidth;
       this.sizes.height = this.container.clientHeight;
+
       this.camera.aspect = this.sizes.width / this.sizes.height;
       this.camera.updateProjectionMatrix();
+
       this.renderer.setSize(this.sizes.width, this.sizes.height);
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // labelRendererはCSS2DレンダラなのでsetPixelRatio()は存在しない
       this.labelRenderer.setSize(this.sizes.width, this.sizes.height);
     });
 

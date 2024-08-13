@@ -6,9 +6,15 @@ export class Main {
 
   container;
 
+  sizes = {
+    width: 0,
+    height: 0
+  }
+
   scene;
   camera;
   renderer;
+
   directionalLight;
   controller;
 
@@ -16,22 +22,26 @@ export class Main {
 
   constructor() {
 
+    // パーリンノイズ
     this.perlin = new ImprovedNoise();
 
     // コンテナ
     this.container = document.getElementById("threejs_container");
+
+    // コンテナのサイズ
+    this.sizes.width = this.container.clientWidth;
+    this.sizes.height = this.container.clientHeight;
 
     // リサイズイベント
     window.addEventListener("resize", () => { this.onWindowResize(); }, false);
 
     // シーン
     this.scene = new THREE.Scene();
-    // this.scene.background = new THREE.Color(0xffffff);
 
     // カメラ
     this.camera = new THREE.PerspectiveCamera(
       60,
-      window.innerWidth / window.innerHeight,
+      this.sizes.width / this.sizes.height,
       1,
       1001
     );
@@ -40,8 +50,8 @@ export class Main {
 
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setSize(this.sizes.width, this.sizes.height);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.container.appendChild(this.renderer.domElement);
 
     // 環境光
@@ -227,7 +237,6 @@ void main() {
     let boxHelper = new THREE.Box3Helper(box);
     this.scene.add(boxHelper);
 
-
     // コントローラ
     this.controller = new OrbitControls(this.camera, this.renderer.domElement);
     this.controller.target.set(0, 2, 0);
@@ -261,11 +270,14 @@ void main() {
 
 
   onWindowResize() {
-    this.camera.aspect = window.innerWidth / window.innerHeight;
+    this.sizes.width = this.container.clientWidth;
+    this.sizes.height = this.container.clientHeight;
+
+    this.camera.aspect = this.sizes.width / this.sizes.height;
     this.camera.updateProjectionMatrix();
 
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(this.sizes.width, this.sizes.height);
   }
 
 }

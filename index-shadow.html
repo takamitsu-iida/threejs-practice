@@ -21,37 +21,41 @@
       padding: 0;
       overflow: hidden;
     }
-  </style>
 
-  <!-- three.js -->
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "./static/build/three.module.js",
-        "three/libs/": "./static/libs/",
-        "three/controls/": "./static/controls/"
-      }
+    #threejs_container {
+      position: absolute;
+      width: 100%;
+      height: 100%;
     }
-  </script>
-
-  <script type="module">
-    import WebGL from './static/libs/capabilities/WebGL.js';
-    import { Main } from "./static/site/js/shadow.js";
-
-    window.addEventListener("load", () => {
-      if (WebGL.isWebGLAvailable()) {
-        new Main();
-      } else {
-        document.getElementById("threejs_container").appendChild(WebGL.getWebGLErrorMessage());
-      }
-    });
-  </script>
-
+  </style>
 </head>
-
 
 <body>
   <div id="threejs_container"></div>
 </body>
+
+<!-- three.js -->
+<script type="importmap">
+  {
+    "imports": {
+      "three": "./static/build/three.module.js",
+      "three/libs/": "./static/libs/",
+      "three/controls/": "./static/controls/"
+    }
+  }
+</script>
+
+<script type="module">
+  import WebGL from './static/libs/capabilities/WebGL.js';
+  import { Main } from "./static/site/js/shadow.js";
+
+  window.addEventListener("load", () => {
+    if (WebGL.isWebGLAvailable()) {
+      new Main();
+    } else {
+      document.getElementById("threejs_container").appendChild(WebGL.getWebGLErrorMessage());
+    }
+  });
+</script>
 
 </html>

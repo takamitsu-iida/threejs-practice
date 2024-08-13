@@ -232,3 +232,48 @@ import { OrbitControls } from "OrbitControls"
 ## アニメーションGIFに保存
 
 https://github.com/spite/ccapture.js
+
+
+<br>
+
+## VSCodeの拡張機能
+
+Shader languages support for VS Code
+
+Comment tagged templates
+
+こんな感じでGSLSをJavaScriptの文字列として書いたときに、シンタックスハイライトがかかるようになる。
+
+```JavaScript
+const shader = /* glsl */`...`;
+```
+
+
+<br>
+
+## GLSL
+
+
+- attribute
+
+バーテックスシェーダーで用いる変数。
+
+- uniform
+
+uniformはJavaScript側からシェーダーに変数を渡すもの。
+
+valueキーを持った辞書型を定義して、シェーダーに渡す。
+
+```JavaScript
+const uniforms = {
+    a : { value: 0.0 }
+}
+
+const material = new THREE.ShaderMaterial( {
+  uniforms : uniforms
+}
+```
+
+- varying
+
+varyingはバーテックスシェーダーからフラグメントシェーダーに変数を渡すもの。
