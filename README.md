@@ -5,7 +5,7 @@
 
 Github Pagesを使うためにPublicにしていますが、このリポジトリは個人的な学習のためのものです。
 
-テスト中のページ
+テスト中のページ（5-Stage CLOS ネットワークの3D作図）
 
 https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html
 
