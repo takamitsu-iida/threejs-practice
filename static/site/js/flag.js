@@ -2,6 +2,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/controls/OrbitControls.js";
 
+// GLSLをJavaScriptの文字列として取得する
 import { vertex } from "./flagVertexShader.glsl.js";
 import { fragment } from "./flagFragmentShader.glsl.js";
 
@@ -19,7 +20,11 @@ export class Main {
   renderer;
 
   directionalLight;
+
   controller;
+
+  clock;
+  elapsedTime;
 
   constructor() {
 
@@ -38,13 +43,13 @@ export class Main {
 
     // カメラ
     this.camera = new THREE.PerspectiveCamera(
-      60,
+      75,
       this.sizes.width / this.sizes.height,
       1,
-      1001
+      101
     );
-    this.camera.position.set(100, 100, 160);
-    this.camera.position.length(157);
+    this.camera.position.set(0.25, -0.25, 1);
+    this.scene.add(this.camera);
 
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -55,12 +60,28 @@ export class Main {
     // 環境光
     this.scene.add(new THREE.AmbientLight(0x404040, 0.25));
 
+    // コントローラ
+    this.controller = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controller.enableDamping = true;
+
+    // クロック
+    this.clock = new THREE.Clock();
+
     // テクスチャローダー
     const textureLoader = new THREE.TextureLoader();
 
-    // コントローラ
-    this.controller = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controller.target.set(0, 2, 0);
+    // ジオメトリ
+    const geometry = new THREE.PlaneGeometry(1, 1, 32, 32);
+
+    // マテリアル
+    const material = new THREE.RawShaderMaterial({
+      vertexShader: vertex,
+      fragmentShader: fragment,
+    });
+
+    // メッシュ化
+    const mesh = new THREE.Mesh(geometry, material);
+    this.scene.add(mesh);
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
@@ -68,6 +89,9 @@ export class Main {
 
 
   render() {
+    //時間取得
+    this.elapsedTime = this.clock.getElapsedTime();
+
     // カメラコントローラーの更新
     this.controller.update();
 

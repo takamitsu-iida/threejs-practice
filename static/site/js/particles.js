@@ -30,13 +30,9 @@ export class Main {
     // コンテナ
     this.container = document.getElementById("threejs_container");
 
-    console.log(this.container);
-
     // コンテナ要素にあわせてサイズを初期化
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
-
-    console.log(this.sizes);
 
     // シーン
     this.scene = new THREE.Scene();
