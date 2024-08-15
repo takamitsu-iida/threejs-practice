@@ -37,8 +37,6 @@ Your graphics card does not seem to support WebGL
 
 [examples(かなり古い)](http://stemkoski.github.io/Three.js/)
 
-[terrain examples](https://threejs.org/examples/?q=terrain#webgl_geometry_terrain_raycast)
-
 [terrain building with three.js](https://blog.mastermaps.com/2013/10/terrain-building-with-threejs.html)
 
 [three.jsのPlaneGeometryで地形を作る](https://yomotsu.net/blog/2012/12/01/create-terrain-with-threejs.html)
