@@ -18,7 +18,6 @@ export class Main {
   scene;
   camera;
   renderer;
-
   directionalLight;
   controller;
 
@@ -68,7 +67,7 @@ export class Main {
 
     // 平面
     const g = new THREE.PlaneGeometry(200, 200, 1000, 1000);
-    g.rotateX(-Math.PI / 2)
+    g.rotateX(-1 * Math.PI / 2)
     const uv = g.attributes.uv;
     const pos = g.attributes.position;
     const vUv = new THREE.Vector2();

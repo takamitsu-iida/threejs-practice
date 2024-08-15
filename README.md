@@ -264,6 +264,8 @@ const shader = /* glsl */`...`;
 > The Book of Shaders
 >
 > https://thebookofshaders.com/?lan=jp
+>
+> 最初にこれを読んでからUdemyの講座を閲覧すると理解が深まる。
 
 
 <br>
@@ -274,6 +276,20 @@ const shader = /* glsl */`...`;
 >
 > https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
 
+
+★★★
+
+> [!NOTE]
+>
+> Anrti-Aliased Grid Shader
+>
+> https://madebyevan.com/shaders/grid/
+>
+
+
+
+
+<br>
 
 ストレージ修飾子
 
@@ -303,3 +319,12 @@ const material = new THREE.ShaderMaterial( {
 
 テクスチャを使うときのUV座標はジオメトリから取得してグローバル変数で渡してもよいが、
 バーテックスシェーダーが組み込みで持っているuv変数をvaryingで渡してあげた方がよい。
+
+
+出力先
+
+シェーダーは `void main() {}` を実行するので、戻り値は存在しない。
+
+バーテックスシェーダーの処理結果は `vec4 gl_Position` に格納する。
+
+フラグメントシェーダーの処理結果は `vec4 gl_FragColor` に格納する。

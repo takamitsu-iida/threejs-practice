@@ -70,7 +70,7 @@ void main() {
 
     vec3 col = vec3(0);
     col = (vPos - boxMin) / (boxMax - boxMin);
-    col = clamp(col, 0., 1.);
+    col = clamp(col, 0.0, 1.0);
 
     if (showPositionColors < 0.375) {
         // http://madebyevan.com/shaders/grid/
@@ -80,6 +80,7 @@ void main() {
         vec3 lineCol = mix(vec3(1, 1, 0),vec3(0, 1, 1), col.y);
         col = mix(lineCol, gl_FragColor.rgb, line);
     }
-    gl_FragColor = vec4( col, opacity);
+
+    gl_FragColor = vec4(col, opacity);
 }
 `;

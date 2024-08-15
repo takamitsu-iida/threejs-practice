@@ -14,7 +14,6 @@ export class Main {
   scene;
   camera;
   renderer;
-
   directionalLight;
   controller;
 
@@ -63,22 +62,58 @@ export class Main {
     this.scene.add(this.directionalLight);
 
     // 平面
-    const g = new THREE.PlaneGeometry(200, 200, 1000, 1000);
-    g.rotateX(-Math.PI / 2)
+    const g = new THREE.PlaneGeometry(200, 200, 512, 512);
+
+    // X軸を中心に-90度回転してXZ平面と平行にする
+    g.rotateX(-1 * Math.PI / 2)
+
+    // 頂点のUV座標
     const uv = g.attributes.uv;
+    console.log(uv);
+    // uvはFloat32BufferAttribute型
+    // https://threejs.org/docs/#api/en/core/BufferAttribute
+    //
+    // 一次元のarrayに値が格納されているので(u, v)を直接取り出すのは難しいが、
+    // Vector2, Vector3, Vector4, Colorクラスには.fromBufferAttribute(attribute, index)メソッドがあるので、
+    // それを使うとインデックスを指定して(u, v)を取り出せる
+    //
+    // uv.countには(u, v)の個数が格納されている
+
+
+
+    // 頂点の位置情報
     const pos = g.attributes.position;
-    const vUv = new THREE.Vector2();
+    console.log(pos);
+    // posはFloat32BufferAttribute型
+
+    const tmpUv = new THREE.Vector2();
     for (let i = 0; i < uv.count; i++) {
-      vUv.fromBufferAttribute(uv, i);
-      vUv.multiplyScalar(10);
-      pos.setY(i, this.perlin.noise(vUv.x, vUv.y, 2.7) * 30);
+      // i番目の(u, v)を取り出してtmpUvに複写
+      tmpUv.fromBufferAttribute(uv, i);
+
+      if (i === 1) {
+        console.log(tmpUv);
+      }
+
+      // 値を大きくすると波の周波数が大きくなる
+      tmpUv.multiplyScalar(10);
+
+      if (i === 1) {
+        console.log(tmpUv);
+        console.log(this.perlin.noise(tmpUv.x, tmpUv.y, 2.7) * 30);
+      }
+
+      // pos.setY(i, this.perlin.noise(tmpUv.x, tmpUv.x, 2.7) * 30);
+      // pos.setY(i, this.perlin.noise(tmpUv.y, tmpUv.y, 2.7) * 30);
+      pos.setY(i, this.perlin.noise(tmpUv.x, tmpUv.y, 2.7) * 30);
     }
+
+    // 法線ベクトルを計算し直す
     g.computeVertexNormals();
 
     const m = new THREE.MeshLambertMaterial({
       color: 0xa0adaf,
       side: THREE.DoubleSide,
-      wireframe: false,
       onBeforeCompile: (shader) => {
         // console.log(shader.vertexShader);
         // console.log(shader.fragmentShader);
