@@ -2,6 +2,9 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/controls/OrbitControls.js";
 
+// lil-gui
+import { GUI } from "three/libs/lil-gui.module.min.js";
+
 // GLSLをJavaScriptの文字列として取得する
 import { vertex } from "./flagVertexShader.glsl.js";
 import { fragment } from "./flagFragmentShader.glsl.js";
@@ -18,13 +21,10 @@ export class Main {
   scene;
   camera;
   renderer;
-
-  directionalLight;
-
   controller;
-
   clock;
-  elapsedTime;
+
+  material;
 
   constructor() {
 
@@ -35,9 +35,6 @@ export class Main {
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
 
-    // リサイズイベント
-    window.addEventListener("resize", () => { this.onWindowResize(); }, false);
-
     // シーン
     this.scene = new THREE.Scene();
 
@@ -45,10 +42,10 @@ export class Main {
     this.camera = new THREE.PerspectiveCamera(
       75,
       this.sizes.width / this.sizes.height,
-      1,
+      0.1,
       101
     );
-    this.camera.position.set(0.25, -0.25, 1);
+    this.camera.position.set(0, 0, 1.5);
     this.scene.add(this.camera);
 
     // レンダラ
@@ -67,30 +64,69 @@ export class Main {
     // クロック
     this.clock = new THREE.Clock();
 
-    // テクスチャローダー
-    const textureLoader = new THREE.TextureLoader();
-
     // ジオメトリ
     const geometry = new THREE.PlaneGeometry(1, 1, 32, 32);
 
+    // UV座標をジオメトリから取得することもできるが、
+    // バーテックスシェーダーも保持している
+    // const uuV = geometry.attributes.uv;
+
+    // テクスチャ
+    const textureLoader = new THREE.TextureLoader();
+    const flagTexture = textureLoader.load("./static/site/img/jp-flag.png");
+
     // マテリアル
-    const material = new THREE.RawShaderMaterial({
+    // this.material = new THREE.RawShaderMaterial({
+    this.material = new THREE.ShaderMaterial({
       vertexShader: vertex,
       fragmentShader: fragment,
+      transparent: true,
+      side: THREE.DoubleSide,
+      // グローバル変数
+      uniforms: {
+        // (x方向の周波数, y方向の周波数)
+        uFrequency: { value: new THREE.Vector2(10, 5) },
+        uTime: { value: 0 },
+        uColor: { value: new THREE.Color("pink") },
+        uTexture: { value: flagTexture },
+      }
     });
 
+    // lil-gui
+    const gui = new GUI({ width: 300 });
+    gui
+      .add(this.material.uniforms.uFrequency.value, "x")
+      .min(0)
+      .max(20)
+      .step(0.01)
+      .name("freq x");
+    gui
+      .add(this.material.uniforms.uFrequency.value, "y")
+      .min(0)
+      .max(20)
+      .step(0.01)
+      .name("freq y");
+
     // メッシュ化
-    const mesh = new THREE.Mesh(geometry, material);
+    const mesh = new THREE.Mesh(geometry, this.material);
+
+    // 横長にする
+    mesh.scale.y = 2/3;
+
     this.scene.add(mesh);
 
+    // resizeイベントのハンドラを登録
+    window.addEventListener("resize", () => { this.onWindowResize(); }, false);
+
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
-    this.render();
+    this.animate();
   }
 
 
-  render() {
-    //時間取得
-    this.elapsedTime = this.clock.getElapsedTime();
+  animate() {
+    // 時間取得
+    const elapsedTime = this.clock.getElapsedTime();
+    this.material.uniforms.uTime.value = elapsedTime
 
     // カメラコントローラーの更新
     this.controller.update();
@@ -99,7 +135,7 @@ export class Main {
     this.renderer.render(this.scene, this.camera);
 
     // 再帰処理
-    requestAnimationFrame(() => { this.render(); });
+    requestAnimationFrame(() => { this.animate(); });
   }
 
 

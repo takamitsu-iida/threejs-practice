@@ -261,19 +261,37 @@ const shader = /* glsl */`...`;
 ## GLSL
 
 
+> [!NOTE]
+>
+> The Book of Shaders
+>
+> https://thebookofshaders.com/?lan=jp
+
+
+<br>
+
+> [!NOTE]
+>
+> シェーダー用パーリンノイズ
+>
+> https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
+
+
+ストレージ修飾子
+
 - attribute
 
-バーテックスシェーダーで用いる変数。
+頂点情報を入れる。バーテックスシェーダーで用いる。
 
 - uniform
 
-uniformはJavaScript側からシェーダーに変数を渡すもの。
+グローバル変数を入れる。JavaScript側からシェーダーに変数を渡す。
 
-valueキーを持った辞書型を定義して、シェーダーに渡す。
+valueキーを持った辞書型を定義して、シェーダーに渡す。キーの先頭は `u` をつけるのが慣例。
 
 ```JavaScript
 const uniforms = {
-    a : { value: 0.0 }
+    uA : { value: 0.0 }
 }
 
 const material = new THREE.ShaderMaterial( {
@@ -283,4 +301,7 @@ const material = new THREE.ShaderMaterial( {
 
 - varying
 
-varyingはバーテックスシェーダーからフラグメントシェーダーに変数を渡すもの。
+バーテックスシェーダーからフラグメントシェーダーに変数を渡す。
+
+テクスチャを使うときのUV座標はジオメトリから取得してグローバル変数で渡してもよいが、
+バーテックスシェーダーが組み込みで持っているuv変数をvaryingで渡してあげた方がよい。
