@@ -171,7 +171,6 @@ class TerrainGenerator {
     this.heights = new Array((this.sizeX + 1) * (this.sizeZ + 1))
     this.heights.fill(0)
 
-    // generate grid with values [-1, 1]
     const grid = new Grid(this.sizeX, this.sizeZ)
     grid.fill(0)
 

@@ -2,6 +2,144 @@ import * as THREE from "three";
 import { OrbitControls } from "three/controls/OrbitControls.js";
 import { ImprovedNoise } from "three/libs/ImprovedNoise.js";
 
+const vertexShader = /* glsl */`
+
+varying vec3 vPosition;
+
+void main() {
+
+  // 頂点の位置を加工しない場合の処理
+  vec4 modelPosition = modelMatrix * vec4(position, 1.0);
+  vec4 viewPosition = viewMatrix * modelPosition;
+  vec4 projectionPosition = projectionMatrix * viewPosition;
+  gl_Position = projectionPosition;
+
+  // フラグメントシェーダーに位置情報を渡す
+  vPosition = position;
+}
+
+`;
+
+
+const fragmentShader = /* glsl */`
+
+// 色は(R, G, B)の3次元
+uniform vec3 uColor;
+
+// 等圧線をひくインターバル
+uniform float uInterval;
+
+// 等圧線の太さ
+uniform float uThickness;
+
+// 位置情報はバーテックスシェーダーから引き取る
+varying vec3 vPosition;
+
+
+float getContourColor() {
+  // 位置情報のうち、Y座標を高度として扱う
+  float height = vPosition.y;
+
+  // アンチエイリアスのグリッドラインを計算する
+  // float line = abs(fract(height - 0.5) - 0.5) / fwidth(height);
+  float line = fract(height) / fwidth(height);
+
+  line = line / uThickness;
+
+  // 白黒逆転
+  float color = 1.0 - min(line, 1.0);
+
+  // ガンマ補正
+  // color = pow(color, 1.0 / 2.2);
+
+  return color;
+}
+
+
+float getContourColor2() {
+
+  // 位置情報のうち、Y座標を高度として扱う
+  float height = vPosition.y;
+
+  // そのピクセルにおける高度をインターバルで割る
+  float step = height / uInterval;
+
+  // 小数点の部分だけを取り出すことで、一定間隔の高度で同じ処理結果が得られるようにする
+  float f = fract(step);
+
+  // fが取りうる値は 0.0 ～ 0.999... なので
+  // これをそのまま返却すると  // 一定間隔で繰り返される
+  // グラデーションのかかったシマシマ模様になる
+
+  return f;
+}
+
+
+float getContourColor3() {
+
+  // 位置情報のうち、Y座標を高度として扱う
+  float height = vPosition.y;
+
+  // そのピクセルにおける高度をインターバルで割る
+  float step = height / uInterval;
+
+  // 小数点の部分だけを取り出すことで、一定間隔の高度で同じ処理結果が得られるようにする
+  // fが取りうる値は 0.0 ～ 0.999...
+  float f = fract(step);
+
+  // ここが難しいところ。
+  // 右隣のピクセル(x+1)、上隣(y+1)のピクセルとの間でアンチエイリアス処理を施す。
+  float w = fwidth(step);
+  // float w = fwidth(height);
+
+
+  // しきい値wから、w*線の太さ、で終わる値に補完する
+  // 同時にw未満の値は0に、w*線の太さを超えるものは1.0に正規化する
+  float ss = smoothstep(w, w * uThickness, f);
+
+  // 白黒逆転
+  float color = 1.0 - ss;
+
+  return color;
+}
+
+
+float getContourColor4() {
+
+  // 位置情報のうち、Y座標を高度として扱う
+  float height = vPosition.y;
+
+  // そのピクセルにおける高度をインターバルで割る
+  float step_i = floor(height / uInterval);
+  float step_f = mod(height, uInterval);
+
+  // step_fを二値化する
+  float contour = smoothstep(0.0, 0.1 * uThickness, step_f);
+
+  // 白黒逆転
+  contour = 1.0 - contour;
+
+  return contour;
+}
+
+
+void main() {
+
+  // デバッグ用、単色で色付け
+  // gl_FragColor = vec4(uColor, 1.0);
+
+  // float color = getContourColor();
+  // float color = getContourColor2();
+  float color = getContourColor3();
+  // float color = getContourColor4();
+
+  gl_FragColor = vec4(color, color, color, 1.0);
+
+}
+
+`;
+
+
 export class Main {
 
   container;
@@ -76,8 +214,6 @@ export class Main {
     //
     // uv.countには(u, v)の個数が格納されている
 
-
-
     // 頂点の位置情報
     const pos = g.attributes.position;
     console.log(pos);
@@ -108,16 +244,26 @@ export class Main {
     // 法線ベクトルを計算し直す
     g.computeVertexNormals();
 
-    const m = new THREE.MeshLambertMaterial({
-      color: 0xa0adaf,
+    const material = new THREE.ShaderMaterial({
+      vertexShader: vertexShader,
+      fragmentShader: fragmentShader,
+      transparent: true,
       side: THREE.DoubleSide,
-      onBeforeCompile: (shader) => {
-        // console.log(shader.vertexShader);
-        // console.log(shader.fragmentShader);
-      },
+      // グローバル変数
+      uniforms: {
+        // デバッグ用
+        uColor: { value: new THREE.Color("#a0adaf") },
+
+        // 等圧線をひくインターバル
+        uInterval: { value: 1.0 },
+
+        // 等圧線の太さ
+        uThickness: { value: 1.0 },
+
+      }
     });
 
-    const ground = new THREE.Mesh(g, m);
+    const ground = new THREE.Mesh(g, material);
     ground.layers.enable(1);
     this.scene.add(ground);
 

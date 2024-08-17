@@ -258,7 +258,6 @@ const shader = /* glsl */`...`;
 
 ## GLSL
 
-
 > [!NOTE]
 >
 > The Book of Shaders
@@ -266,7 +265,8 @@ const shader = /* glsl */`...`;
 > https://thebookofshaders.com/?lan=jp
 >
 > 最初にこれを読んでからUdemyの講座を閲覧すると理解が深まる。
-
+>
+> Examplesのソースコードを読むと、とても勉強になる。
 
 <br>
 
@@ -277,6 +277,8 @@ const shader = /* glsl */`...`;
 > https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
 
 
+<br>
+
 ★★★
 
 > [!NOTE]
@@ -285,17 +287,120 @@ const shader = /* glsl */`...`;
 >
 > https://madebyevan.com/shaders/grid/
 >
-
-
-
+> このページも大変勉強になる。
 
 <br>
+
+シェーダーについて考えるときには、ピクセルごとに並列実行されることを意識したほうがよい。
+
+- バーテックスシェーダーは、**そのピクセルの位置が** どうなのかをgl_Positionに格納する。
+
+- フラグメントシェーダーは、**そのピクセルの色が** どうなのかをgl_FragColorに格納する。
+
+
+たとえば等圧線を生成することを考えたとき、そのピクセルに相当するモデルの高さの情報が必要になる。
+その情報はバーテックスシェーダーであれば知り得るが、フラグメントシェーダーは知り得ないので、`varying`で渡してあげる必要がある。
+
+フラグメントシェーダーは概ねこんな感じのコードになるはず。
+
+```GLSL
+uniform float interval; // 等圧線をひくインターバル
+uniform float thickness; // 等圧線の太さ
+
+varying float vHeight; // そのピクセルに該当するモデルの高度
+
+void main() {
+
+    float step = vHeight / interval;
+    float f  = fract(step);
+    float w = fwidth(step);
+    float aa = smoothstep(w, w * thickness, f);
+    float inv = 1.0 - aa;
+
+    gl_FragColor = vec4(inv, inv, inv, 1.0);
+}
+```
+
+こういったサンプルのコードを見てもいまいち分かりづらいのは、組み込みの関数や既定の変数が存在するため。
+十分に知識がないと、とかく難しく感じてしまう。
+
+最低限押さえておきたい組み込み関数
+
+<br>
+
+- radians()
+- degrees()
+- abs() 指定された値の絶対値を返す。
+- sign(x) xが正なら+1.0、0.0なら0.0、負なら-1.0を返す
+- floor()
+- ceil()
+- fract(x) 小数点部分、つまりx-floor(x)を返す。fractは分数の意かな？
+- mod(x, y)
+- min(x, y)
+- max(x, y)
+- clamp(x, a, b) xをaとbの間の値に制限する。つまりmin(max(x, a), b)を返す。
+- mix(a, b, x) 線形補間 `a(1-x)+b*x` を返す。xが0のとき結果はa、xが1のとき結果はbになる。
+- step(a, x) aをしきい値として0,1で二値化する。aはしきい値。xがaより小さければ0.0、大きければ1.0を返す。
+- smoothstep(a, b, x) しきい値aで始まり、しきい値bで終わる緩やかな補完を返す
+- fwidth(x) x方向の偏微分の絶対値と、y方向の偏微分の絶対値を加えた値、すなわち `abs(ddx(x)) + abs(ddy(x))` を返す。
+- sin(), cos(), tan(), asin(), acos(), atan()
+- pow(x, y) xのy乗を返す。
+- exp(x) eのx乗を返す。
+- log(x) xの自然対数を返す。
+- exp2(x) 2のx乗を返す。
+- log2(x) 底2のlogを返す。
+- sqrt(x) xの平方根を返す。
+- inverssqrt(x) 1/sqrt(x)を返す。
+
+<br>
+
+先程のコードにコメントを追加するとこうなる。
+
+```GLSL
+uniform float interval; // 等圧線をひくインターバル
+uniform float thickness; // 等圧線の太さ
+
+varying float vHeight; // そのピクセルに該当するモデルの高度
+
+void main() {
+
+    // そのピクセルにおける高度をインターバルで割る
+    float step = vHeight / interval;
+
+    // 小数点の部分だけを取り出すことで、一定間隔の高度で同じ処理結果が得られる
+    float f  = fract(step);
+
+    // ここが難しいところ。
+    // 右隣のピクセル(x+1)、上隣(y+1)のピクセルとの間で補完をかけて変化がギザギザにならないようにする
+    // いわゆるアンチエイリアス処理を施す。
+    // 最近のGPUであれば隣のピクセル情報にアクセスできるので、こういう処理もできる。
+    float w = fwidth(step);
+
+    // しきい値wから、w*線の太さ、で終わる値に補完する
+    float aa = smoothstep(w, w * thickness, f);
+
+    // 1から引いて、そのピクセルの色にする
+    float inv = 1.0 - aa;
+
+    gl_FragColor = vec4(inv, inv, inv, 1.0);
+}
+```
+
+上記のコードはアンチエイリアス処理をしなければもうちょっと簡単になるはず。
+
+
 
 ストレージ修飾子
 
 - attribute
 
-頂点情報を入れる。バーテックスシェーダーで用いる。
+頂点情報ごとに異なる情報がほしいときにattributeに値を入れて、バーテックスシェーダーに渡す。
+
+典型的なのは位置情報。
+
+```GLSL
+attribute vec3 position;
+```
 
 - uniform
 

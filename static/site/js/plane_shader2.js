@@ -57,9 +57,6 @@ export class Main {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.container.appendChild(this.renderer.domElement);
 
-    // 環境光
-    this.scene.add(new THREE.AmbientLight(0x404040, 0.25));
-
     // ディレクショナルライト
     this.directionalLight = new THREE.DirectionalLight(0xffffff, 1.25);
     this.directionalLight.position.set(1, 1, 0);
