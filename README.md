@@ -9,6 +9,10 @@ Github Pagesを使うためにPublicにしていますが、このリポジト�
 
 https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html
 
+> [!NOTE]
+>
+> 搭載しているGPUの性能によっては重いです。
+> 2015 EarlyモデルのMacbook Proでは60fps出せませんでした。
 
 <br><br>
 
