@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/controls/OrbitControls.js";
 import { ImprovedNoise } from "three/libs/ImprovedNoise.js";
+import { GUI } from "three/libs/lil-gui.module.min.js";
 
 const vertexShader = /* glsl */`
 
@@ -8,16 +9,17 @@ varying vec3 vPosition;
 
 void main() {
 
-  // 頂点の位置を加工しない場合の処理
   vec4 modelPosition = modelMatrix * vec4(position, 1.0);
+
   vec4 viewPosition = viewMatrix * modelPosition;
+
   vec4 projectionPosition = projectionMatrix * viewPosition;
+
   gl_Position = projectionPosition;
 
   // フラグメントシェーダーに位置情報を渡す
   vPosition = position;
 }
-
 `;
 
 
@@ -35,8 +37,11 @@ uniform float uThickness;
 // 位置情報はバーテックスシェーダーから引き取る
 varying vec3 vPosition;
 
+// どの関数をつかう？
+uniform int uAlgo;
 
-float getContourColor() {
+
+float getContourColor1() {
   // 位置情報のうち、Y座標を高度として扱う
   float height = vPosition.y;
 
@@ -123,15 +128,47 @@ float getContourColor4() {
 }
 
 
+float getContourColor5() {
+  // 位置情報のうち、Y座標を高度として扱う
+  float height = vPosition.y;
+
+  // そのピクセルにおける高度をインターバルで割る
+  float step_i = floor(height / uInterval);
+  float step_f = mod(height, uInterval);
+  float step_df = fwidth(step_f);
+
+  // step_fを滑らかに二値化する
+  float contour = smoothstep(-uThickness*step_df, uThickness*step_df, step_f);
+
+  // 白黒逆転
+  contour = 1.0 - contour;
+
+  return contour;
+}
+
+
+
 void main() {
 
   // デバッグ用、単色で色付け
   // gl_FragColor = vec4(uColor, 1.0);
 
-  // float color = getContourColor();
-  // float color = getContourColor2();
-  float color = getContourColor3();
-  // float color = getContourColor4();
+  float color;
+  if (uAlgo == 1) {
+    color = getContourColor1();
+  }
+  if (uAlgo == 2) {
+    color = getContourColor2();
+  }
+  if (uAlgo == 3) {
+    color = getContourColor3();
+  }
+  if (uAlgo == 4) {
+    color = getContourColor4();
+  }
+  if (uAlgo == 5) {
+    color = getContourColor5();
+  }
 
   gl_FragColor = vec4(color, color, color, 1.0);
 
@@ -154,6 +191,7 @@ export class Main {
   renderer;
   directionalLight;
   controller;
+  gui;
 
   perlin;
 
@@ -260,6 +298,9 @@ export class Main {
         // 等圧線の太さ
         uThickness: { value: 1.0 },
 
+        // 等圧線を書く方式
+        uAlgo: { value: 5 },
+
       }
     });
 
@@ -287,6 +328,26 @@ export class Main {
     //
     const axesHelper = new THREE.AxesHelper(10000);
     this.scene.add(axesHelper);
+
+    // lil-gui
+    const gui = new GUI({ width: 300 });
+    gui
+      .add(material.uniforms.uThickness, "value")
+      .min(0.0)
+      .max(5.0)
+      .step(0.01)
+      .name("uThickness");
+
+    gui
+      .add(material.uniforms.uInterval, "value")
+      .min(1.0)
+      .max(10.0)
+      .step(0.1)
+      .name("Interval");
+
+    gui
+      .add(material.uniforms.uAlgo, "value", [1,2,3,4,5])
+      .name("getContour");
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();

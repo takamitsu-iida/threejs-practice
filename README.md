@@ -10,22 +10,22 @@ Github Pagesを使うためにPublicにしていますが、このリポジト�
 https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html
 
 
-<br>
+<br><br>
 
-参考にした例の一覧
+勉強用に作った例の一覧
 
 https://takamitsu-iida.github.io/threejs-practice/index-examples.html
 
 
 <br>
 
-three.jsではWebGLを使いますので、グラフィックボードを持たないシンクライアントやWebGLをサポートしていないブラウザでは、
-
-```
-Your graphics card does not seem to support WebGL
-```
-
-とだけ表示されます。
+> [!NOTE]
+>
+> three.jsではWebGLを使いますので、グラフィックボードを持たないシンクライアントやWebGLをサポートしていないブラウザでは
+>
+> `Your graphics card does not seem to support WebGL`
+>
+> とだけ表示されます。
 
 <br>
 
@@ -299,32 +299,52 @@ const shader = /* glsl */`...`;
 
 
 たとえば等圧線を生成することを考えたとき、そのピクセルに相当するモデルの高さの情報が必要になる。
-その情報はバーテックスシェーダーであれば知り得るが、フラグメントシェーダーは知り得ないので、`varying`で渡してあげる必要がある。
+その情報はバーテックスシェーダーであれば知り得るが、フラグメントシェーダーは知り得ないので、`varying` を使ってバーテックスシェーダーから渡してあげる必要がある。
+
+バーテックスシェーダーは、位置情報を渡すだけであればこのようになる。
+
+```GLSL
+varying vec3 vPosition;
+
+void main() {
+
+  vec4 modelPosition = modelMatrix * vec4(position, 1.0);
+
+  vec4 viewPosition = viewMatrix * modelPosition;
+
+  vec4 projectionPosition = projectionMatrix * viewPosition;
+
+  gl_Position = projectionPosition;
+
+  // フラグメントシェーダーに位置情報を渡す
+  vPosition = position;
+}
+```
 
 フラグメントシェーダーは概ねこんな感じのコードになるはず。
 
 ```GLSL
-uniform float interval; // 等圧線をひくインターバル
-uniform float thickness; // 等圧線の太さ
+uniform float uInterval; // 等圧線をひくインターバル
+uniform float uThickness; // 等圧線の太さ
 
-varying float vHeight; // そのピクセルに該当するモデルの高度
+varying vec3 vPosition; // 位置情報はバーテックスシェーダーから引き取る
 
 void main() {
 
-    float step = vHeight / interval;
+    float step = vPosition.y / uInterval;
     float f  = fract(step);
-    float w = fwidth(step);
-    float aa = smoothstep(w, w * thickness, f);
-    float inv = 1.0 - aa;
+    float df = fwidth(step);
+    float color = smoothstep(df, df * uThickness, f);
+    color = 1.0 - color;
 
-    gl_FragColor = vec4(inv, inv, inv, 1.0);
+    gl_FragColor = vec4(color, color, color, 1.0);
 }
 ```
 
 こういったサンプルのコードを見てもいまいち分かりづらいのは、組み込みの関数や既定の変数が存在するため。
 十分に知識がないと、とかく難しく感じてしまう。
 
-最低限押さえておきたい組み込み関数
+最低限押さえておきたい組み込み関数はこれら。
 
 <br>
 
@@ -357,38 +377,42 @@ void main() {
 先程のコードにコメントを追加するとこうなる。
 
 ```GLSL
-uniform float interval; // 等圧線をひくインターバル
-uniform float thickness; // 等圧線の太さ
-
-varying float vHeight; // そのピクセルに該当するモデルの高度
-
 void main() {
 
     // そのピクセルにおける高度をインターバルで割る
-    float step = vHeight / interval;
+    float step = vPosition.y / uInterval;
 
     // 小数点の部分だけを取り出すことで、一定間隔の高度で同じ処理結果が得られる
     float f  = fract(step);
 
-    // ここが難しいところ。
-    // 右隣のピクセル(x+1)、上隣(y+1)のピクセルとの間で補完をかけて変化がギザギザにならないようにする
-    // いわゆるアンチエイリアス処理を施す。
-    // 最近のGPUであれば隣のピクセル情報にアクセスできるので、こういう処理もできる。
-    float w = fwidth(step);
+    // このstep値を隣接ピクセルとの間で偏微分して、和を計算する
+    // アンチエイリアス処理をするときの典型処理
+    float df = fwidth(step);
 
-    // しきい値wから、w*線の太さ、で終わる値に補完する
-    float aa = smoothstep(w, w * thickness, f);
+    // 滑らかに二値化する
+    // dfより小さければ0.0、df*uThicknessより大きければ1.0、その中間は滑らかに補完される
+    float color = smoothstep(df, df * uThickness, f);
 
-    // 1から引いて、そのピクセルの色にする
-    float inv = 1.0 - aa;
+    // colorはほとんどの場所で1.0になり、等圧線が引かれる場所だけ0に近い値になる
+    // 白黒を逆転する
+    color = 1.0 - color;
 
-    gl_FragColor = vec4(inv, inv, inv, 1.0);
+    gl_FragColor = vec4(color, color, color, 1.0);
 }
 ```
 
 上記のコードはアンチエイリアス処理をしなければもうちょっと簡単になるはず。
 
+このあたりは試行錯誤が必要。
+実際にいくつか関数を作って試せるようにしたのがこれ。
 
+https://takamitsu-iida.github.io/threejs-practice/index-plane-grid.html
+
+uThicknessやIntervalを変えてみたときに期待通りに動いてくれるのは `getContour5()` ではあるののの、
+なぜこういう結果を得られるのか、を知るには他の関数も重要。
+特に `getContour2()` の結果をみると、納得できる部分が多い。
+
+<br><br>
 
 ストレージ修飾子
 
