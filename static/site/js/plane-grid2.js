@@ -3,24 +3,6 @@ import { OrbitControls } from "three/controls/OrbitControls.js";
 import { ImprovedNoise } from "three/libs/ImprovedNoise.js";
 import { GUI } from "three/libs/lil-gui.module.min.js";
 
-const vertexShader = /* glsl */`
-
-varying vec3 vPosition;
-
-void main() {
-
-  vec4 modelPosition = modelMatrix * vec4(position, 1.0);
-
-  vec4 viewPosition = viewMatrix * modelPosition;
-
-  vec4 projectionPosition = projectionMatrix * viewPosition;
-
-  gl_Position = projectionPosition;
-
-  // フラグメントシェーダーに位置情報を渡す
-  vPosition = position;
-}
-`;
 
 
 const fragmentShader = /* glsl */`
@@ -46,7 +28,10 @@ float getContourColor1() {
   float height = vPosition.y;
 
   // アンチエイリアスのグリッドラインを計算する
-  float line = abs(fract(height - 0.5) - 0.5) / fwidth(height / uInterval) / uThickness;
+  // float line = abs(fract(height - 0.5) - 0.5) / fwidth(height);
+  float line = fract(height) / fwidth(height);
+
+  line = line / uThickness;
 
   // 白黒逆転
   float color = 1.0 - min(line, 1.0);
@@ -92,11 +77,12 @@ float getContourColor3() {
   // ここが難しいところ。
   // 右隣のピクセル(x+1)、上隣(y+1)のピクセルとの間でアンチエイリアス処理を施す。
   float w = fwidth(step);
+  // float w = fwidth(height);
+
 
   // しきい値wから、w*線の太さ、で終わる値に補完する
   // 同時にw未満の値は0に、w*線の太さを超えるものは1.0に正規化する
   float ss = smoothstep(w, w * uThickness, f);
-  ss = clamp(ss, 0.0, 1.0);
 
   // 白黒逆転
   float color = 1.0 - ss;
@@ -111,7 +97,7 @@ float getContourColor4() {
   float height = vPosition.y;
 
   // そのピクセルにおける高度をインターバルで割る
-  // float step_i = floor(height / uInterval);
+  float step_i = floor(height / uInterval);
   float step_f = mod(height, uInterval);
 
   // step_fを二値化する
@@ -125,58 +111,23 @@ float getContourColor4() {
 
 
 float getContourColor5() {
-
   // 位置情報のうち、Y座標を高度として扱う
   float height = vPosition.y;
 
-  // 高度をインターバルで割る
-  float step_height = height / uInterval;
-
-  // 小数点部を取り出すことで同じ処理が繰り返される
-  float step_f = fract(step_height);
-
-  // 偏微分の和をとることで変化量を得る
-  float step_df = fwidth(step_height);
+  // そのピクセルにおける高度をインターバルで割る
+  float step_i = floor(height / uInterval);
+  float step_f = mod(height, uInterval);
+  float step_df = fwidth(step_f);
 
   // step_fを滑らかに二値化する
   float contour = smoothstep(-uThickness*step_df, uThickness*step_df, step_f);
-  contour = clamp(contour, 0.0, 1.0);
 
   // 白黒逆転
   contour = 1.0 - contour;
 
-  // ガンマ補正
-  // contour = pow(contour, 1.0 / 2.2);
-
   return contour;
 }
 
-
-float getContourColor6() {
-
-  // 位置情報のうち、Y座標を高度として扱う
-  float height = vPosition.y;
-
-  // 高度をインターバルで割る
-  float step_height = height / uInterval;
-
-  // 小数点部を取り出すことで同じ処理が繰り返される
-  float step_f = fract(step_height);
-
-  // 偏微分の和をとることで変化量を得る
-  float step_df = fwidth(step_f);
-
-  float contour = (step_f - step_df * uThickness) / step_df;
-  contour = clamp(contour, 0.0, 1.0);
-
-  // 白黒逆転
-  contour = 1.0 - contour;
-
-  // ガンマ補正
-  // contour = pow(contour, 1.0 / 2.2);
-
-  return contour;
-}
 
 
 void main() {
@@ -200,15 +151,8 @@ void main() {
   if (uAlgo == 5) {
     color = getContourColor5();
   }
-  if (uAlgo == 6) {
-    color = getContourColor6();
-  }
 
-  if (color == 0.0) {
-    gl_FragColor = vec4(gl_FragColor.rgb, 1.0);
-  } else {
-    gl_FragColor = vec4(color, color, color, 1.0);
-  }
+  gl_FragColor = vec4(color, color, color, 1.0);
 
 }
 
@@ -280,7 +224,7 @@ export class Main {
 
     // 頂点のUV座標
     const uv = g.attributes.uv;
-    console.log(uv);
+    // console.log(uv);
     // uvはFloat32BufferAttribute型
     // https://threejs.org/docs/#api/en/core/BufferAttribute
     //
@@ -292,7 +236,7 @@ export class Main {
 
     // 頂点の位置情報
     const pos = g.attributes.position;
-    console.log(pos);
+    // console.log(pos);
     // posはFloat32BufferAttribute型
 
     const tmpUv = new THREE.Vector2();
@@ -300,46 +244,95 @@ export class Main {
       // i番目の(u, v)を取り出してtmpUvに複写
       tmpUv.fromBufferAttribute(uv, i);
 
-      if (i === 1) {
-        console.log(tmpUv);
-      }
-
       // 値を大きくすると波の周波数が大きくなる
       tmpUv.multiplyScalar(10);
 
-      if (i === 1) {
-        console.log(tmpUv);
-        console.log(this.perlin.noise(tmpUv.x, tmpUv.y, 2.7) * 30);
-      }
-
-      // pos.setY(i, this.perlin.noise(tmpUv.x, tmpUv.x, 2.7) * 30);
-      // pos.setY(i, this.perlin.noise(tmpUv.y, tmpUv.y, 2.7) * 30);
       pos.setY(i, this.perlin.noise(tmpUv.x, tmpUv.y, 2.7) * 30);
     }
 
     // 法線ベクトルを計算し直す
     g.computeVertexNormals();
 
-    const material = new THREE.ShaderMaterial({
-      vertexShader: vertexShader,
-      fragmentShader: fragmentShader,
+    // シェーダーに渡すグローバル変数
+    const uniforms = {
+
+      // 等圧線をひくインターバル
+      uInterval: { value: 1.0 },
+
+      // 等圧線の太さ
+      uThickness: { value: 1.0 },
+
+      uBoxMin: { value: new THREE.Vector3() },
+      uBoxMax: { value: new THREE.Vector3() }
+
+    };
+
+    const material = new THREE.MeshLambertMaterial({
+      color: 0xa0adaf,
       transparent: true,
       side: THREE.DoubleSide,
-      // グローバル変数
-      uniforms: {
-        // デバッグ用
-        uColor: { value: new THREE.Color("#a0adaf") },
+      // 組み込みのシェーダーを書き換える
+      onBeforeCompile: (shader) => {
 
-        // 等圧線をひくインターバル
-        uInterval: { value: 1.0 },
+        shader.uniforms.uInterval = uniforms.uInterval;
+        shader.uniforms.uThickness = uniforms.uThickness;
+        shader.uniforms.uBoxMin = uniforms.uBoxMin;
+        shader.uniforms.uBoxMax = uniforms.uBoxMax;
 
-        // 等圧線の太さ
-        uThickness: { value: 1.0 },
+        shader.vertexShader = `
+          varying vec3 vPosition;
+          ${shader.vertexShader}
+        `.replace(
+            `#include <fog_vertex>`,
+            `#include <fog_vertex>
+              vPosition = transformed;
+            `
+        );
 
-        // 等圧線を書く方式
-        uAlgo: { value: 5 },
+        shader.fragmentShader = `
+          uniform float uInterval;
+          uniform float uThickness;
+          uniform vec3 uBoxMin;
+          uniform vec3 uBoxMax;
+          varying vec3 vPosition;
+          ${shader.fragmentShader}
+        `.replace(
+          `#include <dithering_fragment>`,
+          `#include <dithering_fragment>
 
-      }
+          // 位置情報のうち、Y座標を高度として扱う
+          float height = vPosition.y;
+
+          // そのピクセルにおける高度をインターバルで割る
+          float step_i = floor(height / uInterval);
+          float step_f = mod(height, uInterval);
+          float step_df = fwidth(step_f);
+
+          // step_fを滑らかに二値化する
+          float contour = smoothstep(-uThickness*step_df, uThickness*step_df, step_f);
+
+          if (contour == 1.0) {
+            gl_FragColor = vec4(gl_FragColor.rgb, opacity);
+          } else {
+            gl_FragColor = vec4(contour, contour, contour, opacity);
+          }
+
+            // vec3 col = vec3(0);
+            // col = (vPosition - uBoxMin) / (uBoxMax - uBoxMin);
+            // col = clamp(col, 0.0, 1.0);
+            // float coord = vPosition.y / 2.0;
+            // float grid = abs(fract(coord - 0.5) - 0.5) / fwidth(coord) / uThickness;
+            // float line = min(grid, 1.0);
+            // vec3 lineCol = mix(vec3(1, 1, 0), vec3(0, 1, 1), col.y);
+            // col = mix(lineCol, gl_FragColor.rgb, line);
+            // gl_FragColor = vec4(col, opacity);
+          `
+
+        );
+        console.log(shader.fragmentShader);
+
+
+      },
     });
 
     const ground = new THREE.Mesh(g, material);
@@ -351,6 +344,8 @@ export class Main {
     box.getSize(boxSize);
     let boxHelper = new THREE.Box3Helper(box);
     this.scene.add(boxHelper);
+    uniforms.uBoxMin.value.copy(box.min);
+    uniforms.uBoxMax.value.copy(box.max);
 
     // コントローラ
     this.controller = new OrbitControls(this.camera, this.renderer.domElement);
@@ -370,22 +365,18 @@ export class Main {
     // lil-gui
     const gui = new GUI({ width: 300 });
     gui
-      .add(material.uniforms.uThickness, "value")
+      .add(uniforms.uThickness, "value")
       .min(0.0)
       .max(5.0)
       .step(0.01)
       .name("uThickness");
 
     gui
-      .add(material.uniforms.uInterval, "value")
+      .add(uniforms.uInterval, "value")
       .min(1.0)
       .max(10.0)
       .step(0.1)
       .name("Interval");
-
-    gui
-      .add(material.uniforms.uAlgo, "value", [1, 2, 3, 4, 5, 6])
-      .name("getContour");
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
