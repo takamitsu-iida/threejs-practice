@@ -41,8 +41,11 @@ varying vec3 vPosition;
 uniform int uAlgo;
 
 float getContourColor1() {
+
   // この実装を参考にしたもの
   // https://madebyevan.com/shaders/grid/
+
+  // 注意：　線は綺麗だが、線は正しい場所に引かれないので等高線としては使えない
 
   // 位置情報のうち、Y座標を高度として扱う
   float height = vPosition.y;
@@ -56,11 +59,18 @@ float getContourColor1() {
   // ガンマ補正
   color = pow(color, 1.0 / 2.2);
 
+  // デバッグ用、期待する場所に等圧線が来ているかを確認する
+  // if (fract(height / uInterval) < 0.01) {
+  //    return 0.5;
+  // }
+
   return color;
 }
 
 
 float getContourColor2() {
+
+  // 注意：　これを表示すると、処理すべきことが見えてくる
 
   // 位置情報のうち、Y座標を高度として扱う
   float height = vPosition.y;
@@ -71,14 +81,14 @@ float getContourColor2() {
   // 小数点の部分だけを取り出すことで、一定間隔の高度で同じ処理結果が得られるようにする
   float f = fract(grid);
 
-  // fが取りうる値は 0.0 ～ 0.999... なので、これをそのまま返却すると
-  // 一定間隔で繰り返されるグラデーションのかかったシマシマ模様になる
-
+  // fを返却すると一定間隔で繰り返されるグラデーションのかかったシマシマ模様になる
   return f;
 }
 
 
 float getContourColor3() {
+
+  // 注意　正しい場所に線が引かれ、見た目もそこそこ綺麗
 
   // 位置情報のうち、Y座標を高度として扱う
   float height = vPosition.y;
@@ -87,7 +97,6 @@ float getContourColor3() {
   float grid = height / uInterval;
 
   // 小数点の部分だけを取り出すことで、一定間隔の高度で同じ処理結果が得られるようにする
-  // fが取りうる値は 0.0 ～ 0.999...
   float f = fract(grid);
 
   // ここが難しいところ。
@@ -104,11 +113,18 @@ float getContourColor3() {
   // 白黒逆転
   contour = 1.0 - contour;
 
+  // デバッグ用、期待する場所に等圧線が来ているかを確認する
+  // if (fract(grid) < 0.01) {
+  //   return 0.5;
+  // }
+
   return contour;
 }
 
 
 float getContourColor4() {
+
+  // 正しい場所に線が引かれるが、高度変化が少ない場所では線が太くなってしまう
 
   // 位置情報のうち、Y座標を高度として扱う
   float height = vPosition.y;
@@ -117,7 +133,6 @@ float getContourColor4() {
   float grid = height / uInterval;
 
   // 小数点の部分だけを取り出すことで、一定間隔の高度で同じ処理結果が得られるようにする
-  // fが取りうる値は 0.0 ～ 0.999...
   float f = fract(grid);
 
   // fを二値化する
@@ -126,11 +141,18 @@ float getContourColor4() {
   // 白黒逆転
   contour = 1.0 - contour;
 
+  // デバッグ用、期待する場所に等圧線が来ているかを確認する
+  // if (fract(grid) < 0.01) {
+  //  return 0.5;
+  // }
+
   return contour;
 }
 
 
 float getContourColor5() {
+
+  // 注意：　正しい場所に線が引かれ、見た目もそこそこ綺麗
 
   // 位置情報のうち、Y座標を高度として扱う
   float height = vPosition.y;
@@ -156,14 +178,21 @@ float getContourColor5() {
   // ガンマ補正
   contour = pow(contour, 1.0 / 2.2);
 
-  // 0.01より大きければ1.0に変更
-  contour = 1.0 - step(contour, 0.01);
+  // 0.001より大きければ1.0に変更
+  contour = 1.0 - step(contour, 0.001);
+
+  // デバッグ用、期待する場所に等圧線が来ているかを確認する
+  //if (fract(grid) < 0.01) {
+  //  return 0.5;
+  //}
 
   return contour;
 }
 
 
 float getContourColor6() {
+
+  // 注意：　正しい場所に線が引かれるが、見た目が汚い
 
   // 位置情報のうち、Y座標を高度として扱う
   float height = vPosition.y;
@@ -187,6 +216,11 @@ float getContourColor6() {
 
   // ガンマ補正
   contour = pow(contour, 1.0 / 2.2);
+
+  // デバッグ用、期待する場所に等圧線が来ているかを確認する
+  //if (fract(grid) < 0.01) {
+  //  return 0.5;
+  //}
 
   return contour;
 }
