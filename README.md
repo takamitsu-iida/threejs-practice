@@ -25,7 +25,7 @@ https://takamitsu-iida.github.io/threejs-practice/index-examples.html
 
 > [!NOTE]
 >
-> three.jsではWebGLを使いますので、グラフィックボードを持たないシンクライアントやWebGLをサポートしていないブラウザでは
+> グラフィックボードを持たないシンクライアントやWebGLをサポートしていないブラウザでは
 >
 > `Your graphics card does not seem to support WebGL`
 >
@@ -49,7 +49,7 @@ https://takamitsu-iida.github.io/threejs-practice/index-examples.html
 
 <br>
 
-## インストール
+## 環境構築
 
 開発中はVSCodeの補完を働かせたい。
 
@@ -238,10 +238,11 @@ import { OrbitControls } from "OrbitControls"
 
 <br>
 
-## アニメーションGIFに保存
+## アニメーションGIFに保存する方法
+
+これ（↓）を使えばアニメーションGIFにできるものの、とても重いので別の手段を考えたほうがいい。
 
 https://github.com/spite/ccapture.js
-
 
 <br>
 
@@ -256,7 +257,6 @@ Comment tagged templates
 ```JavaScript
 const shader = /* glsl */`...`;
 ```
-
 
 <br>
 
@@ -293,13 +293,17 @@ const shader = /* glsl */`...`;
 
 <br>
 
-シェーダーについて考えるときには、ピクセルごとに並列実行されることを意識したほうがよい。
+シェーダーについて考えるときには、**ピクセルごとに並列実行される** ということを意識して、
+そのピクセルの位置、色がどうなのか、を決定していく。
 
-たとえば等圧線を生成することを考えたとき、そのピクセルに相当するモデルの高さの情報が必要になる。
-その情報はバーテックスシェーダーであれば知り得るが、
-フラグメントシェーダーは知り得ないので、`varying` を使ってバーテックスシェーダーから渡してあげる必要がある。
+たとえば等圧線を生成することを考えてみる。
 
-バーテックスシェーダーは、位置情報を渡すだけであればこのようになる。
+そのピクセルに相当するモデルの高さの情報（Y座標）が必要になるが、その情報はバーテックスシェーダーしか知り得ない。
+`varying` を使ってバーテックスシェーダーからフラグメントシェーダーに渡してあげる必要がある。
+
+位置情報を渡すだけの単純なバーテックスシェーダーはこのようになる。
+`varying`する変数は先頭にvを付けるのが慣例らしいので、`vPosition` という変数を定義して、
+組み込み変数の`position`を代入する。
 
 ```GLSL
 varying vec3 vPosition;
@@ -319,7 +323,7 @@ void main() {
 }
 ```
 
-フラグメントシェーダーは概ねこんな感じのコードになるはず。
+等圧線を生成するフラグメントシェーダーは概ねこんな感じのコードになるはず。
 
 ```GLSL
 uniform float uInterval; // 等圧線をひくインターバル
@@ -329,17 +333,18 @@ varying vec3 vPosition; // 位置情報はバーテックスシェーダーか�
 
 void main() {
 
-    float step = vPosition.y / uInterval;
-    float f  = fract(step);
-    float df = fwidth(step);
-    float color = smoothstep(df, df * uThickness, f);
-    color = 1.0 - color;
+    float grid = vPosition.y / uInterval;
+    float f  = fract(grid);
+    float df = fwidth(grid);
+    float contour = smoothstep(df, df * uThickness, f);
+    contour = 1.0 - contour;
 
-    gl_FragColor = vec4(color, color, color, 1.0);
+    gl_FragColor = vec4(contour, contour, contour, 1.0);
 }
 ```
 
-こういったサンプルのコードを見てもいまいち分かりづらいのは、組み込みの関数や既定の変数が存在するため。
+こういったサンプルコードを見たときに分かりづらく感じるのは、
+組み込みの関数や既定の変数が存在するため。
 十分に知識がないと、とかく難しく感じてしまう。
 
 最低限押さえておきたい組み込み関数はこれら。
@@ -352,7 +357,7 @@ void main() {
 - sign(x) xが正なら+1.0、0.0なら0.0、負なら-1.0を返す
 - floor()
 - ceil()
-- fract(x) 小数点部分、つまりx-floor(x)を返す。fractは分数の意かな？
+- fract(x) 小数点部分、つまりx-floor(x)を返す。fractは分数の意味する。
 - mod(x, y)
 - min(x, y)
 - max(x, y)
@@ -378,28 +383,29 @@ void main() {
 void main() {
 
     // そのピクセルにおける高度をインターバルで割る
-    float step = vPosition.y / uInterval;
+    float grid = vPosition.y / uInterval;
 
-    // 小数点の部分だけを取り出すことで、一定間隔の高度で同じ処理結果が得られる
-    float f  = fract(step);
+    // fract関数で小数点の部分だけを取り出す
+    // これにより一定間隔で同じ処理結果が得られる
+    float f  = fract(grid);
 
-    // このstep値を隣接ピクセルとの間で偏微分して、和を計算する
-    // アンチエイリアス処理をするときの典型処理
+    // grid値を隣接ピクセルとの間で偏微分して和を計算する
     float df = fwidth(step);
 
     // 滑らかに二値化する
     // dfより小さければ0.0、df*uThicknessより大きければ1.0、その中間は滑らかに補完される
-    float color = smoothstep(df, df * uThickness, f);
+    float contour = smoothstep(df, df * uThickness, f);
 
-    // colorはほとんどの場所で1.0になり、等圧線が引かれる場所だけ0に近い値になる
+    // contourはほとんどの場所で1.0になり、等圧線が引かれる場所だけ0に近い値になる
     // 白黒を逆転する
-    color = 1.0 - color;
+    contour = 1.0 - contour;
 
-    gl_FragColor = vec4(color, color, color, 1.0);
+    gl_FragColor = vec4(contour, contour, contour, 1.0);
 }
 ```
 
 等圧線を引く方法は試行錯誤が必要。
+
 実際にいくつか関数を作って試せるようにしたのがこれ。
 
 https://takamitsu-iida.github.io/threejs-practice/index-plane-grid.html
