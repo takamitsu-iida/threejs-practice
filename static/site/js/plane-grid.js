@@ -37,11 +37,13 @@ uniform float uThickness;
 // 位置情報はバーテックスシェーダーから引き取る
 varying vec3 vPosition;
 
-// どの関数をつかう？
+// どの関数をつかうか
 uniform int uAlgo;
 
-
 float getContourColor1() {
+  // この実装を参考にしたもの
+  // https://madebyevan.com/shaders/grid/
+
   // 位置情報のうち、Y座標を高度として扱う
   float height = vPosition.y;
 
@@ -52,7 +54,7 @@ float getContourColor1() {
   float color = 1.0 - min(line, 1.0);
 
   // ガンマ補正
-  // color = pow(color, 1.0 / 2.2);
+  color = pow(color, 1.0 / 2.2);
 
   return color;
 }
@@ -64,14 +66,13 @@ float getContourColor2() {
   float height = vPosition.y;
 
   // そのピクセルにおける高度をインターバルで割る
-  float step = height / uInterval;
+  float grid = height / uInterval;
 
   // 小数点の部分だけを取り出すことで、一定間隔の高度で同じ処理結果が得られるようにする
-  float f = fract(step);
+  float f = fract(grid);
 
-  // fが取りうる値は 0.0 ～ 0.999... なので
-  // これをそのまま返却すると  // 一定間隔で繰り返される
-  // グラデーションのかかったシマシマ模様になる
+  // fが取りうる値は 0.0 ～ 0.999... なので、これをそのまま返却すると
+  // 一定間隔で繰り返されるグラデーションのかかったシマシマ模様になる
 
   return f;
 }
@@ -83,25 +84,27 @@ float getContourColor3() {
   float height = vPosition.y;
 
   // そのピクセルにおける高度をインターバルで割る
-  float step = height / uInterval;
+  float grid = height / uInterval;
 
   // 小数点の部分だけを取り出すことで、一定間隔の高度で同じ処理結果が得られるようにする
   // fが取りうる値は 0.0 ～ 0.999...
-  float f = fract(step);
+  float f = fract(grid);
 
   // ここが難しいところ。
   // 右隣のピクセル(x+1)、上隣(y+1)のピクセルとの間でアンチエイリアス処理を施す。
-  float w = fwidth(step);
+  float df = fwidth(grid);
 
   // しきい値wから、w*線の太さ、で終わる値に補完する
   // 同時にw未満の値は0に、w*線の太さを超えるものは1.0に正規化する
-  float ss = smoothstep(w, w * uThickness, f);
-  ss = clamp(ss, 0.0, 1.0);
+  float contour = smoothstep(df, df * uThickness, f);
+
+  // 0.0 ～ 1.0にクランプする
+  contour = clamp(contour, 0.0, 1.0);
 
   // 白黒逆転
-  float color = 1.0 - ss;
+  contour = 1.0 - contour;
 
-  return color;
+  return contour;
 }
 
 
@@ -111,11 +114,14 @@ float getContourColor4() {
   float height = vPosition.y;
 
   // そのピクセルにおける高度をインターバルで割る
-  // float step_i = floor(height / uInterval);
-  float step_f = mod(height, uInterval);
+  float grid = height / uInterval;
 
-  // step_fを二値化する
-  float contour = smoothstep(0.0, 0.1 * uThickness, step_f);
+  // 小数点の部分だけを取り出すことで、一定間隔の高度で同じ処理結果が得られるようにする
+  // fが取りうる値は 0.0 ～ 0.999...
+  float f = fract(grid);
+
+  // fを二値化する
+  float contour = smoothstep(0.0, 0.1 * uThickness, f);
 
   // 白黒逆転
   contour = 1.0 - contour;
@@ -129,24 +135,29 @@ float getContourColor5() {
   // 位置情報のうち、Y座標を高度として扱う
   float height = vPosition.y;
 
-  // 高度をインターバルで割る
-  float step_height = height / uInterval;
+  // そのピクセルにおける高度をインターバルで割る
+  float grid = height / uInterval;
 
   // 小数点部を取り出すことで同じ処理が繰り返される
-  float step_f = fract(step_height);
+  float f = fract(grid);
 
   // 偏微分の和をとることで変化量を得る
-  float step_df = fwidth(step_height);
+  float df = fwidth(grid);
 
-  // step_fを滑らかに二値化する
-  float contour = smoothstep(-uThickness*step_df, uThickness*step_df, step_f);
+  // fを滑らかに二値化する
+  float contour = abs(smoothstep(-df * uThickness, df * uThickness, f));
+
+  // 0.0 ～ 1.0にクランプする
   contour = clamp(contour, 0.0, 1.0);
 
   // 白黒逆転
   contour = 1.0 - contour;
 
   // ガンマ補正
-  // contour = pow(contour, 1.0 / 2.2);
+  contour = pow(contour, 1.0 / 2.2);
+
+  // 0.01より大きければ1.0に変更
+  contour = 1.0 - step(contour, 0.01);
 
   return contour;
 }
@@ -158,22 +169,24 @@ float getContourColor6() {
   float height = vPosition.y;
 
   // 高度をインターバルで割る
-  float step_height = height / uInterval;
+  float grid = height / uInterval;
 
   // 小数点部を取り出すことで同じ処理が繰り返される
-  float step_f = fract(step_height);
+  float f = fract(grid);
 
   // 偏微分の和をとることで変化量を得る
-  float step_df = fwidth(step_f);
+  float df = fwidth(f);
 
-  float contour = (step_f - step_df * uThickness) / step_df;
+  float contour = (f - df * uThickness) / df;
+
+  // 0.0 ～ 1.0にクランプする
   contour = clamp(contour, 0.0, 1.0);
 
   // 白黒逆転
   contour = 1.0 - contour;
 
   // ガンマ補正
-  // contour = pow(contour, 1.0 / 2.2);
+  contour = pow(contour, 1.0 / 2.2);
 
   return contour;
 }

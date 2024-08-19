@@ -305,33 +305,38 @@ export class Main {
           float height = vPosition.y;
 
           // そのピクセルにおける高度をインターバルで割る
-          float step_i = floor(height / uInterval);
-          float step_f = mod(height, uInterval);
-          float step_df = fwidth(step_f);
+          float grid = height / uInterval;
 
-          // step_fを滑らかに二値化する
-          float contour = smoothstep(-uThickness*step_df, uThickness*step_df, step_f);
+          // 小数点部を取り出すことで同じ処理が繰り返される
+          float f = fract(grid);
 
-          if (contour == 1.0) {
-            gl_FragColor = vec4(gl_FragColor.rgb, opacity);
-          } else {
-            gl_FragColor = vec4(contour, contour, contour, opacity);
-          }
+          // 偏微分の和をとることで変化量を得る
+          float df = fwidth(grid);
 
-            // vec3 col = vec3(0);
-            // col = (vPosition - uBoxMin) / (uBoxMax - uBoxMin);
-            // col = clamp(col, 0.0, 1.0);
-            // float coord = vPosition.y / 2.0;
-            // float grid = abs(fract(coord - 0.5) - 0.5) / fwidth(coord) / uThickness;
-            // float line = min(grid, 1.0);
-            // vec3 lineCol = mix(vec3(1, 1, 0), vec3(0, 1, 1), col.y);
-            // col = mix(lineCol, gl_FragColor.rgb, line);
-            // gl_FragColor = vec4(col, opacity);
+          // fを滑らかに二値化する
+          float contour = abs(smoothstep(-df * uThickness, df * uThickness, f));
+
+          // 0.0 ～ 1.0にクランプする
+          contour = clamp(contour, 0.0, 1.0);
+
+          // 白黒逆転
+          contour = 1.0 - contour;
+
+          // ガンマ補正
+          contour = pow(contour, 1.0 / 2.2);
+
+          // 0.01より大きければ1.0に変更
+          contour = 1.0 - step(contour, 0.01);
+
+          vec3 color = gl_FragColor.rgb;
+          vec3 lineColor = vec3(contour, contour, contour);
+          color = color + lineColor;
+
+          gl_FragColor = vec4(color, opacity);
           `
 
         );
         console.log(shader.fragmentShader);
-
 
       },
     });

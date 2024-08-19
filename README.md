@@ -283,11 +283,9 @@ const shader = /* glsl */`...`;
 
 <br>
 
-★★★
-
 > [!NOTE]
 >
-> Anrti-Aliased Grid Shader
+> Anti-Aliased Grid Shader
 >
 > https://madebyevan.com/shaders/grid/
 >
