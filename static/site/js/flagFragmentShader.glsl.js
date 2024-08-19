@@ -35,10 +35,10 @@ void main() {
   // UV座標はvaryingでバーテックスシェーダーからもらってくる
   vec4 textureColor = texture2D(uTexture, vUv);
 
+  // 影をつける
   textureColor.rgb *= vElevation * 3.0 + 0.8;
 
+  // 色を設定
   gl_FragColor = textureColor;
-
 }
-
 `;

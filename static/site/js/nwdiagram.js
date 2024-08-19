@@ -1330,6 +1330,7 @@ export class Diagram {
       antialias: true
     });
     this.renderer.setSize(this.sizes.width, this.sizes.height);
+    // デバイスピクセル比は上限2に制限(3以上のスマホ・タブレットでは処理が重すぎる)
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     this.container.appendChild(this.renderer.domElement);

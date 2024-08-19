@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/controls/OrbitControls.js";
-import { ImprovedNoise } from "three/libs/ImprovedNoise.js";
 
 export class Main {
 
@@ -16,13 +15,12 @@ export class Main {
   renderer;
   directionalLight;
   controller;
+  clock;
 
-  perlin;
+  // 地面を表現するメッシュ化されたオブジェクト
+  ground;
 
   constructor() {
-
-    // パーリンノイズ
-    this.perlin = new ImprovedNoise();
 
     // コンテナ
     this.container = document.getElementById("threejs_container");
@@ -45,7 +43,6 @@ export class Main {
       1001
     );
     this.camera.position.set(100, 100, 160);
-    this.camera.position.length(157);
 
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -60,10 +57,10 @@ export class Main {
     this.scene.add(this.directionalLight);
 
     // 平面
-    const g = new THREE.PlaneGeometry(200, 200, 512, 512);
+    const g = new THREE.PlaneGeometry(400, 400, 32, 32);
 
     // X軸を中心に-90度回転してXZ平面と平行にする
-    g.rotateX(-1 * Math.PI / 2)
+    g.rotateX(-Math.PI / 2)
 
     // 頂点のUV座標
     const uv = g.attributes.uv;
@@ -82,57 +79,19 @@ export class Main {
     console.log(pos);
     // posはFloat32BufferAttribute型
 
-    const noiseFrequency = 10;
-    const tmpUv = new THREE.Vector2();
-    for (let i = 0; i < uv.count; i++) {
-      // i番目の(u, v)を取り出してtmpUvに複写する
-      // パーリンノイズへの入力用に値を加工して利用
-      tmpUv.fromBufferAttribute(uv, i);
-
-      // tmpUvを大きくする方法
-      // tmpUv.multiplyScalar(noiseFrequency);
-
-      // tmpUvの要素を取り出して個別に乗算する方法
-      const x = tmpUv.x * noiseFrequency;
-      const y = tmpUv.y * noiseFrequency;
-
-      // Y座標の値にどういうノイズを加えるかで波の形が変わる
-
-      // ノイズの入力にX座標しか使っていないので、X座標方向に波打つ
-      // pos.setY(i, this.perlin.noise(x, x, 2.7) * 30);
-
-      // X軸方向に-90度倒しているためZ軸方向に波打つ
-      // pos.setY(i, this.perlin.noise(y, y, 2.7) * 30);
-
-      // X軸にもY軸にもランダムな波を打つ
-      pos.setY(i, this.perlin.noise(x, y, 2.7) * 30);
-    }
-
-    // 法線ベクトルを計算し直す
-    g.computeVertexNormals();
-
-    const m = new THREE.MeshLambertMaterial({
-      color: 0xa0adaf,
-      side: THREE.DoubleSide,
-      onBeforeCompile: (shader) => {
-        // console.log(shader.vertexShader);
-        // console.log(shader.fragmentShader);
-      },
+    const m = new THREE.MeshBasicMaterial({
+      wireframe: true,
     });
 
-    const ground = new THREE.Mesh(g, m);
-    ground.layers.enable(1);
-    this.scene.add(ground);
-
-    let box = new THREE.Box3().setFromObject(ground);
-    let boxSize = new THREE.Vector3();
-    box.getSize(boxSize);
-    let boxHelper = new THREE.Box3Helper(box);
-    this.scene.add(boxHelper);
+    this.ground = new THREE.Mesh(g, m);
+    this.scene.add(this.ground);
 
     // コントローラ
     this.controller = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controller.target.set(0, 2, 0);
+    // this.controller.autoRotate = true;
+    this.controller.maxDistance = 1000; // ズーム上限
+    this.controller.maxPolarAngle = (Math.PI * 0.8) / 2; // 角度上限
+    this.controller.minPolarAngle = 0; // 角度下限
 
     // 軸を表示
     //
@@ -145,14 +104,38 @@ export class Main {
     const axesHelper = new THREE.AxesHelper(10000);
     this.scene.add(axesHelper);
 
+    // クロック
+    this.clock = new THREE.Clock();
+
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
   }
 
+  updatePosition() {
+    // 経過時間を取得
+    const elapsedTime = this.clock.getElapsedTime();
+
+    // ジオメトリの位置情報を取得
+    const position = this.ground.geometry.attributes.position;
+
+    for (let i=0; i < position.count; i++) {
+      // 座標の値
+      const x = position.getX(i);
+      const z = position.getZ(i);
+      const nextY = Math.sin(x * 0.02 + z * 0.02 + elapsedTime) * 20;
+      position.setY(i, nextY);
+    }
+
+    // これをセットしておかないとレンダラは更新してくれない
+    position.needsUpdate = true;
+  }
 
   render() {
     // カメラコントローラーの更新
     this.controller.update();
+
+    // ジオメトリを加工する
+    this.updatePosition();
 
     // 再描画
     this.renderer.render(this.scene, this.camera);

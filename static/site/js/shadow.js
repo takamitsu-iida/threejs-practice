@@ -45,6 +45,7 @@ export class Main {
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(this.sizes.width, this.sizes.height);
+    // デバイスピクセル比は上限2に制限(3以上のスマホ・タブレットでは処理が重すぎる)
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     // 影を出すにはレンダラに設定が必要
