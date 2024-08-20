@@ -66,7 +66,7 @@
       grid-column: 1 / 2;
     }
 
-    /* iFrameの設定 */
+    /* iframeの設定 */
     iframe {
       display: block;
       margin-left: auto;
@@ -74,10 +74,12 @@
       margin-top: 8px;
       margin-bottom: 8px;
       width: 80vw;
+      /* 高さを16:9の比率にするには0.5625をかけてもよい */
       /* 9:16 = 9/16 = 0.5625 */
-      height: calc(80vw * .5625);
+      /* height: calc(80vw * .5625); */
+      height: auto;
+      aspect-ratio: 16/9;
     }
-
 
     .control_span {
       display: inline-block;
