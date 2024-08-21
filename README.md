@@ -1,25 +1,28 @@
-
-# three.jsの練習
+# Three.jsの練習帳
 
 <br>
 
-Github Pagesを使うためにPublicにしていますが、このリポジトリは個人的な学習のためのものです。
+Github Pagesを使うために公開範囲をPublicにしていますが、このリポジトリは個人の学習のためのものです。
 
-テスト中のページ（5-Stage CLOS ネットワークの3D作図）
+当面の目標は２つ。
+
+## 目標１．ネットワーク構成図の３次元表現
+
+大規模なネットワーク構成になると、
+どうしても図としての表現が困難になってくるのと、
+JavaScriptだけで描画すると重たくなってしまうのを解決したい。
+
+試しに5-Stage CLOS ネットワークを3D作図したものがこれ。
 
 https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html
+
+もう少しインタラクティブに操作できる要素を加えたいところ。
+特定のノードとその周辺だけを表示する、とか、障害になったときに影響がでそうな場所だけ色や形を変える、とか。
 
 > [!NOTE]
 >
 > 搭載しているGPUの性能によっては重いです。
 > 2015 EarlyモデルのMacbook Proでは60fps出せませんでした。
-
-<br><br>
-
-勉強用に作った例の一覧
-
-https://takamitsu-iida.github.io/threejs-practice/index-examples.html
-
 
 <br>
 
@@ -33,7 +36,28 @@ https://takamitsu-iida.github.io/threejs-practice/index-examples.html
 
 <br>
 
-## ドキュメント
+## 目標２．海底地形図作成
+
+魚群探知機から抽出した水深のCSVデータを加工して3Dで表示したい。
+
+Deeperの有料会員になれば3Dで海底地形図が見れるみたいだけど、それをなんとか自分のチカラでやってみたい。
+
+まだ実力が足りないので、まずはポイントクラウドを表示してみる感じかな。
+
+<br>
+
+## 作例一覧
+
+勉強用に作った例を一覧化したもの。
+
+https://takamitsu-iida.github.io/threejs-practice/index-examples.html
+
+参照元は本家Three.jsであったり、Udemyであったり、ブログであったりとマチマチではあるものの、
+後で自分が参照するときに困らないようにソースコードはできるだけ同じような書き方に変えている。
+
+<br>
+
+## 参照ドキュメント
 
 参考にしたもの。
 
@@ -49,13 +73,13 @@ https://takamitsu-iida.github.io/threejs-practice/index-examples.html
 
 <br>
 
-## 環境構築
+## 環境構築メモ
 
-開発中はVSCodeの補完を働かせたい。
+開発中はvscodeの補完を働かせたい。
 
 ローカルにコピーしたthree.jsを読むようにすると補完がかかる。
 
-誰かに見せるときにはCDNを利用にするように書き換えたほうがいい。
+誰かに見せるときにはCDNを利用にするように書き換えるか、webpackで固めたほうがいい。
 
 three.jsをどこから読み込むか、によってHTML、JavaScriptの記述が変わる。
 
@@ -110,6 +134,8 @@ github pagesで表示するHTMLはプロジェクト直下に配置。
 
 ./static/libsにはThree.jsに関連したアドオンやライブラリをコピーしておく。
 
+libsフォルダには必要なものを必要なときにコピーしているので、混沌としがち。
+
 <br>
 
 ### １．ローカルにthree.jsのソースコードを展開
@@ -137,8 +163,8 @@ three.jsのバージョンを切り替えて試行するならこの方法がよ
 
 > [!NOTE]
 >
-> JSON形式で記述するimportmapの書式に注意。
-> 最後にコンマをつけると書式エラーで何も表示されなくなってしまう。
+> HTML内に記述するimportmapの書式に要注意。
+> 厳密にチェックされるので最後にコンマをつけると書式エラーで何も表示されなくなってしまう。
 
 <br>
 
@@ -240,7 +266,7 @@ import { OrbitControls } from "OrbitControls"
 
 ## アニメーションGIFに保存する方法
 
-これ（↓）を使えばアニメーションGIFにできるものの、とても重いので別の手段を考えたほうがいい。
+これ（↓）を使えばアニメーションGIFを作成できるものの、とても重いので別の手段を考えたほうがいい。
 
 https://github.com/spite/ccapture.js
 
@@ -248,15 +274,50 @@ https://github.com/spite/ccapture.js
 
 ## VSCodeの拡張機能
 
-Shader languages support for VS Code
+シェーダーを書くことになるので、拡張機能を入れておく。
 
-Comment tagged templates
+- Shader languages support for VS Code
 
-こんな感じでGSLSをJavaScriptの文字列として書いたときに、シンタックスハイライトがかかるようになる。
+- Comment tagged templates
+
+こんな感じでGSLSをJavaScriptの文字列として書いたとしても、シンタックスハイライトがかかるようになる。
 
 ```JavaScript
 const shader = /* glsl */`...`;
 ```
+
+<br>
+
+## 物体を回転させるテクニック
+
+rotationプロパティを使うか、quaternionプロパティを使うことで物体の姿勢角度を設定できる。
+
+任意の軸を中心に回転させたいなら、quaternionを使う。
+
+<br>
+
+### quaternion
+
+クォータニオンは２次元における複素数を、３次元に拡張したようなもの。
+回転や向きを制御するのに適している。
+
+任意の方向に物体を向ける手順は概ねこんな感じ。
+
+- 向かせたいベクトルを決める
+- その物体にとっての上向きのベクトル（クルマなら屋根方向のベクトル）を取得する
+- ２つのベクトルの外積をとると、それぞれに対して直交するベクトルが生成されるので、これを回転軸として利用する
+- ２つのベクトルの内積をとると、cosが生成されるので、acosで角度をとる
+- 回転軸と角度を与えてクォータニオンを作る
+- 物体にクォータニオンをセットする
+
+どの軸に沿って回転させるか、を決めるときに便利なのが行列の外積計算。
+外積を取ると互いに直交するベクトルができるので、それを回転軸に使うとよい。
+
+
+
+<br><br><br>
+
+# シェーダー
 
 <br>
 
