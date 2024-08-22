@@ -323,6 +323,7 @@ class TerrainDisplay {
     // メッシュ化
     this.mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({
       reflectivity: 0,
+      side: THREE.DoubleSide,
     }))
 
     this.container.add(this.mesh)
@@ -352,7 +353,7 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   10000
 );
-camera.position.set(200, 100, 200)
+camera.position.set(100, 100, 100)
 
 // レンダラー
 const renderer = new THREE.WebGLRenderer({ antialias: true })
