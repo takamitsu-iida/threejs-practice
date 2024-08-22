@@ -141,7 +141,7 @@ export let ObjectSelection = function (parameters) {
   raycaster.layers.enable(2);
   raycaster.layers.enable(3);
 
-  // animate()の中でこのrender()関数を呼ぶ
+  // animate()の中でこのrender()関数を呼ぶこと
   this.render = function (scene, camera) {
 
     // カメラからマウス座標に向かって光線を飛ばす
@@ -909,7 +909,11 @@ class Node extends THREE.Group {
   // ノードを表現するメッシュ
   sphere;
 
-  // 注目を集めるためのコーン型のメッシュ
+  // ノードの透明度（Tierによって変える）
+  sphereOpacity = 1.0;
+  sphereColor = 0xf0f0f0;
+
+  // 注目を集めるためのコーン型のメッシュ、選択中のみ表示する
   cone;
 
   // ラベル表示用のCSS2DObject
@@ -919,7 +923,7 @@ class Node extends THREE.Group {
   node;
 
   // 色の定義
-  COLOR_DEFAULT = 0xf0f0f0; // light gray
+  COLOR_DEFAULT = 0xf0f0f0;     // light gray
   COLOR_REDUNDANT_0 = 0x00CC00; // green
   COLOR_REDUNDANT_1 = 0xFFCC00; // orange
 
@@ -927,6 +931,9 @@ class Node extends THREE.Group {
   LAYER_LABEL = 1;
   LAYER_REDUNDANT_0 = 2;
   LAYER_REDUNDANT_1 = 3;
+
+  // 選択状態
+  isSelected = false;
 
   constructor(node, options) {
 
@@ -947,9 +954,9 @@ class Node extends THREE.Group {
     // ノード本体を表現する20面体を作成
     //
     {
-      let color = 0xf0f0f0;
+      this.sphereColor = this.COLOR_DEFAULT;
       if (node.data.hasOwnProperty("redundantId")) {
-        color = node.data.redundantId === 0 ? this.COLOR_REDUNDANT_0 : this.COLOR_REDUNDANT_1;
+        this.sphereColor = node.data.redundantId === 0 ? this.COLOR_REDUNDANT_0 : this.COLOR_REDUNDANT_1;
       }
 
       // ジオメトリを作成
@@ -973,9 +980,11 @@ class Node extends THREE.Group {
 
       let material;
       if (this.node.data.hasOwnProperty("tier") && this.node.data.tier !== 3) {
-        material = new THREE.MeshLambertMaterial({ color: color, opacity: 1.0 });
+        this.sphereOpacity = 1.0;
+        material = new THREE.MeshLambertMaterial({ transparent: true, opacity: this.sphereOpacity, color: this.sphereColor });
       } else {
-        material = new THREE.MeshNormalMaterial({ transparent: true, opacity: 0.5 });
+        this.sphereOpacity = 0.75;
+        material = new THREE.MeshNormalMaterial({ transparent: true, opacity: this.sphereOpacity });
       }
 
       // メッシュを作成
@@ -1056,6 +1065,28 @@ class Node extends THREE.Group {
       this.cone.position.set(0, 15, 0);
       this.cone.visible = false;
       this.add(this.cone);
+    }
+  }
+
+  // ブリンクエフェクト
+  // 色で制御するとマウスオーバーの色制御と競合するのでopacityを制御する
+  blinkOpacity = 0.4;
+  blinkInterval;
+  blinkEffect() {
+    // 選択中なら、ブリンクエフェクトを開始
+    if (this.isSelected) {
+      this.blinkInterval = setInterval(() => {
+        if (this.sphere.material.opacity === this.blinkOpacity) {
+          this.sphere.material.opacity = this.sphereOpacity;
+        } else {
+          this.sphere.material.opacity = this.blinkOpacity;
+        }
+      }, 500);
+    } else {
+      // ブリンクエフェクトを停止
+      clearInterval(this.blinkInterval);
+      this.blinkInterval = null;
+      this.sphere.material.opacity = this.sphereOpacity;
     }
   }
 
@@ -1529,13 +1560,25 @@ export class Diagram {
           const screenY = Math.round(-(projection.y - 1) / 2 * self.sizes.height);
           console.log(`${element.data.id} (${screenX}, ${screenY})`);
 
-          // ノードの場合は強調表示のコーンを表示/非表示する
-          // クリックされているのはノード本体なので、親のグループを取得する
-          if (obj.parent && obj.parent.constructor.name === "Node") {
-            const cone = obj.parent.getObjectByName(`${element.data.id}_cone`);
+          // クリックされているのはノードの球なので、親になっているグループを取得する
+          const parent = obj.parent;
+
+          // ノードの場合
+          //  - 選択状態を設定
+          //  - 強調表示のコーンを表示/非表示する
+          //  - ブリンクエフェクトを開始/終了する
+          if (parent && parent.constructor.name === "Node") {
+            // 選択状態を設定
+            parent.isSelected = !parent.isSelected;
+
+            // コーンを表示/非表示
+            const cone = parent.getObjectByName(`${element.data.id}_cone`);
             if (cone) {
-              cone.visible = !cone.visible;
+              cone.visible = parent.isSelected;
             }
+
+            // ブリンクエフェクト
+            parent.blinkEffect();
           }
         }
       }

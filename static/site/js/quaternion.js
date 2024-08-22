@@ -24,9 +24,6 @@ export class Main {
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
 
-    // resizeイベントのハンドラを登録
-    window.addEventListener("resize", () => { this.onWindowResize(); }, false);
-
     // シーン
     this.scene = new THREE.Scene();
 
@@ -37,7 +34,7 @@ export class Main {
       1,
       1000
     );
-    this.camera.position.set(0, 15, 35);
+    this.camera.position.set(15, 15, 15);
     this.camera.target = new THREE.Vector3(0, 0, -5);
 
     // レンダラ
@@ -78,7 +75,7 @@ export class Main {
     spotLight.name = 'Spot Light';
     spotLight.angle = Math.PI / 5;
     spotLight.penumbra = 0.3;
-    spotLight.position.set(10, 10, 5);
+    spotLight.position.set(10, 15, 10);
     spotLight.castShadow = true;
     spotLight.shadow.camera.near = 8;
     spotLight.shadow.camera.far = 30;
@@ -89,54 +86,55 @@ export class Main {
     // スポットライト用カメラヘルパー
     this.scene.add(new THREE.CameraHelper(spotLight.shadow.camera));
 
-    // 影を作り出す球を一つ作成
-    const sphereGeometry = new THREE.SphereGeometry(3, 32, 32);
-    const sphereMaterial = new THREE.MeshPhongMaterial({
-      color: 0xff0000,
-      shininess: 150,
-      specular: 0x222222
-    });
-
-    // メッシュ化
-    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-    sphere.position.set(0, 6, 0);
-    sphere.castShadow = true; // default false
-    sphere.receiveShadow = false; //default
-    this.scene.add(sphere);
-
-    // 影を受け取る平べったいボックスを作成
-    // なぜプレーンジオメトリではなくボックスを使うのか、useBoxをfalseにすれば分かる
-    // プレーンジオメトリでは半分の場所で影ができない
-    this.useBox = true;
-    if (this.useBox) {
-      const boxGeometry = new THREE.BoxGeometry(10, 0.1, 10);
-      const boxMaterial = new THREE.MeshPhongMaterial({
-        color: 0xa0adaf,
-        shininess: 150,
-        specular: 0x111111
-      });
-      const ground = new THREE.Mesh(boxGeometry, boxMaterial);
-      ground.scale.multiplyScalar(10);
-      ground.castShadow = false;
-      ground.receiveShadow = true;
-      this.scene.add(ground);
-    } else {
-      const planeGeometry = new THREE.PlaneGeometry(100, 100, 32, 32);
-      const planeMaterial = new THREE.MeshPhongMaterial({
-        color: 0xa0adaf,
-        side: THREE.DoubleSide,
-        shadowSide: THREE.DoubleSide,
-        shininess: 150,
-      });
-      const ground = new THREE.Mesh(planeGeometry, planeMaterial);
-      ground.rotation.x = -Math.PI / 2;
-      ground.castShadow = false;
-      ground.receiveShadow = true;
-      this.scene.add(ground);
-    }
-
     // コントローラ
     this.controller = new OrbitControls(this.camera, this.renderer.domElement);
+
+    // 影を作り出す立方体を一つ作成
+    const boxGeometry = new THREE.BoxGeometry(6, 6, 6);// .toNonIndexed();
+
+    // 頂点ごとにことなる色を付ける
+    const colors = [];
+    {
+      const boxPosition = boxGeometry.getAttribute('position');
+      const color = new THREE.Color();
+      for (let i=0; i < boxPosition.count; i += 3) {
+        color.setHex(0xffffff * Math.random());
+
+        colors.push(color.r, color.g, color.b);
+        colors.push(color.r, color.g, color.b);
+        colors.push(color.r, color.g, color.b);
+
+        colors.push(color.r, color.g, color.b);
+        colors.push(color.r, color.g, color.b);
+        colors.push(color.r, color.g, color.b);
+      }
+    }
+    boxGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+    const boxMaterial = new THREE.MeshBasicMaterial({
+      vertexColors: true, // 頂点に色を付ける場合はtrue
+    });
+
+    const box = new THREE.Mesh(boxGeometry, boxMaterial);
+    box.position.set(0, 6, 0);
+    box.castShadow = true; // default false
+    box.receiveShadow = false; //default
+    this.scene.add(box);
+
+
+    // 影を受け取るボックスを作成
+    const groundGeometry = new THREE.BoxGeometry(10, 0.1, 10);
+    const groundMaterial = new THREE.MeshPhongMaterial({
+      color: 0xa0adaf,
+      shininess: 150,
+      specular: 0x111111
+    });
+
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.scale.multiplyScalar(10);
+    ground.castShadow = false;
+    ground.receiveShadow = true;
+    this.scene.add(ground);
 
     // 軸を表示
     //
@@ -149,14 +147,23 @@ export class Main {
     const axesHelper = new THREE.AxesHelper(10000);
     this.scene.add(axesHelper);
 
+    // resizeイベントのハンドラを登録
+    window.addEventListener("resize", () => { this.onWindowResize(); }, false);
+
+    // mousedownイベント
+    window.addEventListener("mousedown", (event) => { this.onMousedown(event); }, false);
+
+    // mousemoveイベント
+    window.addEventListener("mousemove", (event) => { this.onMousemove(event); }, false);
+
+    // mouseupイベント
+    window.addEventListener("mouseup", (event) => { this.onMouseup(event); }, false);
+
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
   }
 
   render() {
-    // カメラコントローラーの更新
-    this.controller.update();
-
     // 再描画
     this.renderer.render(this.scene, this.camera);
 
@@ -174,6 +181,26 @@ export class Main {
 
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(this.sizes.width, this.sizes.height);
+  }
+
+  onMousedown(event) {
+    // console.log('mousedown');
+    event.preventDefault();
+
+
+  }
+
+  onMousemove(event) {
+    // console.log('mousemove');
+    event.preventDefault();
+
+
+  }
+
+  onMouseup(event) {
+    // console.log('mouseup');
+    event.preventDefault();
+
   }
 
 }
