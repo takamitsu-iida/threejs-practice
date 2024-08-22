@@ -15,6 +15,12 @@ export class Main {
   renderer;
   controller;
 
+  boxLocal;
+  boxWorld;
+  omega = Math.PI / 600; // 回転させる角速度
+  quaternionLocal;
+  quaternionWorld;
+
   constructor() {
 
     // コンテナ
@@ -34,8 +40,7 @@ export class Main {
       1,
       1000
     );
-    this.camera.position.set(15, 15, 15);
-    this.camera.target = new THREE.Vector3(0, 0, -5);
+    this.camera.position.set(0, 12, 40);
 
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -53,7 +58,7 @@ export class Main {
 
     // ディレクショナルライト
     const directionalLight = new THREE.DirectionalLight(0xffffff, 3);
-    directionalLight.position.set(0, 10, 0);
+    directionalLight.position.set(0, 15, 0);
     // 影を出すにはライトに設定が必要
     directionalLight.castShadow = true; // default false
     directionalLight.shadow.mapSize.width = 1024; // default 512
@@ -68,23 +73,34 @@ export class Main {
     this.scene.add(directionalLight);
 
     // ディレクショナルライト用のカメラヘルパー
-    this.scene.add(new THREE.CameraHelper(directionalLight.shadow.camera));
+    // this.scene.add(new THREE.CameraHelper(directionalLight.shadow.camera));
 
     // スポットライト
     const spotLight = new THREE.SpotLight(0xffffff, 500);
     spotLight.name = 'Spot Light';
     spotLight.angle = Math.PI / 5;
     spotLight.penumbra = 0.3;
-    spotLight.position.set(10, 15, 10);
+    spotLight.position.set(5, 30, 5);
     spotLight.castShadow = true;
     spotLight.shadow.camera.near = 8;
-    spotLight.shadow.camera.far = 30;
+    spotLight.shadow.camera.far = 60;
     spotLight.shadow.mapSize.width = 1024;
     spotLight.shadow.mapSize.height = 1024;
     this.scene.add(spotLight);
 
     // スポットライト用カメラヘルパー
-    this.scene.add(new THREE.CameraHelper(spotLight.shadow.camera));
+    // this.scene.add(new THREE.CameraHelper(spotLight.shadow.camera));
+
+    // 軸を表示
+    //
+    //   Y(green)
+    //    |
+    //    +---- X(red)
+    //   /
+    //  Z(blue)
+    //
+    const axesHelper = new THREE.AxesHelper(10000);
+    this.scene.add(axesHelper);
 
     // コントローラ
     this.controller = new OrbitControls(this.camera, this.renderer.domElement);
@@ -115,12 +131,17 @@ export class Main {
       vertexColors: true, // 頂点に色を付ける場合はtrue
     });
 
-    const box = new THREE.Mesh(boxGeometry, boxMaterial);
-    box.position.set(0, 6, 0);
-    box.castShadow = true; // default false
-    box.receiveShadow = false; //default
-    this.scene.add(box);
+    this.boxLocal = new THREE.Mesh(boxGeometry, boxMaterial);
+    this.boxLocal.position.set(0, 10, 0);
+    // 初期状態で45度傾ける
+    this.boxLocal.rotation.set(0, 0, Math.PI / 4);
+    this.boxLocal.castShadow = true; // default false
+    this.boxLocal.receiveShadow = false; //default false
+    this.scene.add(this.boxLocal);
 
+    this.boxWorld = this.boxLocal.clone();
+    this.boxWorld.position.set(0, 20, 0);
+    this.scene.add(this.boxWorld);
 
     // 影を受け取るボックスを作成
     const groundGeometry = new THREE.BoxGeometry(10, 0.1, 10);
@@ -132,38 +153,52 @@ export class Main {
 
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
     ground.scale.multiplyScalar(10);
+    ground.position.set(0, -2, 0);
     ground.castShadow = false;
     ground.receiveShadow = true;
     this.scene.add(ground);
 
-    // 軸を表示
-    //
-    //   Y(green)
-    //    |
-    //    +---- X(red)
-    //   /
-    //  Z(blue)
-    //
-    const axesHelper = new THREE.AxesHelper(10000);
-    this.scene.add(axesHelper);
+    // クォータニオンを作成
+    this.quaternionLocal = new THREE.Quaternion();
+    this.quaternionWorld = new THREE.Quaternion();
+
+    // ローカル座標で回転する場合には、同じクォータニオンを使い回せば良い
+    this.quaternionLocal.setFromAxisAngle(new THREE.Vector3(0, 1, 0).normalize(), this.omega);
 
     // resizeイベントのハンドラを登録
     window.addEventListener("resize", () => { this.onWindowResize(); }, false);
-
-    // mousedownイベント
-    window.addEventListener("mousedown", (event) => { this.onMousedown(event); }, false);
-
-    // mousemoveイベント
-    window.addEventListener("mousemove", (event) => { this.onMousemove(event); }, false);
-
-    // mouseupイベント
-    window.addEventListener("mouseup", (event) => { this.onMouseup(event); }, false);
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
   }
 
+
+  rotate() {
+    // クォータニオンを掛け算して姿勢を変える
+    this.boxLocal.quaternion.multiply(this.quaternionLocal);
+
+    // ワールド座標系で回転させる場合、ベクトルをローカル座標系に変換しなければいけない
+    // 姿勢行列を現在のオブジェクトから取り出す
+    const m4 = new THREE.Matrix4().makeRotationFromEuler(this.boxWorld.rotation);
+
+    // 姿勢行列の逆行列を計算
+    const m4i = m4.invert();
+
+    // Y軸(0, 1, 0)に逆行列をかけてローカル座標に変換
+    const axis = new THREE.Vector3(0, 1, 0).applyMatrix4(m4i);
+
+    // クォータニオンを設定する
+    this.quaternionWorld.setFromAxisAngle(axis, this.omega);
+
+    // 掛け算することで回転を加える
+    this.boxWorld.quaternion.multiply(this.quaternionWorld);
+  }
+
+
   render() {
+    // 回転を加える
+    this.rotate();
+
     // 再描画
     this.renderer.render(this.scene, this.camera);
 
@@ -183,24 +218,5 @@ export class Main {
     this.renderer.setSize(this.sizes.width, this.sizes.height);
   }
 
-  onMousedown(event) {
-    // console.log('mousedown');
-    event.preventDefault();
-
-
-  }
-
-  onMousemove(event) {
-    // console.log('mousemove');
-    event.preventDefault();
-
-
-  }
-
-  onMouseup(event) {
-    // console.log('mouseup');
-    event.preventDefault();
-
-  }
 
 }
