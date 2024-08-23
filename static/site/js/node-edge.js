@@ -155,26 +155,37 @@ export class Main {
       side: THREE.FrontSide,
       transparent: true,
       opacity: 0.6,
-      wireframe: false
+      wireframe: false,
+      depthTest: true
+
+
     });
 
-    const spherGeo = new THREE.SphereGeometry(1, 24, 24);
-    const sphere = new THREE.Mesh(spherGeo, material);
-    sphere.position.set(- 2, 0, 0);
-    sphere.renderOrder = 1;
-    this.scene.add(sphere);
-
     const icosaGeo = new THREE.IcosahedronGeometry(1, 4);
-    const Icosahedron = new THREE.Mesh(icosaGeo, material);
-    Icosahedron.position.set(2, 0, 0);
-    Icosahedron.renderOrder = 1;
-    this.scene.add(Icosahedron);
+    const icosahedron = new THREE.Mesh(icosaGeo, material);
+    icosahedron.position.set(-2, 0, 0);
+    this.scene.add(icosahedron);
 
-    const lineMaterial = new THREE.LineBasicMaterial({ color: 0x008800 });
-    const points = [new THREE.Vector3(-1, 0, 0), new THREE.Vector3(1, 0, 0)];
+    const icosahedron2 = icosahedron.clone();
+    icosahedron2.position.set(2, 0, 0);
+    this.scene.add(icosahedron2);
+
+    const lineMaterial = new THREE.LineBasicMaterial({
+      color: 0x008800,
+      transparent: true,
+      depthWrite: false
+    });
+
+    const points = [
+      new THREE.Vector3().copy(icosahedron.position),
+      new THREE.Vector3().copy(icosahedron2.position)
+    ];
     const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+
     const line = new THREE.Line(lineGeo, lineMaterial);
     this.scene.add(line);
+
+    line.renderOrder = 1;
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
