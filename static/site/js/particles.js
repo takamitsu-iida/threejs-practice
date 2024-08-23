@@ -55,7 +55,7 @@ export class Main {
     this.container.appendChild(this.renderer.domElement);
 
     // グリッドヘルパーを追加
-    this.scene.add(new THREE.GridHelper(100, 100));
+    // this.scene.add(new THREE.GridHelper(100, 100));
 
     // マウス操作のコントローラ
     this.controller = new OrbitControls(this.camera, this.renderer.domElement);
@@ -68,7 +68,7 @@ export class Main {
 
     // ジオメトリを作成
     const particlesGeometry = new THREE.BufferGeometry();
-    const count = 10000;
+    const count = 5000;
 
     // (x, y, z)の値を持つので*3で配列を作る
     const positionArray = new Float32Array(count * 3);

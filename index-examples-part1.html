@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="shortcut icon" type="image/x-icon" href="./static/site/img/favicon.ico">
+
+  <title>blank page</title>
+
+  <style type="text/css">
+    * {
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 62.5%;
+    }
+
+    body {
+      font-size: 1.4em;
+      font-family: Verdana, "ＭＳ Ｐゴシック", sans-serif;
+      margin: 8px;
+      padding: 0;
+    }
+
+    .wrapper {
+      display: grid;
+      column-gap: 8px;
+      row-gap: 8px;
+      grid-template-columns: 1fr;
+    }
+
+    /*
+    1-2
+     ■
+    2--
+     □
+    3--
+    */
+    .header_panel {
+      grid-row: 1 / 2;
+      grid-column: 1 / 2;
+      height: 30px;
+
+      /* disable select text */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    /*
+    1-2
+     □
+    2--
+     ■
+    3--
+    */
+    .main_panel {
+      grid-row: 2 / 3;
+      grid-column: 1 / 2;
+    }
+
+    /* iframeの設定 */
+    iframe {
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      margin-top: 8px;
+      margin-bottom: 8px;
+      width: 80vw;
+      /* 高さを16:9の比率にするには0.5625をかけてもよい */
+      /* 9:16 = 9/16 = 0.5625 */
+      /* height: calc(80vw * .5625); */
+      height: auto;
+      aspect-ratio: 16/9;
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <div class="wrapper">
+
+    <div class="header_panel">
+
+      <span style="float: right; margin-left: 20px; margin-right: 20px;">
+        <a href="https://github.com/takamitsu-iida/threejs-practice" target="_blank" rel="noopener noreferrer">source code</a> (github)
+      </span>
+
+    </div>
+
+    <div class="main_panel">
+
+      <br>
+
+      <h1>勉強用に作った例の一覧</h1>
+
+      <br><br>
+
+      <h2>ノードとエッジ</h2>
+      <p>半透明に設定した物体を線で結ぶ場合に、物体の内部にある線を描画するか、しないか、を制御する例。</p>
+      <p>どっちが見やすいかは、状況によるのかも</p>
+      <p><a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-node-edge.html">index-node-edge.html</a></p>
+      <iframe src="./index-node-edge.html" frameborder="0" scrolling="no"></iframe>
+
+      <br><br>
+
+      <h2>曲線</h2>
+      <p>THREE.CatmullRomCurve3()に適当な座標をいくつか与えて、滑らかな曲線を作る例。</p>
+      <p>複雑な曲線を滑らかにするにはそれなりのポイント数が必要。</p>
+      <p><a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-curve.html">index-curve.html</a></p>
+      <iframe src="./index-curve.html" frameborder="0" scrolling="no"></iframe>
+
+      <br><br>
+
+      <h2>影</h2>
+      <p>基本中の基本ではあるものの、影を綺麗に出すのは意外に調整が難しい。</p>
+      <p><a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-shadow.html">index-shadow.html</a></p>
+      <iframe src="./index-shadow.html" frameborder="0" scrolling="no"></iframe>
+
+      <br><br>
+
+      <h2>プレーンジオメトリ</h2>
+      <p>基本中の基本。ジオメトリの座標を時間経過で加工して波打たせたもの</p>
+      <p><a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-plane-wave.html">index-plane-wave.html</a></p>
+      <iframe src="./index-plane-wave.html" frameborder="0" scrolling="no"></iframe>
+
+      <br><br>
+
+    </div>
+
+  </div>
+
+</body>
+
+</html>

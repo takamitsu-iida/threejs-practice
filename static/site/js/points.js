@@ -38,7 +38,7 @@ export class Main {
   pointCloud; // = new THREE.Points(geometry, material)
 
   // ポイント数上限
-  MAX_POINTS = 10000;
+  MAX_POINTS = 2000;
 
   // 動作パラメータ
   params = {

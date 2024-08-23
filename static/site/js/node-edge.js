@@ -98,13 +98,14 @@ export class Main {
       1,
       1001
     );
-    this.camera.position.set(-1, 0, 5);
+    this.camera.position.set(-1, 0, 10);
 
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(this.sizes.width, this.sizes.height);
     // デバイスピクセル比は上限2に制限(3以上のスマホ・タブレットでは処理が重すぎる)
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setClearColor( 0xdedede);
 
     // 影を出すにはレンダラに設定が必要
     this.renderer.shadowMap.enabled = true;
@@ -113,6 +114,9 @@ export class Main {
 
     // コントローラ
     this.controller = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controller.autoRotate = true;
+    this.controller.autoRotateSpeed = 10.0;
+
 
     // 軸を表示
     //
@@ -126,66 +130,57 @@ export class Main {
     // this.scene.add(new THREE.AxesHelper(10000));
 
     // 環境光
-    this.scene.add(new THREE.AmbientLight(0x404040, 3));
+    this.scene.add(new THREE.AmbientLight(0x404040, 1.0));
 
-    // 影を受け取る平べったいボックスを作成
-    const boxGeometry = new THREE.BoxGeometry(10, 0.01, 10);
-    const boxMaterial = new THREE.MeshPhongMaterial({
-      color: 0xa0adaf,
-      shininess: 150,
-      specular: 0x111111
-    });
-    const ground = new THREE.Mesh(boxGeometry, boxMaterial);
-    ground.scale.multiplyScalar(10);
-    ground.position.set(0, -1, 0);
-    ground.castShadow = false;
-    ground.receiveShadow = true;
-    // this.scene.add(ground);
-
-    const pointLightA = new THREE.PointLight(0xffffff, 0.6);
+    const pointLightA = new THREE.PointLight(0xffffff, 3.0);
     pointLightA.position.set(10, 20, 10);
     this.scene.add(pointLightA);
 
-    const pointLightB = new THREE.PointLight(0xffff00, 0.6);
+    const pointLightB = new THREE.PointLight(0xffff00, 3.0);
     pointLightB.position.set(-5, -20, -7);
     this.scene.add(pointLightB);
 
-    const material = new THREE.MeshPhongMaterial({
-      color: 0xaaee00,
-      side: THREE.FrontSide,
+    const icosaGeo = new THREE.IcosahedronGeometry(1, 4);
+
+    // 重なった線が見えないマテリアル
+    const material1 = new THREE.MeshPhongMaterial({
+      color: "red",
       transparent: true,
-      opacity: 0.6,
-      wireframe: false,
-      depthTest: true
-
-
+      opacity: 0.5,
+      depthTest: true  // オブジェクト内部の線を隠すための設定
     });
 
-    const icosaGeo = new THREE.IcosahedronGeometry(1, 4);
-    const icosahedron = new THREE.Mesh(icosaGeo, material);
-    icosahedron.position.set(-2, 0, 0);
-    this.scene.add(icosahedron);
+    const icosahedron1 = new THREE.Mesh(icosaGeo, material1);
+    icosahedron1.position.set(-2, 0, 0);
+    this.scene.add(icosahedron1);
 
-    const icosahedron2 = icosahedron.clone();
+    // 重なった線が見えるマテリアル
+    const material2 = new THREE.MeshPhongMaterial({
+      color: "blue",
+      transparent: true,
+      opacity: 0.5,
+      depthTest: false  // デフォルトのまま
+    });
+
+    const icosahedron2 = new THREE.Mesh(icosaGeo, material2);
     icosahedron2.position.set(2, 0, 0);
     this.scene.add(icosahedron2);
 
     const lineMaterial = new THREE.LineBasicMaterial({
-      color: 0x008800,
+      color: "orange",
       transparent: true,
-      depthWrite: false
+      depthWrite: false // オブジェクト内部の線を隠すための設定
     });
 
     const points = [
-      new THREE.Vector3().copy(icosahedron.position),
+      new THREE.Vector3().copy(icosahedron1.position),
       new THREE.Vector3().copy(icosahedron2.position)
     ];
     const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
 
     const line = new THREE.Line(lineGeo, lineMaterial);
+    line.renderOrder = 1;  // オブジェクト内部の線を隠すための設定
     this.scene.add(line);
-
-    line.renderOrder = 1;
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
