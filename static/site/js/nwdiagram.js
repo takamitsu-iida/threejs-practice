@@ -1258,9 +1258,9 @@ export class Diagram {
     this.axesHelperEnabled = this.options.hasOwnProperty("axesHelper") ? this.options.axesHelper : true;
     this.orbitParams.autoRotate = this.options.hasOwnProperty("autoRotate") ? this.options.autoRotate: this.orbitParams.autoRotate;
 
-    this.init();
+    this.initRenderer();
     this.initController();
-    this.initStats();
+    this.initStatsjs();
     this.initGui();
     this.initObjectSelection();
     this.initEventHandler();
@@ -1274,7 +1274,7 @@ export class Diagram {
   //
   // Three.js初期化処理
   //
-  init() {
+  initRenderer() {
 
     // コンテナ要素を取得
     this.container = document.getElementById("threejsContainer");
@@ -1315,26 +1315,7 @@ export class Diagram {
     this.light2.position.set(-1, -1, 1);
     this.scene.add(this.light2);
 
-    // レンダラーを初期化
-    this.renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true
-    });
-    this.renderer.setSize(this.sizes.width, this.sizes.height);
-    // デバイスピクセル比は上限2に制限(3以上のスマホ・タブレットでは処理が重すぎる)
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-    this.container.appendChild(this.renderer.domElement);
-
-    // ラベル用のCSS2Dレンダラを初期化
-    this.labelRenderer = new CSS2DRenderer();
-    this.labelRenderer.setSize(this.sizes.width, this.sizes.height);
-    this.labelRenderer.domElement.style.position = 'absolute';
-    this.labelRenderer.domElement.style.top = '0px';
-    this.labelRenderer.domElement.style.pointerEvents = 'none';
-    this.container.appendChild(this.labelRenderer.domElement);
-
-    // 軸を表示
+    // 軸を表示するヘルパーを初期化
     //
     //   Y(green)
     //    |
@@ -1347,6 +1328,25 @@ export class Diagram {
     if (this.axesHelperEnabled === false) {
       this.axesHelper.visible = false;
     }
+
+    // レンダラを初期化
+    this.renderer = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: true
+    });
+    this.renderer.setSize(this.sizes.width, this.sizes.height);
+    // デバイスピクセル比は上限2に制限(3以上のスマホ・タブレットでは処理が重すぎる)
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.container.appendChild(this.renderer.domElement);
+
+    // ラベル用のCSS2Dレンダラを初期化
+    this.labelRenderer = new CSS2DRenderer();
+    this.labelRenderer.setSize(this.sizes.width, this.sizes.height);
+    this.labelRenderer.domElement.style.position = 'absolute';
+    this.labelRenderer.domElement.style.top = '0px';
+    this.labelRenderer.domElement.style.pointerEvents = 'none';
+    this.container.appendChild(this.labelRenderer.domElement);
+
   }
 
   // マウス操作のコントロールを初期化
@@ -1373,7 +1373,7 @@ export class Diagram {
 
 
   // stats.jsを初期化
-  initStats() {
+  initStatsjs() {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -1488,7 +1488,8 @@ export class Diagram {
 
     this.objectSelection = new ObjectSelection({
       domElement: this.renderer.domElement,
-      layers: [LAYERS.REDUNDANT_0, LAYERS.REDUNDANT_1],  // レイヤ1はラベル用なので除外する
+      // レイヤ1はラベル用なので除外する
+      layers: [LAYERS.REDUNDANT_0, LAYERS.REDUNDANT_1],
       mouseover: (obj) => {
         if (obj === null) {
           // フォーカスが外れるとnullが渡される
@@ -1496,6 +1497,7 @@ export class Diagram {
         } else {
           // フォーカスが当たるとオブジェクトが渡される
           if (!obj.name) {
+            // グラフの要素は全て名前を設定している
             return;
           }
           console.log(obj.name);
@@ -1514,14 +1516,16 @@ export class Diagram {
         if (!obj.name) {
           return;
         }
-        // 参考までに、
-        // スクリーン座標を求めて表示する
+
+        /*
+        // スクリーン座標を求めてコンソールに表示する
         const element = this.graph.getElementById(obj.name);
         const worldPosition = obj.getWorldPosition(new THREE.Vector3());
         const projection = worldPosition.project(this.camera);
         const screenX = Math.round((projection.x + 1) / 2 * this.sizes.width);
         const screenY = Math.round(-(projection.y - 1) / 2 * this.sizes.height);
         console.log(`${element.data.id} (${screenX}, ${screenY})`);
+        */
 
         // クリックされているのはノードの球なので、親になっているグループを取得する
         const parent = obj.parent;
@@ -1604,33 +1608,17 @@ export class Diagram {
 
       // labelRendererはCSS2DレンダラなのでsetPixelRatio()は存在しない
       this.labelRenderer.setSize(this.sizes.width, this.sizes.height);
-    });
+    }, false);
 
   }
 
   render() {
 
     // stats.jsを更新
-    if (this.statsjs) {
-      this.statsjs.update();
-    }
+    this.statsjs.update();
 
-    // マウスコントロールを更新
-    if (this.controller) {
-      this.controller.update();
-    }
-
-    // 線の両端のノードの位置が変更されたなら、renderの中でエッジの更新を指示する
-    /*
-    for (let i = 0; i < geometries.length; i++) {
-      geometries[i].attributes.position.needsUpdate = true;
-    }
-    */
-
-    // render ObjectSelection
-    if (this.selectionEnabled) {
-      this.objectSelection.render(this.scene, this.camera);
-    }
+    // マウス制御のコントローラを更新
+    this.controller.update();
 
     // render scene
     this.renderer.render(this.scene, this.camera);
@@ -1638,20 +1626,23 @@ export class Diagram {
     // render label
     this.labelRenderer.render(this.scene, this.camera);
 
-    // infoParamsに表示する情報があれば表示する
-    this.printInfo();
+    // render ObjectSelection
+    if (this.selectionEnabled) {
+      this.objectSelection.render(this.scene, this.camera);
+    }
 
-    // 再帰処理
-    requestAnimationFrame(() => { this.render(); });
-  }
+    // TODO
+    // この部分は60fpsで実行することではなく、mouseoverのイベントハンドラで処理すべきこと
 
-
-  printInfo() {
+    // infoParamsに表示すべき情報があれば表示する
     if (this.infoParams.selected) {
       this.infoParams.element.innerHTML = `Mouseover: ${this.infoParams.selected}`;
     } else {
       this.infoParams.element.innerHTML = "";
     }
+
+    // 再帰処理
+    requestAnimationFrame(() => { this.render(); });
   }
 
 
