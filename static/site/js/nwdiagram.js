@@ -946,10 +946,19 @@ class Node extends THREE.Group {
       let material;
       if (this.node.data.hasOwnProperty("tier") && this.node.data.tier !== 3) {
         this.sphereOpacity = 1.0;
-        material = new THREE.MeshLambertMaterial({ transparent: true, opacity: this.sphereOpacity, color: this.sphereColor });
+        material = new THREE.MeshLambertMaterial({
+          transparent: true,
+          opacity: this.sphereOpacity,
+          color: this.sphereColor,
+          depthTest: true  // オブジェクト内部の線を隠すための設定
+        });
       } else {
         this.sphereOpacity = 0.75;
-        material = new THREE.MeshNormalMaterial({ transparent: true, opacity: this.sphereOpacity });
+        material = new THREE.MeshNormalMaterial({
+          transparent: true,
+          opacity: this.sphereOpacity,
+          depthTest: true  // オブジェクト内部の線を隠すための設定
+         });
       }
 
       // メッシュを作成
@@ -1097,12 +1106,17 @@ class Edge extends THREE.Group {
     // WebGLの仕様のため線の太さは指定できない
     const material = new THREE.LineBasicMaterial(
       {
-        color: lineColor
+        color: lineColor,
+        transparent: true, // オブジェクト内部の線を隠すための設定
+        depthWrite: false  // オブジェクト内部の線を隠すための設定
       }
     );
 
     // メッシュ化
     this.line = new THREE.Line(geometry, material);
+
+    // オブジェクト内部の線を隠すための設定
+    this.line.renderOrder = 1;
 
     // 名前を設定しておく
     this.line.name = edge.data.id;
