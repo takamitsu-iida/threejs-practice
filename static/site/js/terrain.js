@@ -1,5 +1,7 @@
 import * as THREE from "three"
 import { OrbitControls } from "three/controls/OrbitControls.js";
+// import { ImprovedNoise } from "three/libs/ImprovedNoise.js";
+
 
 // Dot product of vectors
 Math.dot = function (a, b) {
@@ -331,84 +333,107 @@ class TerrainDisplay {
 }
 
 
-const TERRAIN_CX = 100
-const TERRAIN_CZ = 100
+export class Main {
 
-// コンテナ
-const container = document.getElementById("threejs_container");
+  container;
 
-// コンテナのサイズ
-const sizes = {
-  width: container.clientWidth,
-  height: container.clientHeight
+  sizes = {
+    width: 0,
+    height: 0
+  }
+
+  scene;
+  camera;
+  renderer;
+  controller;
+
+  TERRAIN_CX = 100
+  TERRAIN_CZ = 100
+
+  constructor() {
+
+    // コンテナ
+    this.container = document.getElementById("threejs_container");
+
+    // コンテナのサイズ
+    this.sizes.width = this.container.clientWidth;
+    this.sizes.height = this.container.clientHeight;
+
+    // リサイズイベント
+    window.addEventListener("resize", () => { this.onWindowResize(); }, false);
+
+    // シーン
+    this.scene = new THREE.Scene();
+
+    // カメラ
+    this.camera = new THREE.PerspectiveCamera(
+      60,
+      this.sizes.width / this.sizes.height,
+      1,
+      10001
+    );
+    this.camera.position.set(100, 100, 160);
+
+    // レンダラー
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.setSize(this.sizes.width, this.sizes.height);
+    // デバイスピクセル比は上限2に制限(3以上のスマホ・タブレットでは処理が重すぎる)
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.container.appendChild(this.renderer.domElement);
+
+    // ヘミスフィアライトを追加
+    this.scene.add(new THREE.HemisphereLight(0xaaaaaa, 0x000000, 0.6))
+
+    // シャドーライトを追加
+    const shadowLight = new THREE.DirectionalLight(0xeeeeee, 1.0)
+    shadowLight.position.set(0, 20, -100)
+    this.scene.add(shadowLight)
+
+    this.controller = new OrbitControls(this.camera, this.renderer.domElement)
+    this.controller.enableDamping = true;
+
+    // TERRAIN
+    const terrainGenerator = new TerrainGenerator(this.TERRAIN_CX, this.TERRAIN_CZ)
+
+    //terrainGenerator.generate(-4, 50,  50) // super mountainous
+    //terrainGenerator.generate( 0, 10, 100) // boring flat terrain
+    terrainGenerator.generate(-4, 20, 100) // some lakes, some hills
+
+    const world = new THREE.Group()
+
+    const terrainDisplay = new TerrainDisplay(world)
+
+    world.position.set(-1 * this.TERRAIN_CX / 2, 0, -1 * this.TERRAIN_CZ / 2)
+    this.scene.add(world)
+
+    terrainDisplay.display(this.camera, terrainGenerator)
+
+    // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
+    this.render();
+  }
+
+
+  render() {
+    // カメラコントローラーの更新
+    this.controller.update();
+
+    // 再描画
+    this.renderer.render(this.scene, this.camera);
+
+    // 再帰処理
+    requestAnimationFrame(() => { this.render(); });
+  }
+
+
+  onWindowResize() {
+    this.sizes.width = this.container.clientWidth;
+    this.sizes.height = this.container.clientHeight;
+
+    this.camera.aspect = this.sizes.width / this.sizes.height;
+    this.camera.updateProjectionMatrix();
+
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(this.sizes.width, this.sizes.height);
+  }
+
 }
-
-// シーン
-const scene = new THREE.Scene()
-
-// カメラ
-const camera = new THREE.PerspectiveCamera(
-  50,
-  sizes.width / sizes.height,
-  0.1,
-  10000
-);
-camera.position.set(100, 100, 100)
-
-// レンダラー
-const renderer = new THREE.WebGLRenderer({ antialias: true })
-renderer.setSize(sizes.width, sizes.height);
-// デバイスピクセル比は上限2に制限(3以上のスマホ・タブレットでは処理が重すぎる)
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.shadowMap.enabled = true
-renderer.shadowMap.type = THREE.PCFSoftShadowMap
-
-container.appendChild(renderer.domElement);
-
-// ヘミスフィアライト
-const hemisphereLight = new THREE.HemisphereLight(0xaaaaaa, 0x000000, 0.6)
-scene.add(hemisphereLight)
-
-// シャドーライト
-const shadowLight = new THREE.DirectionalLight(0xeeeeee, 1.0)
-shadowLight.position.set(0, 20, -100)
-scene.add(shadowLight)
-
-window.addEventListener("resize", () => {
-  sizes.width = container.clientWidth;
-  sizes.height = container.clientHeight;
-
-  camera.aspect = sizes.width / sizes.height;
-  camera.updateProjectionMatrix();
-
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(sizes.width, sizes.height);
-}, false);
-
-
-const controls = new OrbitControls(camera, renderer.domElement)
-controls.enableDamping = true;
-
-// TERRAIN
-const terrainGenerator = new TerrainGenerator(TERRAIN_CX, TERRAIN_CZ)
-
-//terrainGenerator.generate(-4, 50,  50) // super mountainous
-//terrainGenerator.generate( 0, 10, 100) // boring flat terrain
-terrainGenerator.generate(-4, 20, 100) // some lakes, some hills
-
-const world = new THREE.Group()
-
-const terrainDisplay = new TerrainDisplay(world)
-
-world.position.set(-TERRAIN_CX / 2, 0, -TERRAIN_CZ / 2)
-scene.add(world)
-
-terrainDisplay.display(camera, terrainGenerator)
-
-function loop() {
-  controls.update();
-  renderer.render(scene, camera)
-  requestAnimationFrame(loop)
-}
-
-loop()

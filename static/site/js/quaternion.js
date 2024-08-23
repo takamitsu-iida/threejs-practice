@@ -38,9 +38,10 @@ export class Main {
       75,
       this.sizes.width / this.sizes.height,
       1,
-      1000
+      1001
     );
     this.camera.position.set(0, 12, 40);
+    this.camera.lookAt(this.scene.position);
 
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -108,7 +109,8 @@ export class Main {
     // 影を作り出す立方体を一つ作成
     const boxGeometry = new THREE.BoxGeometry(6, 6, 6);// .toNonIndexed();
 
-    // 頂点ごとにことなる色を付ける
+    // 立方体の面ごとにことなる色を付ける
+    /*
     const colors = [];
     {
       const boxPosition = boxGeometry.getAttribute('position');
@@ -132,18 +134,33 @@ export class Main {
     });
 
     this.boxLocal = new THREE.Mesh(boxGeometry, boxMaterial);
-    this.boxLocal.position.set(0, 10, 0);
+    */
+
+    this.boxLocal = new THREE.Mesh(boxGeometry,
+      [
+        new THREE.MeshLambertMaterial({ color: 'DarkMagenta' }),
+        new THREE.MeshLambertMaterial({ color: 'Crimson' }),
+        new THREE.MeshLambertMaterial({ color: 'Gold' }),
+        new THREE.MeshLambertMaterial({ color: 'SaddleBrown' }),
+        new THREE.MeshLambertMaterial({ color: 'SeaGreen' }),
+        new THREE.MeshLambertMaterial({ color: 'RoyalBlue' }),
+      ]
+    );
+
     // 初期状態で45度傾ける
     this.boxLocal.rotation.set(0, 0, Math.PI / 4);
+
+    this.boxLocal.position.set(0, 10, 0);
     this.boxLocal.castShadow = true; // default false
     this.boxLocal.receiveShadow = false; //default false
     this.scene.add(this.boxLocal);
 
+    // もう一つボックスを作成
     this.boxWorld = this.boxLocal.clone();
     this.boxWorld.position.set(0, 20, 0);
     this.scene.add(this.boxWorld);
 
-    // 影を受け取るボックスを作成
+    // 影を受け取る面を作成
     const groundGeometry = new THREE.BoxGeometry(10, 0.1, 10);
     const groundMaterial = new THREE.MeshPhongMaterial({
       color: 0xa0adaf,

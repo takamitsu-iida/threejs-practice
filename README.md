@@ -57,9 +57,7 @@ https://takamitsu-iida.github.io/threejs-practice/index-examples.html
 
 <br>
 
-## 参照ドキュメント
-
-参考にしたもの。
+## 参考文献
 
 [three.js](https://threejs.org/)
 
@@ -70,6 +68,8 @@ https://takamitsu-iida.github.io/threejs-practice/index-examples.html
 [three.jsのPlaneGeometryで地形を作る](https://yomotsu.net/blog/2012/12/01/create-terrain-with-threejs.html)
 
 [WebGL開発に役立つ重要な三角関数の数式・概念まとめ（Three.js編）](https://ics.media/entry/10657/)
+
+[Basic examples from https://discourse.threejs.org](https://hofk.de/main/discourse.threejs/2023/index2023.html)
 
 <br>
 
@@ -269,6 +269,42 @@ import { OrbitControls } from "OrbitControls"
 これ（↓）を使えばアニメーションGIFを作成できるものの、とても重いので別の手段を考えたほうがいい。
 
 https://github.com/spite/ccapture.js
+
+使い方
+
+```JavaScript
+    // ccapture.js
+    {
+      const startButton = document.getElementById("idButtonCaptureStart");
+      if (startButton) {
+        startButton.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const options = {
+            verbose: false,
+            display: true,
+            framerate: 30,
+            format: 'gif',
+            workersPath: './static/libs/ccapture.js-1.0.9/',
+            timeLimit: 5,
+            onProgress: (p) => {
+              console.log(p);
+              if (p === 1) {
+                console.log("FINISHED!");
+                document.getElementById("idButtonCaptureStart").disabled = false;
+                this.capture = null;
+              }
+            }
+          };
+          document.getElementById("idButtonCaptureStart").disabled = true;
+          this.capture = new CCapture(options);
+          this.capture.start();
+        });
+      }
+    }
+```
+
+
 
 <br>
 

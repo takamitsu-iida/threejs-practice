@@ -8,7 +8,7 @@
 
   <link rel="shortcut icon" type="image/x-icon" href="./static/site/img/favicon.ico">
 
-  <title>Terrain Example</title>
+  <title>Node and Edge Example</title>
 
   <style type="text/css">
     * {
@@ -21,8 +21,8 @@
     }
 
     body {
-      font-family:Verdana, "ＭＳ Ｐゴシック", sans-serif;
       font-size: 1.4em;
+      font-family: Verdana, "ＭＳ Ｐゴシック", sans-serif;
       overflow: hidden;
     }
 
@@ -35,8 +35,7 @@
       width: 100%;
       height: 100%;
     }
-  </style>
-
+    </style>
 </head>
 
 <body>
@@ -56,7 +55,7 @@
 
 <script type="module">
   import WebGL from './static/libs/capabilities/WebGL.js';
-  import { Main } from "./static/site/js/terrain.js";
+  import { Main } from "./static/site/js/node-edge.js";
 
   window.addEventListener("load", () => {
     if (WebGL.isWebGLAvailable()) {

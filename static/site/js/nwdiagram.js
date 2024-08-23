@@ -67,40 +67,77 @@ static
 */
 
 
-export let ObjectSelection = function (parameters) {
+export class ObjectSelection {
 
   // 参照
   // 初めてのThree.js 第二版 P235
   // https://github.com/oreilly-japan/learning-three-js-2e-ja-support
 
-  parameters = parameters || {};
+  // コンストラクタに渡されるパラメータ
+  params;
 
-  this.INTERSECTED = null;
-
-  const self = this;
+  // 光線が当たっているオブジェクトへの参照
+  INTERSECTED = null;
 
   // マウスカーソルが上に乗ったときのコールバック関数
-  const callbackMouseover = parameters.mouseover || null;
+  callbackMouseover;
 
   // マウスをクリックしたときのコールバック関数
-  const callbackClicked = parameters.clicked || null;
+  callbackClick;
 
   // マウス位置
-  const mousePosition = new THREE.Vector2()
+  mousePosition; // = new THREE.Vector2()
 
   // スクリーン上のDOM要素
-  this.domElement = parameters.domElement || document;
+  domElement;
 
-  // mousemoveイベントを登録
-  this.domElement.addEventListener('mousemove', onMouseMove, false);
+  // 光線を飛ばすレイキャスター
+  raycaster; // = new THREE.Raycaster();
 
-  function onMouseMove(event) {
+  // 光線を飛ばす対象レイヤ
+  layers; // = [];
+
+  constructor(params) {
+    this.params = params || {};
+
+    // マウスカーソルが上に乗ったときのコールバック関数
+    this.callbackMouseover = this.params.hasOwnProperty("mouseover") ? this.params.mouseover : null;
+
+    // マウスをクリックしたときのコールバック関数
+    this.callbackClick = this.params.hasOwnProperty("click") ? this.params.click : null;
+
+    // 対象レイヤ
+    this.layers = this.params.hasOwnProperty("layers") ? this.params.layers : [];
+
+    // スクリーン上のDOM要素
+    this.domElement = this.params.hasOwnProperty("domElement") ? this.params.domElement : document;
+
+    // マウス位置
+    this.mousePosition = new THREE.Vector2()
+
+    // mousemoveイベントを登録
+    this.domElement.addEventListener('mousemove', (event) => { this.onMouseMove(event); }, false);
+
+    // clickイベントを登録
+    this.domElement.addEventListener('click', (event) => { this.onMouseClick(event); }, false);
+
+    // レイキャスターを作成
+    this.raycaster = new THREE.Raycaster();
+
+    // レイキャスターが対象にするレイヤーを指定
+    this.layers.forEach(layer => {
+      this.raycaster.layers.enable(layer);
+    });
+
+  }
+
+  onMouseMove(event) {
     event.preventDefault();
     event.stopPropagation();
 
     // DOM要素(canvas)を取得する
-    // これはeventから取得してもよいし、parametersで渡されたものを使ってもよい
-    // const element = self.domElement;
+    // これはeventから取得してもよいし、paramsで渡されたものを使ってもよい
+    // const element = this.domElement;
     const element = event.currentTarget;
 
     // その要素の位置を取得
@@ -115,40 +152,31 @@ export let ObjectSelection = function (parameters) {
     const h = element.clientHeight;
 
     // マウス座標を(-1, 1)の範囲に変換
-    mousePosition.x = +(x / w) * 2 - 1;
-    mousePosition.y = -(y / h) * 2 + 1;
+    this.mousePosition.x = +(x / w) * 2 - 1;
+    this.mousePosition.y = -(y / h) * 2 + 1;
   }
 
-  // clickイベントを登録
-  this.domElement.addEventListener('click', onMouseClick, false);
 
-  function onMouseClick(event) {
+  onMouseClick(event) {
     event.preventDefault();
     event.stopPropagation();
 
-    if (self.INTERSECTED) {
-      if (typeof callbackClicked === 'function') {
-        callbackClicked(self.INTERSECTED);
+    if (this.INTERSECTED) {
+      if (typeof this.callbackClick === 'function') {
+        this.callbackClick(this.INTERSECTED);
       }
     }
   }
 
-  // 光線を飛ばすレイキャスター
-  const raycaster = new THREE.Raycaster();
-
-  // レイキャスターが対象にするレイヤーを指定
-  // レイヤ1はラベル用なので選択されないようにする
-  raycaster.layers.enable(2);
-  raycaster.layers.enable(3);
 
   // animate()の中でこのrender()関数を呼ぶこと
-  this.render = function (scene, camera) {
+  render(scene, camera) {
 
     // カメラからマウス座標に向かって光線を飛ばす
-    raycaster.setFromCamera(mousePosition, camera);
+    this.raycaster.setFromCamera(this.mousePosition, camera);
 
     // オブジェクトに光線がぶつかっているか、判定する
-    const intersects = raycaster.intersectObject(scene, true);
+    const intersects = this.raycaster.intersectObject(scene, true);
 
     // 光線がオブジェクトにぶつかっていて、それが選択可能なものであれば、
     if (intersects.length > 0 && intersects[0].object.selectable) {
@@ -178,8 +206,8 @@ export let ObjectSelection = function (parameters) {
         }
 
         // コールバック関数を渡されているならそれを実行する
-        if (typeof callbackMouseover === 'function') {
-          callbackMouseover(this.INTERSECTED);
+        if (typeof this.callbackMouseover === 'function') {
+          this.callbackMouseover(this.INTERSECTED);
         }
       }
 
@@ -197,14 +225,15 @@ export let ObjectSelection = function (parameters) {
       // 選択を外して
       this.INTERSECTED = null;
 
-      if (typeof callbackMouseover === 'function') {
+      if (typeof this.callbackMouseover === 'function') {
         // 選択から外れたことをコールバック関数で知らせる
-        callbackMouseover(null);
+        this.callbackMouseover(null);
       }
 
     }
   };
-};
+}
+
 
 //
 // 2024.07.25 CSS2DRenderer.jsを利用することにしたので使っていないが、
@@ -274,83 +303,6 @@ export let CanvasLabel = function (parameters) {
 };
 
 
-
-function makeTextSprite(message, parameters) {
-  /*
-    var spritey = makeTextSprite( " " + i + " ", { fontsize: 32, backgroundColor: {r:255, g:100, b:100, a:1} } );
-    spritey.position = topo.vertex[i].vector3.clone().multiplyScalar(1.1);
-    scene.add( spritey );
-  */
-
-  if (parameters === undefined) parameters = {};
-
-  var fontface = parameters.hasOwnProperty("fontface") ? parameters["fontface"] : "Arial";
-  var fontsize = parameters.hasOwnProperty("fontsize") ? parameters["fontsize"] : 18;
-  var borderThickness = parameters.hasOwnProperty("borderThickness") ? parameters["borderThickness"] : 4;
-  var borderColor = parameters.hasOwnProperty("borderColor") ? parameters["borderColor"] : { r: 0, g: 0, b: 0, a: 1.0 };
-  var backgroundColor = parameters.hasOwnProperty("backgroundColor") ? parameters["backgroundColor"] : { r: 255, g: 255, b: 255, a: 1.0 };
-
-  var spriteAlignment = THREE.SpriteAlignment.topLeft;
-
-  var canvas = document.createElement('canvas');
-  var context = canvas.getContext('2d');
-  context.font = "Bold " + fontsize + "px " + fontface;
-
-  // get size data (height depends only on font size)
-  var metrics = context.measureText(message);
-  var textWidth = metrics.width;
-
-  // background color
-  // context.fillStyle = "rgba(" + backgroundColor.r + "," + backgroundColor.g + "," + backgroundColor.b + "," + backgroundColor.a + ")";
-  context.fillStyle = `rgba(${backgroundColor.r},${backgroundColor.g},${backgroundColor.b},${backgroundColor.a})`;
-
-  // border color
-  // context.strokeStyle = "rgba(" + borderColor.r + "," + borderColor.g + "," + borderColor.b + "," + borderColor.a + ")";
-  context.strokeStyle = `rgba(${borderColor.r},${borderColor.g},${borderColor.b},${borderColor.a})`;
-
-  context.lineWidth = borderThickness;
-
-  roundRect(context, borderThickness / 2, borderThickness / 2, textWidth + borderThickness, fontsize * 1.4 + borderThickness, 6);
-  // 1.4 is extra height factor for text below baseline: g,j,p,q.
-
-  // text color
-  context.fillStyle = "rgba(0, 0, 0, 1.0)";
-
-  context.fillText(message, borderThickness, fontsize + borderThickness);
-
-  // canvas contents will be used for a texture
-  var texture = new THREE.Texture(canvas)
-  texture.needsUpdate = true;
-
-  var spriteMaterial = new THREE.SpriteMaterial({
-    map: texture,
-    useScreenCoordinates: false,
-    alignment: spriteAlignment
-  });
-
-  var sprite = new THREE.Sprite(spriteMaterial);
-
-  sprite.scale.set(100, 50, 1.0);
-
-  return sprite;
-}
-
-// function for drawing rounded rectangles
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-}
 
 
 //
@@ -1252,8 +1204,8 @@ export class Diagram {
   // XYZ軸を表示するかどうか
   axesHelper;
 
-  // マウス操作のコントロール
-  controls;
+  // マウス操作コントローラー
+  controller;
 
   // stats.jsを格納するdiv要素とstats.jsのインスタンス
   statsjs;
@@ -1281,9 +1233,6 @@ export class Diagram {
     autoRotate: false
   }
 
-  // ccapture.jsのインスタンス
-  capture;
-
   constructor(options) {
     this.options = options || {};
 
@@ -1296,7 +1245,7 @@ export class Diagram {
     this.orbitParams.autoRotate = this.options.hasOwnProperty("autoRotate") ? this.options.autoRotate: this.orbitParams.autoRotate;
 
     this.init();
-    this.initControls();
+    this.initController();
     this.initStats();
     this.initGui();
     this.initObjectSelection();
@@ -1305,7 +1254,7 @@ export class Diagram {
     // Graphクラスの情報を元にシーンにノードとエッジを追加
     this.drawGraph(this.graph);
 
-    this.animate();
+    this.render();
   }
 
   //
@@ -1390,24 +1339,24 @@ export class Diagram {
   }
 
   // マウス操作のコントロールを初期化
-  initControls() {
+  initController() {
     // OrbitControls
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.autoRotate = this.orbitParams.autoRotate;
-    this.controls.autoRotateSpeed = 1.0;
+    this.controller = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controller.enableDamping = true;
+    this.controller.autoRotate = this.orbitParams.autoRotate;
+    this.controller.autoRotateSpeed = 1.0;
 
     /*
     // TrackballControls
     // import { TrackballControls } from "three/controls/TrackballControls.js";
-    this.controls = new TrackballControls(camera, renderer.domElement);
-    this.controls.rotateSpeed = 10;
-    this.controls.zoomSpeed = 2.0;
-    this.controls.panSpeed = 0.1;
-    this.controls.noZoom = false;
-    this.controls.noPan = false;
-    this.controls.staticMoving = false;
-    this.controls.dynamicDampingFactor = 0.3;
+    this.controller = new TrackballControls(camera, renderer.domElement);
+    this.controller.rotateSpeed = 10;
+    this.controller.zoomSpeed = 2.0;
+    this.controller.panSpeed = 0.1;
+    this.controller.noZoom = false;
+    this.controller.noPan = false;
+    this.controller.staticMoving = false;
+    this.controller.dynamicDampingFactor = 0.3;
     */
   }
 
@@ -1447,11 +1396,11 @@ export class Diagram {
         .name('show node label')
         .onChange((value) => {
           // レイヤでラベルを表示するかどうかを切り替える
-          self.camera.layers.toggle(1);
+          this.camera.layers.toggle(1);
 
           // 非表示に変更したら、render()を呼んで画面上から消す
-          if (self.camera.layers.test(1) === false) {
-            self.labelRenderer.render(self.scene, self.camera);
+          if (this.camera.layers.test(1) === false) {
+            this.labelRenderer.render(this.scene, this.camera);
           }
         });
 
@@ -1486,7 +1435,7 @@ export class Diagram {
         .add(this.orbitParams, 'autoRotate')
         .name('auto rotate')
         .onChange((value) => {
-          this.controls.autoRotate = value;
+          this.controller.autoRotate = value;
           if (value) {
             // 回転中はマウス操作を無効にする
             this.selectionEnabled = false;
@@ -1510,14 +1459,14 @@ export class Diagram {
       folder
         .add(this.graphParams, 'redundant_0')
         .name('show redundant 0')
-        .onChange((value) => {
-          self.camera.layers.toggle(2);
+        .onChange(() => {
+          this.camera.layers.toggle(2);
         });
       folder
         .add(this.graphParams, 'redundant_1')
         .name('show redundant 1')
-        .onChange((value) => {
-          self.camera.layers.toggle(3);
+        .onChange(() => {
+          this.camera.layers.toggle(3);
         });
     }
   }
@@ -1527,25 +1476,31 @@ export class Diagram {
   initObjectSelection() {
 
     this.objectSelection = new ObjectSelection({
+
       domElement: this.renderer.domElement,
-      mouseover: function (obj) {
+
+      layers: [2, 3],  // レイヤ1はラベル用なので除外する
+
+      mouseover: (obj) => {
         if (obj === null) {
           // フォーカスが外れるとnullが渡される
-          self.infoParams.selected = null;
+          this.infoParams.selected = null;
         } else {
           // フォーカスが当たるとオブジェクトが渡される
           if (!obj.name) {
             return;
           }
           console.log(obj.name);
-          const element = self.graph.getElementById(obj.name);
+          const element = this.graph.getElementById(obj.name);
           if (!element) {
             return;
           }
-          self.infoParams.selected = element.data.id;
+          this.infoParams.selected = element.data.id;
         }
       },
-      clicked: function (obj) {
+
+      click: (obj) => {
+        console.log("clicked!");
         if (obj) {
           if (!obj.name) {
             return;
@@ -1553,11 +1508,11 @@ export class Diagram {
 
           // 参考までに、
           // スクリーン座標を求めて表示する
-          const element = self.graph.getElementById(obj.name);
+          const element = this.graph.getElementById(obj.name);
           const worldPosition = obj.getWorldPosition(new THREE.Vector3());
-          const projection = worldPosition.project(self.camera);
-          const screenX = Math.round((projection.x + 1) / 2 * self.sizes.width);
-          const screenY = Math.round(-(projection.y - 1) / 2 * self.sizes.height);
+          const projection = worldPosition.project(this.camera);
+          const screenX = Math.round((projection.x + 1) / 2 * this.sizes.width);
+          const screenY = Math.round(-(projection.y - 1) / 2 * this.sizes.height);
           console.log(`${element.data.id} (${screenX}, ${screenY})`);
 
           // クリックされているのはノードの球なので、親になっているグループを取得する
@@ -1596,36 +1551,6 @@ export class Diagram {
         event.stopPropagation();
         this.removeGraph();
       });
-    }
-
-    // ccapture.js
-    {
-      const startButton = document.getElementById("idButtonCaptureStart");
-      if (startButton) {
-        startButton.addEventListener("click", (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          const options = {
-            verbose: false,
-            display: true,
-            framerate: 30,
-            format: 'gif',
-            workersPath: './static/libs/ccapture.js-1.0.9/',
-            timeLimit: 5,
-            onProgress: (p) => {
-              console.log(p);
-              if (p === 1) {
-                console.log("FINISHED!");
-                document.getElementById("idButtonCaptureStart").disabled = false;
-                this.capture = null;
-              }
-            }
-          };
-          document.getElementById("idButtonCaptureStart").disabled = true;
-          this.capture = new CCapture(options);
-          this.capture.start();
-        });
-      }
     }
 
     // クリックでデータを切り替え
@@ -1675,8 +1600,17 @@ export class Diagram {
 
   }
 
-
   render() {
+
+    // stats.jsを更新
+    if (this.statsjs) {
+      this.statsjs.update();
+    }
+
+    // マウスコントロールを更新
+    if (this.controller) {
+      this.controller.update();
+    }
 
     // 線の両端のノードの位置が変更されたなら、renderの中でエッジの更新を指示する
     /*
@@ -1696,34 +1630,11 @@ export class Diagram {
     // render label
     this.labelRenderer.render(this.scene, this.camera);
 
-    // ccapture.js
-    if (this.capture) {
-      this.capture.capture(this.renderer.domElement);
-    }
-
-  }
-
-
-  animate() {
-
-    // stats.jsを更新
-    if (self.statsjs) {
-      self.statsjs.update();
-    }
-
-    // マウスコントロールを更新
-    if (self.controls) {
-      self.controls.update();
-    }
-
-    // 各種レンダリング
-    self.render();
-
     // infoParamsに表示する情報があれば表示する
-    self.printInfo();
+    this.printInfo();
 
     // 再帰処理
-    requestAnimationFrame(self.animate);
+    requestAnimationFrame(() => { this.render(); });
   }
 
 
