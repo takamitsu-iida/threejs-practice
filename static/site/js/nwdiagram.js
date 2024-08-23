@@ -125,7 +125,7 @@ export class ObjectSelection {
     this.raycaster = new THREE.Raycaster();
 
     // レイキャスターが対象にするレイヤーを指定
-    this.layers.forEach(layer => {
+    this.layers.forEach((layer) => {
       this.raycaster.layers.enable(layer);
     });
 
@@ -225,8 +225,8 @@ export class ObjectSelection {
       // 選択を外して
       this.INTERSECTED = null;
 
+      // 選択から外れたことをコールバック関数で知らせる
       if (typeof this.callbackMouseover === 'function') {
-        // 選択から外れたことをコールバック関数で知らせる
         this.callbackMouseover(null);
       }
 
@@ -239,19 +239,31 @@ export class ObjectSelection {
 // 2024.07.25 CSS2DRenderer.jsを利用することにしたので使っていないが、
 // こっちの方が性能がよければ復活させる
 //
-export let CanvasLabel = function (parameters) {
+export class CanvasLabel {
 
-  if (!parameters || !parameters.hasOwnProperty("labelName")) {
-    return null;
+  params;
+
+  labelName;
+  labelText;
+  labelLayer;
+
+  constructor(params) {
+    this.params = params || {}
+
+    this.labelName = this.params.hasOwnProperty("labelName") ? this.params.labelName : "";
+    this.labelText = this.params.hasOwnProperty("labelText") ? this.params.labelText : "";
+    this.labelLayer = this.params.hasOwnProperty("labelLayer") ? this.params.labelLayer : 1; // 指定がない場合はレイヤ 1 に設定
+
+    if (!this.labelName) {
+      throw new Error("labelName must be specified");
+    }
   }
 
-  const labelName = parameters.labelName;
-  const labelText = parameters.hasOwnProperty("labelText") ? parameters.labelText : "";
-  const labelLayer = parameters.hasOwnProperty("labelLayer") ? parameters.labelLayer : 1; // 指定がない場合はレイヤ 1 に設定
 
-  let canvas = document.createElement("canvas");
+  create() {
 
-  function create() {
+    const canvas = document.createElement("canvas");
+
     const ctx = canvas.getContext("2d");
 
     // canvasのデフォルトフォントは "10px sans-serif" になっているのでフォントを大きくする
@@ -259,7 +271,7 @@ export let CanvasLabel = function (parameters) {
     ctx.font = `${fontSize}pt Arial`;
 
     // measureTextで必要な幅を調べる
-    const width = ctx.measureText(labelText).width;
+    const width = ctx.measureText(this.labelText).width;
 
     // canvasのサイズを必要な幅に設定
     canvas.setAttribute('width', width);
@@ -268,7 +280,7 @@ export let CanvasLabel = function (parameters) {
     ctx.font = `${fontSize}pt Arial`;
     ctx.fillStyle = 'rgba(255, 255, 255, 1)';
     ctx.textBaseline = 'top';
-    ctx.fillText(labelText, 0, 0);
+    ctx.fillText(this.labelText, 0, 0);
 
     // (width, height, depth)
     const geometry = new THREE.BoxGeometry(width, 100, 0);
@@ -290,19 +302,16 @@ export let CanvasLabel = function (parameters) {
     // set text canvas to cube geometry
     const label = new THREE.Mesh(geometry, material);
 
-    // オブジェクトに名前を設定
-    label.name = labelName;
+    // このオブジェクトに名前を設定しておく
+    label.name = this.labelName;
 
     // ラベルはレイヤ 1 に設定
-    label.layers.set(labelLayer);
+    label.layers.set(this.labelLayer);
 
     return label;
   }
 
-  return create();
-};
-
-
+}
 
 
 //
@@ -648,7 +657,7 @@ export class FiveStageClosGraph {
 
   clusters;
   /*
-  このようなものを想定
+  入力に渡されるデータclustersは、このようなものを想定
   clusters = [
     {
       clusterId: 1,
@@ -855,6 +864,20 @@ export class FiveStageClosGraph {
 }
 
 
+// レイヤー定義
+export class LAYERS {
+  static LABEL       = 1;
+  static REDUNDANT_0 = 2;
+  static REDUNDANT_1 = 3;
+}
+
+// ノードとエッジの色定義
+export class COLORS {
+  static DEFAULT = 0xf0f0f0;     // light gray
+  static REDUNDANT_0 = 0x00CC00; // green
+  static REDUNDANT_1 = 0xFFCC00; // orange
+}
+
 
 class Node extends THREE.Group {
 
@@ -873,16 +896,6 @@ class Node extends THREE.Group {
 
   // 元になったグラフのノードのデータ
   node;
-
-  // 色の定義
-  COLOR_DEFAULT = 0xf0f0f0;     // light gray
-  COLOR_REDUNDANT_0 = 0x00CC00; // green
-  COLOR_REDUNDANT_1 = 0xFFCC00; // orange
-
-  // レイヤー定義
-  LAYER_LABEL = 1;
-  LAYER_REDUNDANT_0 = 2;
-  LAYER_REDUNDANT_1 = 3;
 
   // 選択状態
   isSelected = false;
@@ -906,9 +919,9 @@ class Node extends THREE.Group {
     // ノード本体を表現する20面体を作成
     //
     {
-      this.sphereColor = this.COLOR_DEFAULT;
+      this.sphereColor = COLORS.DEFAULT;
       if (node.data.hasOwnProperty("redundantId")) {
-        this.sphereColor = node.data.redundantId === 0 ? this.COLOR_REDUNDANT_0 : this.COLOR_REDUNDANT_1;
+        this.sphereColor = node.data.redundantId === 0 ? COLORS.REDUNDANT_0 : COLORS.REDUNDANT_1;
       }
 
       // ジオメトリを作成
@@ -954,9 +967,9 @@ class Node extends THREE.Group {
       // redundantIdにあわせてレイヤーを設定
       if (this.node.data.hasOwnProperty("redundantId")) {
         if (this.node.data.redundantId === 0) {
-          this.sphere.layers.set(this.LAYER_REDUNDANT_0);
+          this.sphere.layers.set(LAYERS.REDUNDANT_0);
         } else if (this.node.data.redundantId === 1) {
-          this.sphere.layers.set(this.LAYER_REDUNDANT_1);
+          this.sphere.layers.set(LAYERS.REDUNDANT_1);
         }
       }
 
@@ -990,8 +1003,8 @@ class Node extends THREE.Group {
       // 親になるノードからの相対で位置を設定
       this.label.position.set(0, 15, 0);
 
-      // レイヤーを 1 に設定
-      this.label.layers.set(this.LAYER_LABEL);
+      // ラベル用のレイヤーに設定 == 1
+      this.label.layers.set(LAYERS.LABEL);
 
       // グループに追加
       this.add(this.label);
@@ -1053,16 +1066,6 @@ class Edge extends THREE.Group {
   // 元になったグラフのエッジのデータ
   edge;
 
-  // 色の定義
-  COLOR_DEFAULT = 0xf0f0f0; // light gray
-  COLOR_REDUNDANT_0 = 0x00CC00; // green
-  COLOR_REDUNDANT_1 = 0xFFCC00; // orange
-
-  // レイヤー定義
-  LAYER_LABEL = 1;
-  LAYER_REDUNDANT_0 = 2;
-  LAYER_REDUNDANT_1 = 3;
-
   // 位置を決めるためにsourceとtargetの情報をもらう
   constructor(edge, source, target, options) {
 
@@ -1070,9 +1073,9 @@ class Edge extends THREE.Group {
 
     options = options || {};
 
-    let lineColor = this.COLOR_DEFAULT;
+    let lineColor = COLORS.DEFAULT;
     if (edge.data.hasOwnProperty("redundantId")) {
-      lineColor = edge.data.redundantId === 0 ? this.COLOR_REDUNDANT_0 : this.COLOR_REDUNDANT_1;
+      lineColor = edge.data.redundantId === 0 ? COLORS.REDUNDANT_0 : COLORS.REDUNDANT_1;
     }
 
     // グラフのエッジ情報を保持しておく
@@ -1107,9 +1110,9 @@ class Edge extends THREE.Group {
     // redundantIdにあわせてレイヤーを設定
     if (edge.data.hasOwnProperty("redundantId")) {
       if (edge.data.redundantId === 0) {
-        this.line.layers.set(this.LAYER_REDUNDANT_0);
+        this.line.layers.set(LAYERS.REDUNDANT_0);
       } else if (edge.data.redundantId === 1) {
-        this.line.layers.set(this.LAYER_REDUNDANT_1);
+        this.line.layers.set(LAYERS.REDUNDANT_1);
       }
     }
 
@@ -1167,9 +1170,6 @@ class Edge extends THREE.Group {
 
 export class Diagram {
 
-  // アロー関数内でthisを使うと混乱するのでselfに代入
-  self;
-
   // コンストラクタに渡された引数
   options;
 
@@ -1201,7 +1201,7 @@ export class Diagram {
   light1;
   light2;
 
-  // XYZ軸を表示するかどうか
+  // XYZ軸表示
   axesHelper;
 
   // マウス操作コントローラー
@@ -1262,9 +1262,6 @@ export class Diagram {
   //
   init() {
 
-    // アロー関数内でthisを使うと混乱するのでselfに代入しておく
-    self = this;
-
     // コンテナ要素を取得
     this.container = document.getElementById("threejsContainer");
 
@@ -1285,15 +1282,15 @@ export class Diagram {
     );
     this.camera.position.set(200, 200, 600);
 
-    // ラベル用にlayer 1を有効化
-    this.camera.layers.enable(1);
-    if (this.labelParams.showLabels === false) {
-      this.camera.layers.toggle(1);
-    }
+    // 利用するレイヤーを有効化
+    this.camera.layers.enable(LAYERS.LABEL);       // == 1
+    this.camera.layers.enable(LAYERS.REDUNDANT_0); // == 2
+    this.camera.layers.enable(LAYERS.REDUNDANT_1); // == 3
 
-    // redundantIdによるレイヤーを有効化
-    this.camera.layers.enable(2);
-    this.camera.layers.enable(3);
+    // ラベル表示が初期状態でオフに設定されているなら
+    if (this.labelParams.showLabels === false) {
+      this.camera.layers.toggle(LAYERS.LABEL);
+    }
 
     // ライトを初期化
     this.light1 = new THREE.DirectionalLight(0xFFFFFF, 2.5);
@@ -1396,10 +1393,10 @@ export class Diagram {
         .name('show node label')
         .onChange((value) => {
           // レイヤでラベルを表示するかどうかを切り替える
-          this.camera.layers.toggle(1);
+          this.camera.layers.toggle(LAYERS.LABEL);
 
           // 非表示に変更したら、render()を呼んで画面上から消す
-          if (this.camera.layers.test(1) === false) {
+          if (this.camera.layers.test(LAYERS.LABEL) === false) {
             this.labelRenderer.render(this.scene, this.camera);
           }
         });
@@ -1460,13 +1457,13 @@ export class Diagram {
         .add(this.graphParams, 'redundant_0')
         .name('show redundant 0')
         .onChange(() => {
-          this.camera.layers.toggle(2);
+          this.camera.layers.toggle(LAYERS.REDUNDANT_0);
         });
       folder
         .add(this.graphParams, 'redundant_1')
         .name('show redundant 1')
         .onChange(() => {
-          this.camera.layers.toggle(3);
+          this.camera.layers.toggle(LAYERS.REDUNDANT_1);
         });
     }
   }
@@ -1476,11 +1473,8 @@ export class Diagram {
   initObjectSelection() {
 
     this.objectSelection = new ObjectSelection({
-
       domElement: this.renderer.domElement,
-
-      layers: [2, 3],  // レイヤ1はラベル用なので除外する
-
+      layers: [LAYERS.REDUNDANT_0, LAYERS.REDUNDANT_1],  // レイヤ1はラベル用なので除外する
       mouseover: (obj) => {
         if (obj === null) {
           // フォーカスが外れるとnullが渡される
@@ -1500,42 +1494,42 @@ export class Diagram {
       },
 
       click: (obj) => {
-        console.log("clicked!");
-        if (obj) {
-          if (!obj.name) {
-            return;
-          }
-
-          // 参考までに、
-          // スクリーン座標を求めて表示する
-          const element = this.graph.getElementById(obj.name);
-          const worldPosition = obj.getWorldPosition(new THREE.Vector3());
-          const projection = worldPosition.project(this.camera);
-          const screenX = Math.round((projection.x + 1) / 2 * this.sizes.width);
-          const screenY = Math.round(-(projection.y - 1) / 2 * this.sizes.height);
-          console.log(`${element.data.id} (${screenX}, ${screenY})`);
-
-          // クリックされているのはノードの球なので、親になっているグループを取得する
-          const parent = obj.parent;
-
-          // ノードの場合
-          //  - 選択状態を設定
-          //  - 強調表示のコーンを表示/非表示する
-          //  - ブリンクエフェクトを開始/終了する
-          if (parent && parent.constructor.name === "Node") {
-            // 選択状態を設定
-            parent.isSelected = !parent.isSelected;
-
-            // コーンを表示/非表示
-            const cone = parent.getObjectByName(`${element.data.id}_cone`);
-            if (cone) {
-              cone.visible = parent.isSelected;
-            }
-
-            // ブリンクエフェクト
-            parent.blinkEffect();
-          }
+        if (!obj) {
+          return;
         }
+        if (!obj.name) {
+          return;
+        }
+        // 参考までに、
+        // スクリーン座標を求めて表示する
+        const element = this.graph.getElementById(obj.name);
+        const worldPosition = obj.getWorldPosition(new THREE.Vector3());
+        const projection = worldPosition.project(this.camera);
+        const screenX = Math.round((projection.x + 1) / 2 * this.sizes.width);
+        const screenY = Math.round(-(projection.y - 1) / 2 * this.sizes.height);
+        console.log(`${element.data.id} (${screenX}, ${screenY})`);
+
+        // クリックされているのはノードの球なので、親になっているグループを取得する
+        const parent = obj.parent;
+
+        // ノードの場合
+        //  - 選択状態を設定
+        //  - 強調表示のコーンを表示/非表示する
+        //  - ブリンクエフェクトを開始/終了する
+        if (parent && parent.constructor.name === "Node") {
+          // 選択状態を設定
+          parent.isSelected = !parent.isSelected;
+
+          // コーンを表示/非表示
+          const cone = parent.getObjectByName(`${element.data.id}_cone`);
+          if (cone) {
+            cone.visible = parent.isSelected;
+          }
+
+          // ブリンクエフェクト
+          parent.blinkEffect();
+        }
+
       }
     });
 
@@ -1555,13 +1549,13 @@ export class Diagram {
 
     // クリックでデータを切り替え
     {
-      ['idData1', 'idData2', 'idData3'].forEach(id => {
+      ['idData1', 'idData2', 'idData3'].forEach((id) => {
         const tag = document.getElementById(id);
         if (!tag) { return; }
         tag.addEventListener('click', (evt) => {
           evt.stopPropagation();
           evt.preventDefault();
-          document.getElementsByName('dataChangeMenu').forEach(element => {
+          document.getElementsByName('dataChangeMenu').forEach((element) => {
             element.classList.remove('active');
           });
           evt.target.classList.add('active');
@@ -1653,22 +1647,22 @@ export class Diagram {
   drawGraph() {
 
     // ノードを作成
-    this.graph.getNodes().forEach(function (node) {
+    this.graph.getNodes().forEach((node) => {
       const n = new Node(node);
-      self.scene.add(n);
+      this.scene.add(n);
     });
 
     // エッジを作成
-    this.graph.getEdges().forEach(function (edge) {
+    this.graph.getEdges().forEach((edge) => {
       const sourceNodeId = edge.data.source;
-      const sourceNode = self.graph.getElementById(sourceNodeId);
+      const sourceNode = this.graph.getElementById(sourceNodeId);
 
       const targetNodeId = edge.data.target;
-      const targetNode = self.graph.getElementById(targetNodeId);
+      const targetNode = this.graph.getElementById(targetNodeId);
 
       if (sourceNode && targetNode) {
         const e = new Edge(edge, sourceNode, targetNode);
-        self.scene.add(e);
+        this.scene.add(e);
       }
     });
   }
@@ -1679,9 +1673,9 @@ export class Diagram {
   removeGraph() {
 
     // シーン上のNodeオブジェクトを削除する
-    self.graph.getNodes().forEach(node => {
+    this.graph.getNodes().forEach((node) => {
 
-      let nodeGroup = self.scene.getObjectByName(`${node.data.id}_group`);
+      let nodeGroup = this.scene.getObjectByName(`${node.data.id}_group`);
       if (nodeGroup) {
         while (nodeGroup.children.length) {
           // ラベルを含む全ての子オブジェクトを削除
@@ -1689,26 +1683,26 @@ export class Diagram {
           // console.log(`remove ${obj.name}`);
           obj.parent.remove(obj);
         }
-        self.scene.remove(nodeGroup);
+        this.scene.remove(nodeGroup);
       }
     });
 
     // シーン上のEdgeオブジェクトを取得して削除
-    self.graph.getEdges().forEach(edge => {
+    this.graph.getEdges().forEach((edge) => {
 
-      let edgeGroup = self.scene.getObjectByName(`${edge.data.id}_group`);
+      let edgeGroup = this.scene.getObjectByName(`${edge.data.id}_group`);
       if (edgeGroup) {
         while (edgeGroup.children.length) {
           const obj = edgeGroup.children[0];
           // console.log(`remove ${obj.name}`);
           obj.parent.remove(obj);
         }
-        self.scene.remove(edgeGroup);
+        this.scene.remove(edgeGroup);
       }
     });
 
     // シーンに残っているオブジェクトを表示する
-    // console.log(self.scene.children);
+    // console.log(this.scene.children);
   }
 
 }
