@@ -1517,15 +1517,8 @@ export class Diagram {
           return;
         }
 
-        /*
-        // スクリーン座標を求めてコンソールに表示する
+        // クリックされたオブジェクトの名前から、グラフのエレメント（Node or Edge)を取得する
         const element = this.graph.getElementById(obj.name);
-        const worldPosition = obj.getWorldPosition(new THREE.Vector3());
-        const projection = worldPosition.project(this.camera);
-        const screenX = Math.round((projection.x + 1) / 2 * this.sizes.width);
-        const screenY = Math.round(-(projection.y - 1) / 2 * this.sizes.height);
-        console.log(`${element.data.id} (${screenX}, ${screenY})`);
-        */
 
         // クリックされているのはノードの球なので、親になっているグループを取得する
         const parent = obj.parent;
@@ -1547,6 +1540,15 @@ export class Diagram {
           // ブリンクエフェクト
           parent.blinkEffect();
         }
+
+        /*
+        // スクリーン座標を求めてコンソールに表示する
+        const worldPosition = obj.getWorldPosition(new THREE.Vector3());
+        const projection = worldPosition.project(this.camera);
+        const screenX = Math.round((projection.x + 1) / 2 * this.sizes.width);
+        const screenY = Math.round(-(projection.y - 1) / 2 * this.sizes.height);
+        console.log(`${element.data.id} (${screenX}, ${screenY})`);
+        */
 
       }
     });

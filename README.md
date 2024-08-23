@@ -48,7 +48,7 @@ Deeperの有料会員になれば3Dで海底地形図が見れるみたいだけ
 
 ## 作例一覧
 
-勉強用に作った例を一覧化したもの。
+勉強用に作ったものを一覧化したもの。
 
 https://takamitsu-iida.github.io/threejs-practice/index-examples-part1.html
 
