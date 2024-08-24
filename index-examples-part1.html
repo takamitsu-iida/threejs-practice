@@ -9,7 +9,7 @@
 
   <link rel="shortcut icon" type="image/x-icon" href="./static/site/img/favicon.ico">
 
-  <title>blank page</title>
+  <title>Three.js examples</title>
 
   <style type="text/css">
     * {
@@ -107,7 +107,8 @@
 
       <h2>ノードとエッジ</h2>
       <p>半透明に設定した物体を線で結ぶ場合に、物体の内部にある線を描画するか、しないか、を制御する例。</p>
-      <p>どっちが見やすいかは、状況によるのかも</p>
+      <p>青い球体は内部まで線が描画されているのに対して、赤い球体は球の外側から線が描画されている。</p>
+      <p>赤い球体の方が好ましい動作のように見えるが、赤い球体の背後にある線は全て描画されないので、場合によっては青い球体の方がよいかもしれない。</p>
       <p><a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-node-edge.html">index-node-edge.html</a></p>
       <iframe src="./index-node-edge.html" frameborder="0" scrolling="no"></iframe>
 

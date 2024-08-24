@@ -872,8 +872,8 @@ export class LAYERS {
 }
 
 // ノードとエッジの色定義
-export class COLORS {
-  static DEFAULT = 0xf0f0f0;     // light gray
+export class NODE_COLORS {
+  static DEFAULT = 0xF0F0F0;     // light gray
   static REDUNDANT_0 = 0x00CC00; // green
   static REDUNDANT_1 = 0xFFCC00; // orange
 }
@@ -919,9 +919,9 @@ class Node extends THREE.Group {
     // ノード本体を表現する20面体を作成
     //
     {
-      this.sphereColor = COLORS.DEFAULT;
+      this.sphereColor = NODE_COLORS.DEFAULT;
       if (node.data.hasOwnProperty("redundantId")) {
-        this.sphereColor = node.data.redundantId === 0 ? COLORS.REDUNDANT_0 : COLORS.REDUNDANT_1;
+        this.sphereColor = node.data.redundantId === 0 ? NODE_COLORS.REDUNDANT_0 : NODE_COLORS.REDUNDANT_1;
       }
 
       // ジオメトリを作成
@@ -1082,9 +1082,9 @@ class Edge extends THREE.Group {
 
     options = options || {};
 
-    let lineColor = COLORS.DEFAULT;
+    let lineColor = NODE_COLORS.DEFAULT;
     if (edge.data.hasOwnProperty("redundantId")) {
-      lineColor = edge.data.redundantId === 0 ? COLORS.REDUNDANT_0 : COLORS.REDUNDANT_1;
+      lineColor = edge.data.redundantId === 0 ? NODE_COLORS.REDUNDANT_0 : NODE_COLORS.REDUNDANT_1;
     }
 
     // グラフのエッジ情報を保持しておく
