@@ -3,6 +3,99 @@ import { OrbitControls } from "three/controls/OrbitControls.js";
 import { GUI } from "three/libs/lil-gui.module.min.js";
 
 
+export class Node extends THREE.Group {
+
+  // ノードを表現するメッシュ
+  sphere;
+
+  // ノードの透明度（Tierによって変える）
+  sphereOpacity = 0.75;
+  sphereColor = 0xf0f0f0;
+
+  // 注目を集めるためのコーン型のメッシュ、選択中のみ表示する
+  cone;
+
+  // ラベル表示用のCSS2DObject
+  label;
+
+  // 元になったグラフのノードのデータ
+  node;
+
+  // 選択状態
+  isSelected = false;
+
+  constructor(options) {
+    super();
+
+    options = options || {};
+
+    // ノードを表す20面体を作成
+    {
+      const radius = options.hasOwnProperty("radius") ? options.radius : 1;
+      const detail = options.hasOwnProperty("detail") ? options.detail : 3;
+      const geometry = new THREE.IcosahedronGeometry(radius, detail);
+
+      const material = new THREE.MeshPhongMaterial({
+        color: this.sphereColor,
+        transparent: true,
+        opacity: this.sphereOpacity,
+        shininess: 150,
+        depthTest: true,  // ★オブジェクト内部の線を隠すための設定
+      });
+
+      // メッシュを作成
+      this.sphere = new THREE.Mesh(geometry, material);
+
+      // 名前を設定
+      this.sphere.name = node.data.id;
+
+      // 選択可能にする
+      this.sphere.selectable = true;
+
+      // 選択状態
+      this.sphere.selected = false;
+
+      // グループに追加
+      this.add(this.sphere);
+    }
+
+  }
+
+
+  select(value) {
+    if (value) {
+      this.isSelected = true;
+      this.startBlink();
+    } else {
+      this.isSelected = false;
+      this.stopBlink();
+    }
+  }
+
+  // ブリンクエフェクト
+  // 色で制御するとマウスオーバーの色制御と競合するのでopacityを制御する
+  blinkOpacity = 0.4;
+  blinkInterval;
+
+  startBlink() {
+    this.blinkInterval = setInterval(() => {
+      if (this.sphere.material.opacity === this.blinkOpacity) {
+        this.sphere.material.opacity = this.sphereOpacity;
+      } else {
+        this.sphere.material.opacity = this.blinkOpacity;
+      }
+    }, 500);
+  }
+
+  stopBlink() {
+    clearInterval(this.blinkInterval);
+    this.blinkInterval = null;
+    this.sphere.material.opacity = this.sphereOpacity;
+  }
+}
+
+
+
 export class Main {
 
   container;
@@ -18,7 +111,7 @@ export class Main {
   controller;
 
   params = {
-    autoRotate: true,
+    autoRotate: false,
     autoRotateSpeed: 3.0,
   }
 
@@ -91,92 +184,52 @@ export class Main {
         this.controller.autoRotateSpeed = value;
       });
 
-
-    // ノードを表す球体を2個作成
+    // ノードを表す球体を作成
 
     const icosaGeo = new THREE.IcosahedronGeometry(1, 4);
 
-    // ノードと重なった線が **見えない** マテリアル
     const material1 = new THREE.MeshPhongMaterial({
       color: "red",
       transparent: true,
       opacity: 0.6,
       shininess: 150,
-      depthTest: true  // ★オブジェクト内部の線を隠すための設定
-    });
-
-    // ノードと重なった線が **見える ** マテリアル
-    const material2 = new THREE.MeshPhongMaterial({
-      color: "blue",
-      transparent: true,
-      opacity: 0.6,
-      shininess: 150,
-      // depthTest: false  // デフォルト false
+      depthTest: true
     });
 
     // ノード１
     const icosahedron1 = new THREE.Mesh(icosaGeo, material1);
-    icosahedron1.position.set(-2, 2, -2);
+    icosahedron1.position.set(0, 2, 0);
     this.scene.add(icosahedron1);
 
-    // ノード２
-    const icosahedron2 = new THREE.Mesh(icosaGeo, material2);
-    icosahedron2.position.set(2, 2, 2);
-    this.scene.add(icosahedron2);
+    //
+    // ノード３はグループ化して作成する
+    //
+    const node3 = new THREE.Group();
+    node3.position.set(2, 2, 0);
 
-    // ノード間を接続するエッジを作成
-    const lineGeo = new THREE.BufferGeometry();
+    const texture = new THREE.TextureLoader().load('./static/site/img/Router.48.png');
+    const spriteMaterial = new THREE.SpriteMaterial({
+      map: texture,
+      depthTest: true
+    });
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.scale.set(1.0, 1.0, 1.0);
+    node3.add(sprite);
 
-    // こんな感じで線をつくる
-    //  o--+
-    //     |
-    //     +---o
-    const node1Position = icosahedron1.position.clone();
-    const node2Position = icosahedron2.position.clone();
-    const node1MidPosition = node1Position.clone();
-    node1MidPosition.x = 0;
-    const node2MidPosition = node2Position.clone();
-    node2MidPosition.x = 0;
-
-    const points = [
-      node1Position,
-      node1MidPosition,
-      node2MidPosition,
-      node2Position
-    ];
-    lineGeo.setFromPoints(points);
-
-    // ジオメトリの指定に対応する色を決める
-    /*
-    const colors = new Float32Array([
-      1.0, 0.0, 0.0,  // red
-      0.0, 0.0, 1.0,  // blue
-      1.0, 1.0, 0.0,  // yellow
-      0.0, 1.0, 1.0,  // purple
-    ]);
-    */
-
-    const node1Color = icosahedron1.material.color.clone();
-    const node2Color = icosahedron2.material.color.clone();
-    const colors = new Float32Array([
-      node1Color.r, node1Color.g, node1Color.b,
-      node1Color.r, node1Color.g, node1Color.b,
-      node2Color.r, node2Color.g, node2Color.b,
-      node2Color.r, node2Color.g, node2Color.b,
-    ]);
-
-    lineGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-    const lineMaterial = new THREE.LineBasicMaterial({
-      // color: "orange",
-      vertexColors: true, // ジオメトリの頂点の色を使う
+    const material3 = new THREE.MeshPhongMaterial({
+      color: 0xaaee00,
       transparent: true,
-      depthWrite: false // ★オブジェクト内部の線を隠すための設定
+      opacity: 0.1,
+      shininess: 150,
+      depthTest: true  // オブジェクト内部の線を隠すための設定
     });
 
-    const line = new THREE.Line(lineGeo, lineMaterial);
-    line.renderOrder = 1;  // ★オブジェクト内部の線を隠すための設定
-    this.scene.add(line);
+    const icosahedron3 = new THREE.Mesh(icosaGeo, material3);
+    node3.add(icosahedron3);
+
+    this.scene.add(node3);
+
+    const node3Position = node3.position.clone();
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();

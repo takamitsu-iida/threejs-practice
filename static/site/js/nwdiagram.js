@@ -781,13 +781,13 @@ export class FiveStageClosGraph {
   circularLayout(options) {
     options = options || {};
 
-    let tier3Radius = 200;
+    let tier3Radius = 240;
     tier3Radius = options.hasOwnProperty("tier3Radius") ? options.tier3Radius : tier3Radius;
 
-    let tier3Interval = 25;
+    let tier3Interval = 15;
     tier3Interval = options.hasOwnProperty("tier3Interval") ? options.tier3Interval : tier3Interval;
 
-    let tier2Radius = 400;
+    let tier2Radius = 380;
     tier2Radius = options.hasOwnProperty("tier2Radius") ? options.tier2Radius : tier2Radius;
 
     let tier2Height = 100;
@@ -919,16 +919,28 @@ class Node extends THREE.Group {
     // ノード本体を表現する20面体を作成
     //
     {
+      // Tier1によって色を変える
       this.sphereColor = NODE_COLORS.DEFAULT;
       if (node.data.hasOwnProperty("redundantId")) {
         this.sphereColor = node.data.redundantId === 0 ? NODE_COLORS.REDUNDANT_0 : NODE_COLORS.REDUNDANT_1;
       }
 
-      // ジオメトリを作成
-      // 20面体は (radius : Float, detail : Integer) を指定して作成する
-      // detailを3にするとほぼ球体になる
-      const radius = options.hasOwnProperty("radius") ? options.radius : 10;
-      const detail = options.hasOwnProperty("detail") ? options.detail : 2;
+      // 20面体のジオメトリを作成
+      // (radius : Float, detail : Integer) を指定して作成する
+
+      // 半径はノードのTierによって変える
+      let radius = options.hasOwnProperty("radius") ? options.radius : 6;
+      const tier = this.node.data.hasOwnProperty("tier") ? this.node.data.tier : 3;
+      if (tier === 1) {
+        radius *= 3.0;
+      } else if (tier === 2) {
+        radius *= 1.6;
+      }
+
+      // detailは3にするとほぼ球体になる
+      const detail = options.hasOwnProperty("detail") ? options.detail : 3;
+
+      // ジオメトリ
       const geometry = new THREE.IcosahedronGeometry(radius, detail);
 
       // マテリアルを作成
@@ -1024,8 +1036,8 @@ class Node extends THREE.Group {
     //
     {
       // ConeGeometryを作成
-      const coneRadius = options.hasOwnProperty("coneRadius") ? options.coneRadius : 5;
-      const coneHeight = options.hasOwnProperty("coneHeight") ? options.coneHeight : 15;
+      const coneRadius = options.hasOwnProperty("coneRadius") ? options.coneRadius : 8;
+      const coneHeight = options.hasOwnProperty("coneHeight") ? options.coneHeight : 12;
       const coneSegments = options.hasOwnProperty("coneSegments") ? options.coneSegments : 32;
       const geometry = new THREE.ConeGeometry(coneRadius, coneHeight, coneSegments);
 
