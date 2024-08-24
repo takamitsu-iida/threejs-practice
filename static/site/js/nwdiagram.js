@@ -1409,7 +1409,7 @@ export class Diagram {
           // レイヤでラベルを表示するかどうかを切り替える
           this.camera.layers.toggle(LAYERS.LABEL);
 
-          // 非表示に変更したら、render()を呼んで画面上から消す
+          // 表示から非表示に変更したら、render()を呼んで画面から消す
           if (this.camera.layers.test(LAYERS.LABEL) === false) {
             this.labelRenderer.render(this.scene, this.camera);
           }
@@ -1463,7 +1463,6 @@ export class Diagram {
         .listen();
     }
 
-
     // グラフのredundantIdの表示ON/OFFを切り替える
     {
       const folder = gui.addFolder('Redundunt');
@@ -1494,6 +1493,7 @@ export class Diagram {
         if (obj === null) {
           // フォーカスが外れるとnullが渡される
           this.infoParams.selected = null;
+          this.infoParams.element.innerHTML = "";
         } else {
           // フォーカスが当たるとオブジェクトが渡される
           if (!obj.name) {
@@ -1506,6 +1506,7 @@ export class Diagram {
             return;
           }
           this.infoParams.selected = element.data.id;
+          this.infoParams.element.innerHTML = `Mouseover: ${this.infoParams.selected}`;
         }
       },
 
@@ -1615,7 +1616,6 @@ export class Diagram {
   }
 
   render() {
-
     // stats.jsを更新
     this.statsjs.update();
 
@@ -1626,21 +1626,13 @@ export class Diagram {
     this.renderer.render(this.scene, this.camera);
 
     // render label
-    this.labelRenderer.render(this.scene, this.camera);
+    if (this.labelParams.showLabels) {
+      this.labelRenderer.render(this.scene, this.camera);
+    }
 
     // render ObjectSelection
     if (this.selectionEnabled) {
       this.objectSelection.render(this.scene, this.camera);
-    }
-
-    // TODO
-    // この部分は60fpsで実行することではなく、mouseoverのイベントハンドラで処理すべきこと
-
-    // infoParamsに表示すべき情報があれば表示する
-    if (this.infoParams.selected) {
-      this.infoParams.element.innerHTML = `Mouseover: ${this.infoParams.selected}`;
-    } else {
-      this.infoParams.element.innerHTML = "";
     }
 
     // 再帰処理
