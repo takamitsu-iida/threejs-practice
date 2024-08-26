@@ -111,7 +111,7 @@ export class Main {
       transparent: true,
       opacity: 0.6,
       shininess: 150,
-      // depthTest: false  // デフォルト false
+      depthTest: false  // デフォルト true
     });
 
     // ノード１
