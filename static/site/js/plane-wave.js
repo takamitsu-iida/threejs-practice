@@ -64,7 +64,8 @@ export class Main {
 
     // 頂点のUV座標
     const uv = g.attributes.uv;
-    console.log(uv);
+    // console.log(uv);
+
     // uvはFloat32BufferAttribute型
     // https://threejs.org/docs/#api/en/core/BufferAttribute
     //
@@ -76,7 +77,7 @@ export class Main {
 
     // 頂点の位置情報
     const pos = g.attributes.position;
-    console.log(pos);
+    // console.log(pos);
     // posはFloat32BufferAttribute型
 
     const m = new THREE.MeshBasicMaterial({
