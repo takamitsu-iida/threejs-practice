@@ -888,6 +888,12 @@ class Node extends THREE.Group {
   sphereOpacity = 1.0;
   sphereColor = 0xf0f0f0;
 
+  // 20面体の半径
+  sphereRadius = 6.0;
+
+  // 20面体の詳細度、3にするとほぼ球になる
+  sphereDetail = 3;
+
   // 注目を集めるためのコーン型のメッシュ、選択中のみ表示する
   cone;
 
@@ -929,19 +935,18 @@ class Node extends THREE.Group {
       // (radius : Float, detail : Integer) を指定して作成する
 
       // 半径はノードのTierによって変える
-      let radius = options.hasOwnProperty("radius") ? options.radius : 6;
+      this.sphereRadius = options.hasOwnProperty("sphereRadius") ? options.sphereRadius : this.sphereRadius;
       const tier = this.node.data.hasOwnProperty("tier") ? this.node.data.tier : 3;
       if (tier === 1) {
-        radius *= 3.0;
+        this.sphereRadius *= 3.0;
       } else if (tier === 2) {
-        radius *= 1.6;
+        this.sphereRadius *= 1.6;
       }
 
-      // detailは3にするとほぼ球体になる
-      const detail = options.hasOwnProperty("detail") ? options.detail : 3;
+      this.sphereDetail = options.hasOwnProperty("sphereDetail") ? options.sphereDetail : this.sphereDetail;
 
       // ジオメトリ
-      const geometry = new THREE.IcosahedronGeometry(radius, detail);
+      const geometry = new THREE.IcosahedronGeometry(this.sphereRadius, this.sphereDetail);
 
       // マテリアルを作成
 
@@ -1036,7 +1041,7 @@ class Node extends THREE.Group {
     //
     {
       // ConeGeometryを作成
-      const coneRadius = options.hasOwnProperty("coneRadius") ? options.coneRadius : 8;
+      const coneRadius = options.hasOwnProperty("coneRadius") ? options.coneRadius : 6;
       const coneHeight = options.hasOwnProperty("coneHeight") ? options.coneHeight : 12;
       const coneSegments = options.hasOwnProperty("coneSegments") ? options.coneSegments : 32;
       const geometry = new THREE.ConeGeometry(coneRadius, coneHeight, coneSegments);
@@ -1048,7 +1053,7 @@ class Node extends THREE.Group {
       this.cone = new THREE.Mesh(geometry, material);
       this.cone.name = `${node.data.id}_cone`;
       this.cone.rotateX(Math.PI);
-      this.cone.position.set(0, 15, 0);
+      this.cone.position.set(0, this.sphereRadius + coneHeight / 2, 0);
       this.cone.visible = false;
       this.add(this.cone);
     }
