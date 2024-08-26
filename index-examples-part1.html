@@ -105,6 +105,15 @@
 
       <br><br>
 
+      <h2>ノード</h2>
+      <p>球体でノードを表現する例。</p>
+      <p>グループ化することで内部にテクスチャを張っているが、作成する順番が重要で、球体を最後にしないと内部が見えなくなる。</p>
+      <p>選択したときのブリンクエフェクトは、内部のもう一つ同じサイズの球体を作成してvisibleをトグルすることで実現している。</p>
+      <p><a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-nodee.html">index-node.html</a></p>
+      <iframe src="./index-node-edge.html" frameborder="0" scrolling="no"></iframe>
+
+      <br><br>
+
       <h2>ノードとエッジ</h2>
       <p>半透明に設定した物体を線で結ぶ場合に、物体の内部にある線を描画するか、しないか、を制御する例。</p>
       <p>renderOrder, depthWrite, depthTest の組み合わせで制御する。</p>

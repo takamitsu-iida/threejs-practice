@@ -266,7 +266,8 @@ export class CanvasLabel {
 
     const ctx = canvas.getContext("2d");
 
-    // canvasのデフォルトフォントは "10px sans-serif" になっているのでフォントを大きくする
+    // canvasのデフォルトフォントは "10pt sans-serif"
+    // フォントを大きく、Arialに
     const fontSize = 40;
     ctx.font = `${fontSize}pt Arial`;
 
