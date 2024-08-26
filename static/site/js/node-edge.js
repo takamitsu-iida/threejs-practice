@@ -62,7 +62,7 @@ export class Main {
     this.scene.add(new THREE.GridHelper(20, 20, new THREE.Color(0xffffff), new THREE.Color(0xffffff) ));
 
     // 環境光
-    this.scene.add(new THREE.AmbientLight(0x404040, 1.0));
+    this.scene.add(new THREE.AmbientLight(0xffffff, 1.0));
 
     // 点光源 new THREE.PointLight(色, 光の強さ, 距離, 光の減衰率)
     const pointLightA = new THREE.PointLight(0xffffff, 10, 50, 1);
