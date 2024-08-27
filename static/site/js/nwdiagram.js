@@ -266,10 +266,10 @@ export class CanvasLabel {
 
     const ctx = canvas.getContext("2d");
 
-    // canvasのデフォルトフォントは "10pt sans-serif"
+    // canvasのデフォルトフォントは "10px sans-serif"
     // フォントを大きく、Arialに
     const fontSize = 40;
-    ctx.font = `${fontSize}pt Arial`;
+    ctx.font = `${fontSize}px Arial`;
 
     // measureTextで必要な幅を調べる
     const width = ctx.measureText(this.labelText).width;

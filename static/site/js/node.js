@@ -21,7 +21,7 @@ class NodeBase extends THREE.Group {
     sphereDetail: 3,
 
     // ノードの透明度
-    sphereOpacity: 0.75,
+    sphereOpacity: 0.6,
 
     // ノードの色
     sphereColor: 0xf0f0f0,
@@ -89,9 +89,16 @@ class NodeBase extends THREE.Group {
     }
   }
 
-  // ブリンクエフェクト
+  //
+  // 簡易なブリンクエフェクト
+  //
+
+  // 同じ大きさの球体をもう一つ追加して、その表示・非表示を切り替える。
+  // ノードを大量に生成するときには重たくなることが予想されるので別の実装にした方が良い。
+
   blinkSphere;
   blinkInterval;
+  isBlinking = false;
 
   startBlink() {
     if (!this.blinkSphere) {
@@ -111,7 +118,8 @@ class NodeBase extends THREE.Group {
     }
 
     this.blinkInterval = setInterval(() => {
-      this.blinkSphere.visible = !this.blinkSphere.visible;
+      this.isBlinking = !this.isBlinking;
+      this.blinkSphere.visible = this.isBlinking;
     }, 500);
   }
 
@@ -119,6 +127,7 @@ class NodeBase extends THREE.Group {
     if (this.blinkInterval) {
       clearInterval(this.blinkInterval);
     }
+    this.isBlinking = false;
     this.blinkInterval = null;
     this.blinkSphere.visible = false;
   }
@@ -128,9 +137,7 @@ class NodeBase extends THREE.Group {
 export class ColorNode extends NodeBase {
 
   constructor(node, options) {
-
     super(node, options);
-
     this.createSphere();
   }
 
@@ -154,19 +161,29 @@ export class LabelNode extends NodeBase {
     const labelText = this.node.data.label || `${this.node.data.id}`;
 
     const canvas = document.createElement("canvas");
+
     const context = canvas.getContext("2d");
 
+    // canvasのデフォルトフォントは "10px sans-serif"
     const fontSize = 40;
-    const fontFace = "Arial";
-    context.font = `Bold ${fontSize}px ${fontFace}`;
-    context.textAlign = "center";
+    const fontFace = 'monospace';
+    const font = `Bold ${fontSize}px ${fontFace}`;
+    context.font = font;
+
+    // measureTextで必要な幅を調べる
     const textWidth = context.measureText(labelText).width;
+    const textHeight = context.measureText(labelText).actualBoundingBoxAscent;
+    // console.log(`(${textWidth}, ${textHeight})`);
+
+    // canvasのサイズを必要な幅に設定
     canvas.setAttribute('width', textWidth);
 
     // canvasの幅を変更したので、再度フォントの設定を行う
-    context.font = `Bold ${fontSize}px ${fontFace}`;
+    context.font = font;
     context.fillStyle = `rgba(${textColor.r},${textColor.g},${textColor.b},${textColor.a})`;
-    context.fillText(labelText, 0, 100);
+    context.textAlign = 'left';
+    context.textBaseline = 'top';
+    context.fillText(labelText, 0, textHeight);
 
     const texture = new THREE.Texture(canvas);
     texture.needsUpdate = true;
@@ -176,12 +193,10 @@ export class LabelNode extends NodeBase {
     });
 
     this.sprite = new THREE.Sprite(spriteMaterial);
+    // this.sprite.scale.set(1.2, 1.2, 1.2);
 
     this.add(this.sprite);
-
-
   }
-
 
 }
 
@@ -196,17 +211,14 @@ export class TextureNode extends NodeBase {
   sprite;
 
   constructor(node, options) {
-
     super(node, options);
-
     this.sphereTexture = options.sphereTexture;
     if (!this.sphereTexture) {
       throw new Error("sphereTexture must be specified");;
     }
-
     this.createSprite();
 
-    // 内部のスプライトが見えるように透過度を下げる
+    // 内部のスプライトが見えるように透過度を下げる？
     // this.options.sphereOpacity = 0.1;
     this.createSphere();
 
@@ -220,7 +232,7 @@ export class TextureNode extends NodeBase {
     });
 
     this.sprite = new THREE.Sprite(spriteMaterial);
-    this.sprite.scale.set(1.0, 1.0, 1.0);
+    // this.sprite.scale.set(1.5, 1.5, 1.5);
     this.add(this.sprite);
   }
 
@@ -257,8 +269,10 @@ export class Main {
 
   constructor() {
 
+    // テクスチャ画像を読み込む間、ローディング画面を表示する
     this.initTexture();
 
+    // scene, camera, renderer, controllerを初期化
     this.initThreejs();
 
     //
@@ -267,13 +281,16 @@ export class Main {
 
     let id = 1;
     let X = -4;
+    let Y = 2;
+    let Z = 0;
 
     // ノード１
+    // 赤い球体
     {
       const data = {
         group: 'nodes',
         data: { id: id },
-        position: { x: X, y: 2, z: 0 }
+        position: { x: X, y: Y, z: Z }
       };
 
       const options = {
@@ -290,11 +307,12 @@ export class Main {
     X += 3;
 
     // ノード２
+    // 青い球体
     {
       const data = {
         group: 'nodes',
         data: { id: id },
-        position: { x: X, y: 2, z: 0 }
+        position: { x: X, y: Y, z: Z }
       };
 
       const options = {
@@ -311,11 +329,12 @@ export class Main {
     X += 3;
 
     // ノード３
+    // 内部に画像を使ったスプライトを配置
     {
       const data = {
         group: 'nodes',
         data: { id: id },
-        position: { x: X, y: 2, z: 0 }
+        position: { x: X, y: Y, z: Z }
       };
 
       const options = {
@@ -333,11 +352,12 @@ export class Main {
     X += 3;
 
     // ノード４
+    // 内部にテキストを使ったスプライトを配置
     {
       const data = {
         group: 'nodes',
-        data: { id: id, label: `node ${id}` },
-        position: { x: X, y: 2, z: 0 }
+        data: { id: id, label: `ノード ${id}` },
+        position: { x: X, y: Y, z: Z }
       };
 
       const options = {
@@ -350,29 +370,26 @@ export class Main {
       this.nodes.push(node);
     }
 
-    /*
+
     // ラインを引く
-    const lineGeo = new THREE.BufferGeometry();
+    const drawLine = true;
+    if (drawLine) {
+      const lineGeo = new THREE.BufferGeometry();
+      const nodeLeftPosition = this.nodes[0].position.clone();
+      const nodeRightPosition = this.nodes[this.nodes.length -1].position.clone();
+      lineGeo.setFromPoints([nodeLeftPosition, nodeRightPosition]);
 
-    const nodeLeftPosition = this.nodes[0].position.clone();
-    const nodeRightPosition = this.nodes[this.nodes.length -1].position.clone();
-    const points = [
-      nodeLeftPosition,
-      nodeRightPosition,
-    ];
-    lineGeo.setFromPoints(points);
+      const lineMaterial = new THREE.LineBasicMaterial({
+        color: "orange",
+        transparent: true,
+        depthWrite: false // ★オブジェクト内部の線を隠すための設定
+      });
 
-    const lineMaterial = new THREE.LineBasicMaterial({
-      color: "black",
-      // vertexColors: true, // ジオメトリの頂点の色を使う
-      transparent: true,
-      depthWrite: false // ★オブジェクト内部の線を隠すための設定
-    });
+      const line = new THREE.Line(lineGeo, lineMaterial);
+      line.renderOrder = 1;  // ★オブジェクト内部の線を隠すための設定
+      this.scene.add(line);
+    }
 
-    const line = new THREE.Line(lineGeo, lineMaterial);
-    line.renderOrder = 1;  // ★オブジェクト内部の線を隠すための設定
-    this.scene.add(line);
-    */
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
