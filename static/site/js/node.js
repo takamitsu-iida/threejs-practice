@@ -183,6 +183,7 @@ export class LabelNode extends NodeBase {
     context.fillStyle = `rgba(${textColor.r},${textColor.g},${textColor.b},${textColor.a})`;
     context.textAlign = 'left';
     context.textBaseline = 'top';
+    // 少し下に寄せる
     context.fillText(labelText, 0, textHeight);
 
     const texture = new THREE.Texture(canvas);
@@ -193,13 +194,17 @@ export class LabelNode extends NodeBase {
     });
 
     this.sprite = new THREE.Sprite(spriteMaterial);
+
+    // 球体の半径が1なのに対して、textWidthは120とか、そんな数字になっているはず
+    // HTMLの世界での数字と、Three.jsの座標系の数字は無関係なので、
+    // 大きさを調整しないといけないかもしれない
+
     // this.sprite.scale.set(1.2, 1.2, 1.2);
 
     this.add(this.sprite);
   }
 
 }
-
 
 
 export class TextureNode extends NodeBase {

@@ -146,32 +146,24 @@ export class Main {
     ];
     lineGeo.setFromPoints(points);
 
-    // ジオメトリの指定に対応する色を決める
-    /*
-    const colors = new Float32Array([
-      1.0, 0.0, 0.0,  // red
-      0.0, 0.0, 1.0,  // blue
-      1.0, 1.0, 0.0,  // yellow
-      0.0, 1.0, 1.0,  // purple
-    ]);
-    */
+    // ジオメトリの４つの頂点に色を設定する
 
     const node1Color = icosahedron1.material.color.clone();
     const node2Color = icosahedron2.material.color.clone();
     const colors = new Float32Array([
-      node1Color.r, node1Color.g, node1Color.b,
-      node1Color.r, node1Color.g, node1Color.b,
-      node2Color.r, node2Color.g, node2Color.b,
-      node2Color.r, node2Color.g, node2Color.b,
+      node1Color.r, node1Color.g, node1Color.b, // ノード1の色
+      node1Color.r, node1Color.g, node1Color.b, // ノード1の色
+      node2Color.r, node2Color.g, node2Color.b, // ノード2の色
+      node2Color.r, node2Color.g, node2Color.b, // ノード2の色
     ]);
 
     lineGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     const lineMaterial = new THREE.LineBasicMaterial({
-      // color: "orange",
-      vertexColors: true, // ジオメトリの頂点の色を使う
+      // color: "orange",  // 色指定はせずに、
+      vertexColors: true,  // ジオメトリの頂点の色を使う
       transparent: true,
-      depthWrite: false // ★オブジェクト内部の線を隠すための設定
+      depthWrite: false  // ★オブジェクト内部の線を隠すための設定
     });
 
     const line = new THREE.Line(lineGeo, lineMaterial);
