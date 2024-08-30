@@ -50,13 +50,7 @@ Deeperの有料会員になれば3Dで海底地形図が見れるみたいだけ
 
 勉強用に作ったものを一覧化したもの。
 
-https://takamitsu-iida.github.io/threejs-practice/index-examples-part1.html
-
-https://takamitsu-iida.github.io/threejs-practice/index-examples-part2.html
-
-https://takamitsu-iida.github.io/threejs-practice/index-examples-part3.html
-
-https://takamitsu-iida.github.io/threejs-practice/index-examples-part4.html
+https://takamitsu-iida.github.io/threejs-practice/index-examples.html
 
 参照元は本家Three.jsであったり、Udemyであったり、ブログであったりとマチマチではあるものの、
 後で自分が参照するときに困らないようにソースコードはできるだけ同じような書き方に変えている。
