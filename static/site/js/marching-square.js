@@ -1,94 +1,32 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/controls/OrbitControls.js";
-// import { GUI } from "three/libs/lil-gui.module.min.js";
+import { GUI } from "three/libs/lil-gui.module.min.js";
 
 // stats.js
 import Stats from 'three/libs/stats.module.js';
 
 
-class Ball {
+class Field {
 
-  // 重力を持った複数のボールが動き回るイメージ
+  // Ballクラスのインスタンスを格納する配列
+  balls = [];
 
-  balls = []; // オブジェクトの配列
+  // ボールの数
   numBalls;
-
-  // 球体の色と透明度
-  color = 0xff6600;
-  opacity = 0.6;
 
   // ボールが動き回る範囲
   fieldWidth;
   fieldHeight;
 
-  MIN_BALL_RADIUS = 30;
-  MAX_BALL_RADIUS = 100;
-
-  constructor(numBalls, containerWidth, containerHeight) {
-
+  constructor(numBalls, fieldWidth, fieldHeight) {
     this.numBalls = numBalls;
-    this.fieldWidth = containerWidth;
-    this.fieldHeight = containerHeight;
+    this.fieldWidth = fieldWidth;
+    this.fieldHeight = fieldHeight;
 
-    // ボールの初期位置、速度、半径を決める
-    for (let i = 0; i < this.numBalls; i++) {
-      const ball = {
-        // 位置
-        pos:
-          new THREE.Vector3(
-            Math.random() * this.fieldWidth,  // 0 ~ containerWidthの範囲でランダム値
-            Math.random() * this.fieldHeight,  // 0 ~ containerHeightの範囲でランダム値
-            0
-          ),
-
-        // 速度
-        vel:
-          new THREE.Vector3(
-            (Math.random() * 2 - 1) * 3,  // -1 ~ 1の範囲でランダム値を取った後で3倍
-            (Math.random() * 2 - 1) * 3,  // -1 ~ 1の範囲でランダム値を取った後で3倍
-            0
-          ),
-
-        // 半径
-        rad:
-          Math.random() * (this.MAX_BALL_RADIUS - this.MIN_BALL_RADIUS) + this.MIN_BALL_RADIUS,
-
-        // 体積
-        vol: 0,
-      }
-
-      this.balls.push(ball);
+    // Ballクラスをインスタンス化して格納する
+    for (let i=0; i < numBalls; i++) {
+      this.balls.push(new Ball(this.fieldWidth, this.fieldHeight));
     }
-
-    // ボールの半径が決まったので体積（=重力）を計算しておく
-    this.balls.forEach((ball) => {
-      ball.vol = 4 * Math.PI * (ball.rad ** 3) / 3;
-
-      // このままだと数字が大きすぎるので 1/1000 しておく
-      ball.vol /= 1000;
-    });
-
-    // Three.jsの球体を作成しておく
-    this.balls.forEach((ball) => {
-      // ジオメトリ
-      const geometry = new THREE.IcosahedronGeometry(ball.rad, 5);
-
-      // マテリアル
-      const material = new THREE.MeshBasicMaterial({
-        color: this.color,
-        transparent: true,
-        opacity: this.opacity,
-      });
-
-      // メッシュ
-      ball.mesh = new THREE.Mesh(geometry, material);
-
-      // 位置を設定
-      ball.mesh.position.x = ball.pos.x;
-      ball.mesh.position.y = ball.pos.y;
-      ball.mesh.position.z = ball.rad;
-
-    });
 
   }
 
@@ -96,36 +34,36 @@ class Ball {
   step() {
 
     this.balls.forEach((ball) => {
-      // 位置を変更
-      ball.pos.add(ball.vel);
+
+      // ボールの位置を変更
+      ball.position.add(ball.velocity);
 
       // Xがマイナスになったら反転
-      if (ball.pos.x < 0 + ball.rad) {
-        ball.pos.x = 0 + ball.rad;
-        ball.vel.x = Math.abs(ball.vel.x);
+      if (ball.position.x < 0 + ball.radius) {
+        ball.position.x = 0 + ball.radius;
+        ball.velocity.x = Math.abs(ball.velocity.x);
       }
 
       // Yがマイナスになったら反転
-      if (ball.pos.y < 0 + ball.rad) {
-        ball.pos.y = 0 + ball.rad;
-        ball.vel.y = Math.abs(ball.vel.y);
+      if (ball.position.y < 0 + ball.radius) {
+        ball.position.y = 0 + ball.radius;
+        ball.velocity.y = Math.abs(ball.velocity.y);
       }
 
       // XがfieldWidthを超えたら反転
-      if (ball.pos.x > this.fieldWidth - ball.rad) {
-        ball.pos.x = this.fieldWidth - ball.rad;
-        ball.vel.x = -Math.abs(ball.vel.x);
+      if (ball.position.x > this.fieldWidth - ball.radius) {
+        ball.position.x = this.fieldWidth - ball.radius;
+        ball.velocity.x = -Math.abs(ball.velocity.x);
       }
 
-      // YがcontainerHeightを超えたら反転
-      if (ball.pos.y > this.fieldHeight - ball.rad) {
-        ball.pos.y = this.fieldHeight - ball.rad;
-        ball.vel.y = -Math.abs(ball.vel.y);
+      // YがfieldHeightを超えたら反転
+      if (ball.position.y > this.fieldHeight - ball.radius) {
+        ball.position.y = this.fieldHeight - ball.radius;
+        ball.velocity.y = -Math.abs(ball.velocity.y);
       }
 
-      ball.mesh.position.x = ball.pos.x;
-      ball.mesh.position.y = ball.pos.y;
-
+      ball.mesh.position.x = ball.position.x;
+      ball.mesh.position.y = ball.position.y;
     });
 
   }
@@ -134,14 +72,87 @@ class Ball {
     let sum = 0;
 
     this.balls.forEach((ball) => {
-      const distance = ball.pos.distanceTo(fromPosition);
-
-      sum += ball.vol / (distance ** 2);
+      const distance = ball.position.distanceTo(fromPosition);
+      sum += ball.volume / (distance ** 2);
     });
 
     return sum;
   }
 
+}
+
+
+class Ball {
+
+  // 球体の半径の最小値、最大値
+  MIN_BALL_RADIUS = 25;
+  MAX_BALL_RADIUS = 80;
+
+  // 位置
+  position;
+
+  // 移動速度
+  velocity;
+
+  // 半径
+  radius;
+
+  // 体積
+  volume;
+
+  // THREE.Mesh()
+  mesh;
+
+  // 球体の色
+  color = 0xff6600;
+
+  // 球体の透明度
+  opacity = 0.6;
+
+  constructor(fieldWidth=500, fieldHeight=500) {
+
+    // ボールの初期位置を決める
+    this.position = new THREE.Vector3(
+      Math.random() * (fieldWidth - this.MAX_BALL_RADIUS * 2) + this.MIN_BALL_RADIUS,
+      Math.random() * (fieldHeight - this.MAX_BALL_RADIUS * 2) + this.MIN_BALL_RADIUS,
+      0
+    );
+
+    // 速度を決める
+    this.velocity = new THREE.Vector3(
+      (Math.random() * 2 - 1) * 3,  // -1 ~ 1の範囲でランダム値を取った後で3倍
+      (Math.random() * 2 - 1) * 3,  // -1 ~ 1の範囲でランダム値を取った後で3倍
+      0
+    );
+
+    // 半径を決める
+    this.radius = Math.random() * (this.MAX_BALL_RADIUS - this.MIN_BALL_RADIUS) + this.MIN_BALL_RADIUS;
+
+    // 体積を決める
+    this.volume = 4 * Math.PI * (this.radius ** 3) / 3;
+
+    // このままだと数字が大きすぎるので 1/1000 しておく
+    this.volume /= 1000;
+
+    // ジオメトリ
+    const geometry = new THREE.IcosahedronGeometry(this.radius, 4);
+
+    // マテリアル
+    const material = new THREE.MeshBasicMaterial({
+      color: this.color,
+      transparent: true,
+      opacity: this.opacity,
+    });
+
+    // メッシュ
+    this.mesh = new THREE.Mesh(geometry, material);
+
+    // 位置を設定
+    this.mesh.position.x = this.position.x;
+    this.mesh.position.y = this.position.y;
+    this.mesh.position.z = this.radius;
+
+  }
 }
 
 
@@ -153,12 +164,12 @@ export class Grid {
 
   position;  // Vector3
 
+  // 電位
   potential = 0;
 
-  color = 0xffffff;
+  color = 0xffff00;
 
-  // isoline
-  line;
+  line;  // Mesh
 
   constructor(rowIndex, colIndex, pos) {
     this.rowIndex = rowIndex;
@@ -201,18 +212,16 @@ export class Main {
   params = {
     gridSize: 10,
     gridNums: { x: 50, y: 50 },
-
-    threshold1: 0.4,
-    threshold2: 0.8,
+    threshold: 0.4,
   }
 
-  // Ballクラスのインスタンス
-  ball;
+  // Fieldクラスのインスタンス
+  field;
 
   // 描画関数のリスト
   marchingSquareFunctions = [];
 
-  // グリッドは `${rowIndex}${colIndex}` をキーとしたオブジェクト
+  // gridsは `${rowIndex},${colIndex}` をキーとしたオブジェクト
   grids = {};
 
   constructor(params) {
@@ -226,36 +235,47 @@ export class Main {
     // stats.jsを初期化
     this.initStatsjs();
 
-    // 16個の関数が詰まったリスト作成する
-    this.marchingSquareFunctions = this.createMarchingSquareFunctions(this.params.gridSize);
+    // 16個の関数を格納したリスト作成する
+    this.marchingSquareFunctions = this.createMarchingSquareFunctions();
 
-    // ボールをインスタンス化
-    this.ball = new Ball(5, this.params.gridNums.x * this.params.gridSize, this.params.gridNums.y * this.params.gridSize);
+    // Fieldをインスタンス化
+    const fieldWidth = this.params.gridNums.x * this.params.gridSize;
+    const fieldHeight = this.params.gridNums.y * this.params.gridSize;
+    this.field = new Field(6, fieldWidth, fieldHeight);
 
     // グリッドを作成する
     for (let rowIndex = 0; rowIndex < this.params.gridNums.y; rowIndex++) {
       for (let colIndex = 0; colIndex < this.params.gridNums.x; colIndex++) {
 
+        // Gridクラスをインスタンス化して
         const grid = new Grid(
           rowIndex,
           colIndex,
           new THREE.Vector3(colIndex * this.params.gridSize, rowIndex * this.params.gridSize, 0)
         );
 
-        this.scene.add(grid.line);
-
+        // gridsに格納する
         this.grids[`${rowIndex},${colIndex}`] = grid;
       }
     }
 
-    this.drawField();
+    // grid内で準備したThree.jsのlineをシーンに加える
+    Object.values(this.grids).forEach((grid) => {
+      this.scene.add(grid.line);
+    });
+
+    // Fieldの境界線を描画
+    this.drawBoundary();
+
+    // ボールを描画
     this.drawBall();
 
-    /*
+    // 電位を計算
     this.calcPotential();
 
+    /*
     Object.values(this.grids).forEach((g) => {
-      console.log(g.potential());
+      console.log(g);
     });
     */
 
@@ -266,11 +286,12 @@ export class Main {
 
   calcPotential() {
     Object.values(this.grids).forEach((g) => {
-      g.potential = this.ball.calc(g.position);
+      g.potential = this.field.calc(g.position);
     });
   }
 
-  drawField() {
+
+  drawBoundary() {
     // 計算の都合上、グリッドの一番右、一番下は（隣がないので）等圧線が描画されない
     const w = (this.params.gridNums.x -1) * this.params.gridSize;
     const h = (this.params.gridNums.y -1) * this.params.gridSize;
@@ -294,9 +315,16 @@ export class Main {
   }
 
 
+  drawBall() {
+    this.field.balls.forEach((ball) => {
+      this.scene.add(ball.mesh);
+    });
+  }
+
+
   drawIsoline() {
 
-    // 行、列をたどりながら、線を引いていく
+    // グリッドの行、列をたどりながら、線を描画していく
     for (let rowIndex = 0; rowIndex < this.params.gridNums.y - 1; rowIndex++) {
       for (let colIndex = 0; colIndex < this.params.gridNums.x - 1; colIndex++) {
         const p1 = this.grids[`${rowIndex},${colIndex}`];
@@ -304,26 +332,21 @@ export class Main {
         const p4 = this.grids[`${rowIndex + 1},${colIndex}`];
         const p8 = this.grids[`${rowIndex + 1},${colIndex + 1}`];
 
-        // それぞれのポイントがしきい値よりも大きければ1、小さければ0
-        const index1 =
-          ((p1.potential > this.params.threshold1) ? 1 : 0) +
-          ((p2.potential > this.params.threshold1) ? 2 : 0) +
-          ((p4.potential > this.params.threshold1) ? 4 : 0) +
-          ((p8.potential > this.params.threshold1) ? 8 : 0);
+        // それぞれのポイントがしきい値を超えているか？
+        const index =
+          ((p1.potential > this.params.threshold) ? 1 : 0) +
+          ((p2.potential > this.params.threshold) ? 2 : 0) +
+          ((p4.potential > this.params.threshold) ? 4 : 0) +
+          ((p8.potential > this.params.threshold) ? 8 : 0);
 
-        const func1 = this.marchingSquareFunctions[index1];
+        // 実行すべき関数を取り出す
+        const func = this.marchingSquareFunctions[index];
 
-        func1(p1, p2, p4, p8, this.params.threshold1);
+        // 取り出した関数で描画する
+        func(p1, p2, p4, p8, this.params.threshold);
 
       }
     }
-  }
-
-
-  drawBall() {
-    this.ball.balls.forEach((ball) => {
-      this.scene.add(ball.mesh);
-    });
   }
 
 
@@ -333,6 +356,7 @@ export class Main {
 
     return (a / (a + b));
   }
+
 
   createMarchingSquareFunctions() {
 
@@ -344,9 +368,14 @@ export class Main {
     |    |
     p4---p8
 
-    各頂点が1 or 0を取る。
-    p1 + p2 + p3 + p4の値は 0~15 の数値を持つ。
-    この数字からどの頂点が1なのかを判定できるので、この数字をインデックスとした配列を作成する。
+    p1 = 1 or 0
+    p2 = 2 or 0
+    p4 = 4 or 0
+    p8 = 8 or 0
+    の値を持つ。
+    p1 + p2 + p3 + p4の値は 0~15 の数値になり、
+    この数字からどの頂点が非ゼロなのかを判定できる。
+    この数字をインデックスとした配列を作り、頂点の状態に応じた処理関数を格納する。
 
     */
 
@@ -660,48 +689,49 @@ export class Main {
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
 
-    // resizeイベントのハンドラを登録
-    window.addEventListener("resize", () => { this.onWindowResize(); }, false);
-
     // シーン
     this.scene = new THREE.Scene();
 
     // カメラ
     // 遠近感は不要なのでOrthographcCameraを利用
+    const fieldWidth = (this.params.gridNums.x -1) * this.params.gridSize;
+    const fieldHeight = (this.params.gridNums.y -1) * this.params.gridSize;
+
     this.camera = new THREE.OrthographicCamera(
-      -10,                                                        // left
-      ((this.params.gridNums.x) * this.params.gridSize) * 1.1,  // right
-      -10,                                                        // top
-      ((this.params.gridNums.y) * this.params.gridSize) * 1.1,  // bottom
-      1,                                                        // near
-      1001                                                      // far
+      0,            // left
+      fieldWidth,   // right
+      0,            // top
+      fieldHeight,  // bottom
+      1,            // near
+      1001          // far
     );
+
     this.camera.position.z = 10;
+    // this.camera.zoom = 0.9;
+    // this.camera.updateProjectionMatrix();
 
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(this.sizes.width, this.sizes.height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.container.appendChild(this.renderer.domElement);
-
     this.renderer.setClearColor(0xdedede);
 
     // コントローラ
     this.controller = new OrbitControls(this.camera, this.renderer.domElement);
     this.controller.enableRotate = false;  // 平面を表示するだけなので回転不要
 
-    // グリッドヘルパー
-    // this.scene.add(new THREE.GridHelper(10000, 10000, new THREE.Color(0xffffff), new THREE.Color(0xffffff)));
-
-    // 軸を表示
-    //
-    //   Y(green)
-    //    |
-    //    +---- X(red)
-    //   /
-    //  Z(blue)
-    //
-    // this.scene.add(new THREE.AxesHelper(10000));
+    // lil-gui
+    const guiContainer = document.getElementById("guiContainer");
+    const gui = new GUI({
+      container: guiContainer,
+    });
+    gui
+      .add(this.params, "threshold")
+      .min(0.1)
+      .max(0.6)
+      .step(0.01)
+      .name("threshold");
 
   }
 
@@ -722,7 +752,6 @@ export class Main {
 
 
   render() {
-
     // 再帰処理
     requestAnimationFrame(() => { this.render(); });
 
@@ -738,32 +767,20 @@ export class Main {
       // カメラコントローラーの更新
       this.controller.update();
 
-      // ボールを移動して
-      this.ball.step();
+      // フィールド上のボールを移動して
+      this.field.step();
 
-      // 重力を計算し直す
+      // 各グリッドにおける電位を計算し直す
       this.calcPotential();
 
-      // 等高線を引く
+      // 電位の等高線を引く
       this.drawIsoline();
 
       // 再描画
       this.renderer.render(this.scene, this.camera);
     }
 
-    this.renderParams.delta = this.renderParams.delta % this.renderParams.interval;
-  }
-
-
-  onWindowResize() {
-    this.sizes.width = this.container.clientWidth;
-    this.sizes.height = this.container.clientHeight;
-
-    this.camera.aspect = this.sizes.width / this.sizes.height;
-    this.camera.updateProjectionMatrix();
-
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setSize(this.sizes.width, this.sizes.height);
+    this.renderParams.delta %= this.renderParams.interval;
   }
 
 }

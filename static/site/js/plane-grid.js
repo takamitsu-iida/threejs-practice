@@ -276,7 +276,6 @@ export class Main {
   renderer;
   directionalLight;
   controller;
-  gui;
 
   perlin;
 
