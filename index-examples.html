@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="shortcut icon" type="image/x-icon" href="./static/site/img/favicon.ico">
+
+  <title>Three.js examples</title>
+
+  <style type="text/css">
+    * {
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 62.5%;
+    }
+
+    body {
+      font-size: 1.4em;
+      font-family: Verdana, "ＭＳ Ｐゴシック", sans-serif;
+      margin: 8px;
+      padding: 0;
+    }
+
+    .wrapper {
+      display: grid;
+      column-gap: 8px;
+      row-gap: 8px;
+      grid-template-columns: 1fr;
+    }
+
+    /*
+    1-2
+     ■
+    2--
+     □
+    3--
+    */
+    .header_panel {
+      grid-row: 1 / 2;
+      grid-column: 1 / 2;
+      height: 30px;
+
+      /* disable select text */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    /*
+    1-2
+     □
+    2--
+     ■
+    3--
+    */
+    .main_panel {
+      grid-row: 2 / 3;
+      grid-column: 1 / 2;
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <div class="wrapper">
+
+    <div class="header_panel">
+
+      <span style="float: right; margin-left: 20px; margin-right: 20px;">
+        <a href="https://github.com/takamitsu-iida/threejs-practice" target="_blank" rel="noopener noreferrer">source code</a> (github)
+      </span>
+
+    </div>
+
+    <div class="main_panel">
+
+      <br>
+
+      <h1>勉強用に作った例の一覧</h1>
+
+      画像クリックでライブデモに移動。
+
+      <br><br>
+
+      <h2>ノード</h2>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-node.html">
+          <img src="./asset/index-node.html.png"/>
+        </a>
+      </p>
+
+      <p>球体でノードを表現する例。</p>
+      <p>グループ化することで内部にテクスチャを張っているが、作成する順番が重要で、球体を最後にしないと内部が見えなくなる。</p>
+      <p>選択したときのブリンクエフェクトは、内部のもう一つ同じサイズの球体を作成してvisibleをトグルすることで実現している。</p>
+
+      <p>
+        ソースコード <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-node.html">index-node.html</a>
+      </p>
+
+      <br><br>
+
+      <h2>ノードとエッジ</h2>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-node-edge.html">
+          <img src="./asset/index-node-edge.html.png" />
+        </a>
+      </p>
+
+      <p>半透明に設定した物体を線で結ぶ場合に、物体の内部にある線を描画するか、しないか、を制御する例。</p>
+      <p>renderOrder, depthWrite, depthTest の組み合わせで制御する。</p>
+      <p>青い球体は内部まで線が描画されているのに対して、赤い球体は球の外側から線が描画されている。</p>
+
+      <p>
+        ソースコード <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-node-edge.html">index-node-edge.html</a>
+      </p>
+
+      <br><br>
+
+      <h2>曲線</h2>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-curve.html">
+          <img src="./asset/index-curve.html.png" />
+        </a>
+      </p>
+
+      <p>THREE.CatmullRomCurve3()に適当な座標をいくつか与えて、滑らかな曲線を作る例。</p>
+      <p>複雑な曲線を滑らかにするにはそれなりのポイント数が必要。</p>
+
+      <p>
+        ソースコード <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-curve.html">index-curve.html</a>
+      </p>
+
+      <br><br>
+
+      <h2>影</h2>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-shadow.html">
+          <img src="./asset/index-shadow.html.png" />
+        </a>
+      </p>
+
+      <p>基本中の基本ではあるものの、影を綺麗に出すのは意外に調整が難しい。</p>
+
+      <p>
+        ソースコード <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-shadow.html">index-shadow.html</a>
+      </p>
+
+      <br><br>
+
+      <h2>パーティクル</h2>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-particles.html">
+          <img src="./asset/index-particles.html.png" />
+        </a>
+      </p>
+
+      <p>Udemyの講座から引用。</p>
+      <p>テクスチャをあてて綺麗にしている。</p>
+
+      <p>
+        ソースコード <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-particles.html">index-particles.html</a>
+      </p>
+
+      <br><br>
+
+      <h2>旗</h2>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-flag.html">
+          <img src="./asset/index-flag.html.png" />
+        </a>
+      </p>
+
+      <p>Udemyの講座から引用</p>
+      <p>ShaderMaterialとGLSLで記述したシェーダーを使った例。</p>
+
+      <p>
+        ソースコード <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-flag.html">index-flag.html</a>
+      </p>
+
+      <br><br>
+
+      <h2>波</h2>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-wave.html">
+          <img src="./asset/index-wave.html.png" />
+        </a>
+      </p>
+
+      <p>Udemyの講座から引用</p>
+      <p>ShaderMaterialとシェーダーを使った例</p>
+
+      <p>
+        ソースコード <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-wave.html">index-wave.html</a>
+      </p>
+
+      <br><br>
+
+      <h2>地球</h2>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-geoarc.html">
+          <img src="./asset/index-geoarc.html.png" />
+        </a>
+      </p>
+
+      <p>ICS MEDIAの<a href="https://ics.media/entry/10657/">記事</a>から引用。</p>
+      <p>グループ化をうまく使っている例。</p>
+
+      <p>
+        ソースコード <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-geoarc.html">index-geoarc.html</a>
+      </p>
+
+      <br><br>
+
+      <h2>回転するパーティクル</h2>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-points.html">
+          <img src="./asset/index-points.html.png" />
+        </a>
+      </p>
+
+      <p>オブジェクトを回転させる方法について調べるために作成したもの。</p>
+      <p>
+        ソースコード <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-points.html">index-points.html</a>
+      </p>
+
+      <br><br>
+
+      <h2>クォータニオン</h2>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-quaternion.html">
+          <img src="./asset/index-quaternion.html.png" />
+        </a>
+      </p>
+
+      <p>オブジェクトを回転させる方法について調べるために作成したもの。</p>
+      <p>ワールド座標系で回転軸を指定して物体を回転させるのは意外に難しい。</p>
+
+      <p>
+        ソースコード <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-quaternion.html">index-quaternion.html</a>
+      </p>
+
+      <br><br>
+
+      <h2>プレーンジオメトリ</h2>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-plane-wave.html">
+          <img src="./asset/index-plane-wave.html.png" />
+        </a>
+      </p>
+
+      <p>基本中の基本。ジオメトリの座標を時間経過で加工して波打たせたもの</p>
+
+      <p>
+        ソースコード <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-plane-wave.html">index-plane-wave.html</a>
+      </p>
+
+      <br><br>
+
+      <h2>地形</h2>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-terrain.html">
+          <img src="./asset/index-terrain.html.png" />
+        </a>
+      </p>
+
+      <p>本家Three.jsの例から引用。これはわからないところが多いのでさらなる深堀りが必要。</p>
+
+      <p>
+        ソースコード <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-terrain.html">index-terrain.html</a>
+      </p>
+
+      <br><br>
+
+      <h2>プレーンジオメトリ</h2>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-plane.html">
+          <img src="./asset/index-plane.html.png" />
+        </a>
+      </p>
+
+      <p>ネットに掲載されていたシェーダーの使用例からシェーダー部分を取り除いたもの。</p>
+      <p>プレーンジオメトリにパーリンノイズを乗せて歪ませている。</p>
+
+      <p>
+        ソースコード <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-plane.html">index-plane.html</a>
+      </p>
+
+      <br><br>
+
+      <h2>シェーダーマテリアル</h2>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-plane-grid.html">
+          <img src="./asset/index-plane-grid.html.png" />
+        </a>
+      </p>
+
+      <p>上記の歪めたプレーンジオメトリに対してフラグメントシェーダーで等圧線を描画したもの。</p>
+      <p>模様として描いているに過ぎないので、使い道があるのか悩みどころ。</p>
+
+      <p>
+        ソースコード <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-plane-grid.html">index-plane.html</a>
+      </p>
+
+      <br><br>
+
+      <h2>組み込みシェーダー加工</h2>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-plane-grid2.html">
+          <img src="./asset/index-plane-grid2.html.png" />
+        </a>
+      </p>
+
+      <p>onBeforeCompileを使って組み込みシェーダーを加工して等高線を描画したもの。法線の実装とか面倒なので、実際にはこっちを使うのかな。</p>
+
+      <p>
+        ソースコード <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-plane-grid2.html">index-plane-grid2.html</a>
+      </p>
+
+      <br><br>
+
+      <h2>マーチングスクエア</h2>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-marching-square.html">
+          <img src="./asset/index-marching-square.html.png" />
+        </a>
+      </p>
+
+      <p>マーチングスクェアをThree.jsで実装したもの。</p>
+      <p>
+        ソースコード <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-marching-square.html">index-marching-square.html</a>
+      </p>
+
+      <br><br>
+
+
+    </div>
+
+  </div>
+
+</body>
+
+</html>
