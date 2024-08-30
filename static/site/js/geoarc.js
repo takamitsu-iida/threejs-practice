@@ -295,7 +295,7 @@ export class Main {
   constructor() {
 
     // コンテナ
-    this.container = document.getElementById("threejs_container");
+    this.container = document.getElementById("threejsContainer");
 
     // コンテナ要素にあわせてサイズを初期化
     this.sizes.width = this.container.clientWidth;

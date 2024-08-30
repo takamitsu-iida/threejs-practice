@@ -26,7 +26,7 @@
       overflow: hidden;
     }
 
-    #threejs_container {
+    #threejsContainer {
       /* absoluteは位置指定可能な浮き上がった要素 */
       position: absolute;
       /* top, leftは親要素からの相対位置 */
@@ -38,11 +38,11 @@
 
    /*
     ネットワーク経由でデータを取得する場合にロード中を表示
-    <div id="loading_container">
+    <div id="loadingContainer">
       <div id="loading"></div>
     </div>
     */
-    #loading_container {
+    #loadingContainer {
       position: absolute;
       top: 0;
       left: 0;
@@ -54,7 +54,7 @@
       z-index: 1;
     }
 
-    #loading_container.fadeout {
+    #loadingContainer.fadeout {
       opacity: 0;
     }
 
@@ -89,10 +89,10 @@
 </head>
 
 <body>
-  <div id="loading_container">
+  <div id="loadingContainer">
     <div id="loading"></div>
   </div>
-  <div id="threejs_container"></div>
+  <div id="threejsContainer"></div>
 </body>
 
 <!-- three.js -->
@@ -114,7 +114,7 @@
     if (WebGL.isWebGLAvailable()) {
       new Main();
     } else {
-      document.getElementById("threejs_container").appendChild(WebGL.getWebGLErrorMessage());
+      document.getElementById("threejsContainer").appendChild(WebGL.getWebGLErrorMessage());
     }
   });
 </script>

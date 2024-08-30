@@ -402,7 +402,7 @@ export class Main {
 
 
   initTexture() {
-    const loadingContainer = document.getElementById('loading_container');
+    const loadingContainer = document.getElementById('loadingContainer');
     const loadingManager = new THREE.LoadingManager(() => {
 
       const interval = setInterval(() => {
@@ -423,7 +423,7 @@ export class Main {
 
   initThreejs() {
     // コンテナ
-    this.container = document.getElementById("threejs_container");
+    this.container = document.getElementById("threejsContainer");
 
     // コンテナのサイズ
     this.sizes.width = this.container.clientWidth;

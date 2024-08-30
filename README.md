@@ -71,11 +71,15 @@ https://takamitsu-iida.github.io/threejs-practice/index-examples-part4.html
 
 [terrain building with three.js](https://blog.mastermaps.com/2013/10/terrain-building-with-threejs.html)
 
+[Terrain Generation and Editing using Marching Cubes](https://deep110.github.io/posts/blogs/2022-06-25-terrain-editor-marching-cubes.html)
+
 [three.jsのPlaneGeometryで地形を作る](https://yomotsu.net/blog/2012/12/01/create-terrain-with-threejs.html)
 
 [WebGL開発に役立つ重要な三角関数の数式・概念まとめ（Three.js編）](https://ics.media/entry/10657/)
 
 [Basic examples from https://discourse.threejs.org](https://hofk.de/main/discourse.threejs/2023/index2023.html)
+
+
 
 <br>
 

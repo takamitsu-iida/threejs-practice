@@ -35,7 +35,7 @@ export class Main {
     this.isHomepage = ("homepage" in this.params) ? this.params.homepage : false;
 
     // コンテナ
-    this.container = document.getElementById("threejs_container");
+    this.container = document.getElementById("threejsContainer");
 
     // コンテナのサイズ
     this.sizes.width = this.container.clientWidth;

@@ -4,7 +4,7 @@ import { OrbitControls } from "three/controls/OrbitControls.js";
 
 export class Main {
 
-  // <div id="threejs_container"></div>
+  // <DIV>
   container;
 
   // 初期化時にDIV要素(container)のサイズに変更する
@@ -28,7 +28,7 @@ export class Main {
   constructor() {
 
     // コンテナ
-    this.container = document.getElementById("threejs_container");
+    this.container = document.getElementById("threejsContainer");
 
     // コンテナ要素にあわせてサイズを初期化
     this.sizes.width = this.container.clientWidth;

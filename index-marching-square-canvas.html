@@ -8,7 +8,7 @@
 
   <link rel="shortcut icon" type="image/x-icon" href="./static/site/img/favicon.ico">
 
-  <title>Terrain Example</title>
+  <title>Marching Square Example</title>
 
   <style type="text/css">
     * {
@@ -21,26 +21,23 @@
     }
 
     body {
-      font-family:Verdana, "ＭＳ Ｐゴシック", sans-serif;
       font-size: 1.4em;
+      font-family: Verdana, "ＭＳ Ｐゴシック", sans-serif;
       overflow: hidden;
     }
 
-    #threejsContainer {
-      /* absoluteは位置指定可能な浮き上がった要素 */
+    #msquareContainer {
+      margin: 10px;
       position: absolute;
-      /* top, leftは親要素からの相対位置 */
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      border: 1px solid #000;
     }
+
   </style>
 
 </head>
 
 <body>
-  <div id="threejsContainer"></div>
+  <div id="msquareContainer"></div>
 </body>
 
 <!-- three.js -->
@@ -56,7 +53,7 @@
 
 <script type="module">
   import WebGL from './static/libs/capabilities/WebGL.js';
-  import { Main } from "./static/site/js/terrain.js";
+  import { Main } from "./static/site/js/marching-square-canvas.js";
 
   window.addEventListener("load", () => {
     if (WebGL.isWebGLAvailable()) {

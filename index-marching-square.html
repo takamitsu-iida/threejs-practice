@@ -8,7 +8,7 @@
 
   <link rel="shortcut icon" type="image/x-icon" href="./static/site/img/favicon.ico">
 
-  <title>Terrain Example</title>
+  <title>Marching Square Example</title>
 
   <style type="text/css">
     * {
@@ -21,8 +21,8 @@
     }
 
     body {
-      font-family:Verdana, "ＭＳ Ｐゴシック", sans-serif;
       font-size: 1.4em;
+      font-family: Verdana, "ＭＳ Ｐゴシック", sans-serif;
       overflow: hidden;
     }
 
@@ -35,12 +35,24 @@
       width: 100%;
       height: 100%;
     }
+
+    #statsjsContainer {
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      margin: 0px;
+      padding: 0px;
+      border: 0px;
+      z-index: 990;
+    }
   </style>
 
 </head>
 
 <body>
-  <div id="threejsContainer"></div>
+  <div id="threejsContainer">
+    <div id="statsjsContainer"></div>
+  </div>
 </body>
 
 <!-- three.js -->
@@ -56,7 +68,7 @@
 
 <script type="module">
   import WebGL from './static/libs/capabilities/WebGL.js';
-  import { Main } from "./static/site/js/terrain.js";
+  import { Main } from "./static/site/js/marching-square.js";
 
   window.addEventListener("load", () => {
     if (WebGL.isWebGLAvailable()) {

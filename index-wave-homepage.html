@@ -30,7 +30,7 @@
       color: white;
     }
 
-    #threejs_container {
+    #threejsContainer {
       /* absoluteは位置指定可能な浮き上がった要素 */
       position: absolute;
 
@@ -93,7 +93,7 @@
 </head>
 
 <body>
-  <div id="threejs_container"></div>
+  <div id="threejsContainer"></div>
 
   <header>
     <h3 class="logo">Shader.com</h3>
@@ -132,7 +132,7 @@
     if (WebGL.isWebGLAvailable()) {
       new Main({ homepage: true });
     } else {
-      document.getElementById("threejs_container").appendChild(WebGL.getWebGLErrorMessage());
+      document.getElementById("threejsContainer").appendChild(WebGL.getWebGLErrorMessage());
     }
   });
 </script>

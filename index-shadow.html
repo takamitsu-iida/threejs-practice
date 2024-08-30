@@ -26,7 +26,7 @@
       overflow: hidden;
     }
 
-    #threejs_container {
+    #threejsContainer {
       /* absoluteは位置指定可能な浮き上がった要素 */
       position: absolute;
       /* top, leftは親要素からの相対位置 */
@@ -39,7 +39,7 @@
 </head>
 
 <body>
-  <div id="threejs_container"></div>
+  <div id="threejsContainer"></div>
 </body>
 
 <!-- three.js -->
@@ -61,7 +61,7 @@
     if (WebGL.isWebGLAvailable()) {
       new Main();
     } else {
-      document.getElementById("threejs_container").appendChild(WebGL.getWebGLErrorMessage());
+      document.getElementById("threejsContainer").appendChild(WebGL.getWebGLErrorMessage());
     }
   });
 </script>

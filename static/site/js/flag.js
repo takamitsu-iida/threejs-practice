@@ -29,7 +29,7 @@ export class Main {
   constructor() {
 
     // コンテナ
-    this.container = document.getElementById("threejs_container");
+    this.container = document.getElementById("threejsContainer");
 
     // コンテナのサイズ
     this.sizes.width = this.container.clientWidth;
