@@ -607,8 +607,8 @@ class Terrain {
   material;
   mesh;
 
+  // MarchingCubesクラスオブジェクト
   marchingCubes;
-
 
   constructor(width, height, depth, sampleSize) {
 
@@ -628,12 +628,13 @@ class Terrain {
     this.material = new THREE.MeshStandardMaterial({ color: 0xffffff });
     this.mesh = new THREE.Mesh(this.geometry, this.material);
 
+    // marching cuves
     this.marchingCubes = new MarchingCubes(this.xMax, this.yMax, this.zMax, sampleSize);
 
     // generate mesh geometry
     this.generateHeightField();
 
-    // marching cuves
+    // メッシュを作成
     this.marchingCubes.generateMesh(this.geometry, ISO_LEVEL, this);
   }
 
@@ -774,6 +775,7 @@ export class Main {
     // コンテナのサイズ
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
+    console.log(this.sizes);
 
     // シーン
     this.scene = new THREE.Scene();
