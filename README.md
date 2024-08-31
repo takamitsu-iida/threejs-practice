@@ -46,7 +46,7 @@ Deeperの有料会員になれば3Dで海底地形図が見れるみたいだけ
 
 <br>
 
-## 作例一覧
+# 作例一覧
 
 勉強用に作ったものを一覧化したもの。
 
@@ -57,7 +57,7 @@ https://takamitsu-iida.github.io/threejs-practice/index-examples.html
 
 <br>
 
-## 参考文献
+# 参考文献
 
 [three.js](https://threejs.org/)
 
@@ -77,7 +77,7 @@ https://takamitsu-iida.github.io/threejs-practice/index-examples.html
 
 <br>
 
-## 環境構築メモ
+# 環境構築メモ
 
 開発中はvscodeの補完を働かせたい。
 
@@ -142,7 +142,7 @@ libsフォルダには必要なものを必要なときにコピーしている�
 
 <br>
 
-### １．ローカルにthree.jsのソースコードを展開
+## 方法１．ローカルにthree.jsのソースコードを展開
 
 three.jsのバージョンを切り替えて試行するならこの方法がよい。
 
@@ -183,7 +183,7 @@ import { OrbitControls } from "OrbitControls";
 
 <br>
 
-### ２．ローカルに必要なものだけをコピーして参照
+## 方法２．ローカルに必要なものだけをコピーして参照
 
 <br>
 
@@ -241,7 +241,7 @@ import Stats from 'three/libs/stats.module.js';
 
 <br>
 
-### ３．CDNを参照
+## 方法３．CDNを参照
 
 配布するならCDNを参照するように書き換える。
 
@@ -268,7 +268,7 @@ import { OrbitControls } from "OrbitControls"
 
 <br>
 
-## アニメーションGIFに保存する方法
+##  アニメーションGIFに保存する方法
 
 これ（↓）を使えばアニメーションGIFを作成できるものの、とても重いので別の手段を考えたほうがいい。
 
@@ -308,8 +308,6 @@ https://github.com/spite/ccapture.js
     }
 ```
 
-
-
 <br>
 
 ## VSCodeの拡張機能
@@ -328,7 +326,7 @@ const shader = /* glsl */`...`;
 
 <br>
 
-## 物体の回転
+## 物体の回転について
 
 rotationプロパティを使うか、quaternionプロパティを使うことで物体の姿勢角度を設定できるが、これはあくまでローカル座標系での話し。ワールド座標系の任意の軸に沿って姿勢を制御するのは少々難しい。
 
