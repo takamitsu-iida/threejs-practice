@@ -195,9 +195,9 @@ import { OrbitControls } from "OrbitControls";
 
 > [!NOTE]
 >
-> 2024年7月追記
+> 2024年8月追記
 >
-> three.jsをバージョンr166に入れ替え。
+> three.jsをバージョンr168に入れ替え。
 
 <br>
 
