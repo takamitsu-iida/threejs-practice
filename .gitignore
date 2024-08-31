@@ -3,6 +3,9 @@
 threejs/
 three.js-master/
 
+# 一時保管先
+temp/
+
 # Created by https://www.toptal.com/developers/gitignore/api/python,node,windows,linux
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,node,windows,linux
 
