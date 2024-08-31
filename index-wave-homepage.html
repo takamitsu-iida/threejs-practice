@@ -129,7 +129,7 @@
   import { Main } from "./static/site/js/wave.js";
 
   window.addEventListener("load", () => {
-    if (WebGL.isWebGLAvailable()) {
+    if (WebGL.isWebGL2Available()) {
       new Main({ homepage: true });
     } else {
       document.getElementById("threejsContainer").appendChild(WebGL.getWebGLErrorMessage());

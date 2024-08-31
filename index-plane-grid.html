@@ -59,7 +59,7 @@
   import { Main } from "./static/site/js/plane-grid.js";
 
   window.addEventListener("load", () => {
-    if (WebGL.isWebGLAvailable()) {
+    if (WebGL.isWebGL2Available()) {
       new Main();
     } else {
       document.getElementById("threejsContainer").appendChild(WebGL.getWebGLErrorMessage());

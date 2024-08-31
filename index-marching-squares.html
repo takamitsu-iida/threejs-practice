@@ -24,12 +24,34 @@
       font-size: 1.4em;
       font-family: Verdana, "ＭＳ Ｐゴシック", sans-serif;
       overflow: hidden;
+      position: relative;
     }
 
-    #msquareContainer {
-      margin: 10px;
+    #threejsContainer {
+      margin-left: auto;
+      margin-right: auto;
+      width: 640px;
+      height: auto;
+      aspect-ratio: 1 / 1;
+    }
+
+    #statsjsContainer {
       position: absolute;
-      border: 1px solid #000;
+      top: 0px;
+      left: 0px;
+      margin: 0px;
+      padding: 0px;
+      border: 0px;
+      z-index: 990;
+    }
+
+    #guiContainer {
+      position: absolute;
+      top: 0px;
+      right: 0px;
+      margin: 0px;
+      padding: 0px;
+      border: 0px;
     }
 
   </style>
@@ -37,7 +59,9 @@
 </head>
 
 <body>
-  <div id="msquareContainer"></div>
+  <div id="threejsContainer"></div>
+  <div id="statsjsContainer"></div>
+  <div id="guiContainer"></div>
 </body>
 
 <!-- three.js -->
@@ -53,10 +77,10 @@
 
 <script type="module">
   import WebGL from './static/libs/capabilities/WebGL.js';
-  import { Main } from "./static/site/js/marching-square-canvas.js";
+  import { Main } from "./static/site/js/marching-squares.js";
 
   window.addEventListener("load", () => {
-    if (WebGL.isWebGLAvailable()) {
+    if (WebGL.isWebGL2Available()) {
       new Main();
     } else {
       document.getElementById("threejsContainer").appendChild(WebGL.getWebGLErrorMessage());

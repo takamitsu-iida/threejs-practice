@@ -327,7 +327,7 @@ export class Main {
 
     // 頂点のUV座標
     const uv = g.attributes.uv;
-    console.log(uv);
+
     // uvはFloat32BufferAttribute型
     // https://threejs.org/docs/#api/en/core/BufferAttribute
     //
@@ -338,26 +338,16 @@ export class Main {
     // uv.countには(u, v)の個数が格納されている
 
     // 頂点の位置情報
+    // Float32BufferAttribute型
     const pos = g.attributes.position;
-    console.log(pos);
-    // posはFloat32BufferAttribute型
 
     const tmpUv = new THREE.Vector2();
     for (let i = 0; i < uv.count; i++) {
       // i番目の(u, v)を取り出してtmpUvに複写
       tmpUv.fromBufferAttribute(uv, i);
 
-      if (i === 1) {
-        console.log(tmpUv);
-      }
-
       // 値を大きくすると波の周波数が大きくなる
       tmpUv.multiplyScalar(10);
-
-      if (i === 1) {
-        console.log(tmpUv);
-        console.log(this.perlin.noise(tmpUv.x, tmpUv.y, 2.7) * 30);
-      }
 
       // pos.setY(i, this.perlin.noise(tmpUv.x, tmpUv.x, 2.7) * 30);
       // pos.setY(i, this.perlin.noise(tmpUv.y, tmpUv.y, 2.7) * 30);

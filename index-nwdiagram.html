@@ -335,7 +335,7 @@
   import { Diagram, createSampleGraph } from "./static/site/js/nwdiagram.js";
 
   window.addEventListener("load", () => {
-    if (WebGL.isWebGLAvailable()) {
+    if (WebGL.isWebGL2Available()) {
       const graph = createSampleGraph();
       new Diagram({
         graph: graph,

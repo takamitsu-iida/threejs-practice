@@ -77,10 +77,10 @@
 
 <script type="module">
   import WebGL from './static/libs/capabilities/WebGL.js';
-  import { Main } from "./static/site/js/marching-square.js";
+  import { Main } from "./static/site/js/marching-cuves.js";
 
   window.addEventListener("load", () => {
-    if (WebGL.isWebGLAvailable()) {
+    if (WebGL.isWebGL2Available()) {
       new Main();
     } else {
       document.getElementById("threejsContainer").appendChild(WebGL.getWebGLErrorMessage());
