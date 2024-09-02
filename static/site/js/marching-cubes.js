@@ -575,11 +575,11 @@ class MarchingCubes {
 }
 
 
-
 const ISO_LEVEL = 0;
 const WIDTH = 60;
-const HEIGHT = WIDTH;
-const DEPTH = WIDTH;
+const HEIGHT = 60;
+const DEPTH = 60;
+const SAMPLE_SIZE = 15;
 
 class Terrain {
 
@@ -608,34 +608,107 @@ class Terrain {
     this.zMax = Math.floor(depth / (2 * sampleSize));
     this.sampleSize = sampleSize;
 
-    console.log(`width=${width}, sampleSize=${sampleSize}, xMax=${this.xMax}`);
+
+    /*
+
+    |<--------- width ---------->|
+                  |
+    --------------+--------------|
+    -2/width      0          2/width
+
+
+    ----|----|----+----|----|----|
+        |<-->|
+     width / sampleSize
+
+
+    |----|----|----+----|----|----|
+    -xMax... -1         1    2... xMax
+
+
+    |<---------- xMax2 ---------->|
+                   |
+    |----|----|----+----|----|----|
+
+  */
+
 
     this.xMax2 = 2 * this.xMax;
     this.yMax2 = 2 * this.yMax;
     this.zMax2 = 2 * this.zMax;
 
-    this.fieldBuffer = new Float32Array((this.xMax + 1) * (this.yMax + 1) * (this.zMax + 1) * 8);
+    console.log(`width=${width}, sampleSize=${sampleSize}`);
+    console.log(`xMax=${this.xMax}, xMax2=${this.xMax2}`);
+    console.log(`yMax=${this.yMax}, yMax2=${this.yMax2}`);
+    console.log(`zMax=${this.zMax}, zMax2=${this.zMax2}`);
 
+    // ボクセルを立方体状に積み上げたバッファ
+    this.fieldBuffer = new Float32Array((this.xMax + 1) * 2 * (this.yMax + 1) * 2 * (this.zMax + 1) * 2);
+
+    // widthを大きくする、もしくはsampleSizeを小さくする、等でボクセルのサイズを小さくすると
+    // 必要なバッファは3乗に比例して大きくなる
+    console.log(`length of fieldBuffer=${this.fieldBuffer.length}`);
+
+    // バッファジオメトリ
     this.geometry = new THREE.BufferGeometry();
-    this.material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+
+    // マテリアル
+    this.material = new THREE.MeshStandardMaterial({
+      color: 0xffffff
+    });
+
+    // メッシュ化
     this.mesh = new THREE.Mesh(this.geometry, this.material);
 
-    // marching cuves
-    this.marchingCubes = new MarchingCubes(this.xMax, this.yMax, this.zMax, sampleSize);
-
-    // generate mesh geometry
+    // this.fieldBufferに値を入れる
     this.generateHeightField();
+
+    // MarchingCubesクラスをインスタンス化
+    this.marchingCubes = new MarchingCubes(this.xMax, this.yMax, this.zMax, sampleSize);
 
     // メッシュを作成
     this.marchingCubes.generateMesh(this.geometry, ISO_LEVEL, this);
   }
 
+
+  __getIndex(i, j, k) {
+    // これが元の実装だけど、間違っていて、
+    return i * this.xMax2 * this.zMax2 + j + k * this.zMax2;
+  }
+
+  _getIndex(i, j, k) {
+    // これが正しい
+    return i * (this.yMax2 + 1) * (this.zMax2 + 1) + j + k * (this.yMax2 + 1);
+  }
+
+  getIndex(i, j, k) {
+    // でも、この方が分かりやすいので、これを採用する。
+
+    // X軸方向に一つずつ積み上げて(xMax2 + 1)に到達したら
+    // Y軸に一つずらして、またX軸を積み上げて、
+    // XY平面が埋まったら、Z軸方向に一つずらす
+    return i  + j * (this.xMax2 + 1) + k * (this.xMax2 + 1) * (this.yMax2 + 1);
+  }
+
+  getCoordinates(index){
+    // getIndexの逆演算
+    // getIndex(i, j, k)で求めた一次元バッファのインデックス値から元の[i, j, k]を求める
+    const i = index % (this.xMax2 + 1);
+    const j = Math.floor(index / (this.xMax2 + 1)) % (this.yMax2 + 1);
+    const k = Math.floor(index / ((this.xMax2 + 1) * (this.yMax2 + 1)));
+    return [i, j, k];
+  }
+
   setField(i, j, k, amt) {
-    this.fieldBuffer[i * this.xMax2 * this.zMax2 + k * this.zMax2 + j] = amt;
+    const index = this.getIndex(i, j, k);
+    // console.log(`(${i}, ${j}, ${k}), ${index}`);
+    // console.log(`${this.getCoordinates(index)}`);
+    this.fieldBuffer[index] = amt;
   }
 
   getField(i, j, k) {
-    return this.fieldBuffer[i * this.xMax2 * this.zMax2 + k * this.zMax2 + j];
+    const index = this.getIndex(i, j, k);
+    return this.fieldBuffer[index];
   }
 
   getMesh() {
@@ -643,20 +716,41 @@ class Terrain {
   }
 
   generateHeightField() {
+
     for (let i = -this.xMax; i < this.xMax + 1; i++) {
+      // xはボクセルのX方向の位置
       let x = i * this.sampleSize;
+
       for (let j = -this.yMax; j < this.yMax + 1; j++) {
+        // yはボクセルのY方向の位置
         let y = j * this.sampleSize;
+
         for (let k = -this.zMax; k < this.zMax + 1; k++) {
+          // zはボクセルのZ方向の位置
           let z = k * this.sampleSize;
-          this.setField(i + this.xMax, j + this.yMax, k + this.zMax, this.#heightValue(x, y, z));
+
+          // ノイズを乗せた値を決める
+          const height = this.#heightValue(x, y, z);
+
+          // バッファは0始まりなので、格納位置に気をつけないといけない
+          // i, j, k はマイナス始まりなので、ゼロ始まりに戻す
+          const xIndex = i + this.xMax;
+          const yIndex = j + this.yMax;
+          const zIndex = k + this.zMax;
+
+          this.setField(xIndex, yIndex, zIndex, height);
+
         }
       }
     }
   }
 
 
-  // noise values
+
+  // ノイズ生成
+  simplex = new SimplexNoise();
+
+  // ノイズパラメータ
   numOctaves = 4;
   lacunarity = 2;
   persistence = 0.5;
@@ -665,8 +759,6 @@ class Terrain {
   floorOffset = 5;
   weightMultiplier = 3.6;
 
-  // ノイズ
-  simplex = new SimplexNoise();
 
   #heightValue(x, y, z) {
     let offsetNoise = 1;
@@ -737,7 +829,7 @@ export class Main {
     this.initStatsjs();
 
     // Terrainクラスをインスタンス化して、
-    const terrain = new Terrain(WIDTH, HEIGHT, DEPTH, 10);
+    const terrain = new Terrain(WIDTH, HEIGHT, DEPTH, SAMPLE_SIZE);
 
     // メッシュをシーンに追加
     const mesh = terrain.getMesh();
@@ -788,6 +880,16 @@ export class Main {
 
     // グリッドヘルパー
     this.scene.add(new THREE.GridHelper(60, 60, new THREE.Color(0xffffff), new THREE.Color(0xffffff)));
+
+    // 軸表示
+    //
+    //   Y(green)
+    //    |
+    //    +---- X(red)
+    //   /
+    //  Z(blue)
+    //
+    this.scene.add(new THREE.AxesHelper(100));
 
     // ディレクショナルライト
     const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.5);
