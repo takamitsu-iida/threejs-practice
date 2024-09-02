@@ -3,32 +3,41 @@ import { OrbitControls } from "three/controls/OrbitControls.js";
 import { SimplexNoise } from "three/libs/SimplexNoise.js";
 import { GUI } from "three/libs/lil-gui.module.min.js";
 
-
 // stats.js
 import Stats from 'three/libs/stats.module.js';
 
 /*
   頂点のインデックス
 
-     4----------5
+     v4---------v5
     /|         /|
    / |        / |
-  7----------6  |
-  |  0-------|--1
+ v7---------v6  |
+  |  v0------|--v1
   | /        | /
   |/         |/
-  3----------2
+ v3----------v2
 
   エッジのインデックス
 
-     o--- 4 ----o
-    7|         5|
-   / |        / |
-  o---- 6 ---o  |
-  |  o--- 0 -|--o
-  | 3        | 1
+     o--- e4 ---o
+   e7|         /|
+   / |        e5|
+  o--- e6 ---o  |
+  |  o-- e0 -|--o
+  | e3       | e1
   |/         |/
-  o--- 2 ----o
+  o--- e2 ---o
+
+    e0=(v0, v1)
+    e1=(v1, v2)
+    e2=(v2, v3)
+    e3=(v3, v0)
+
+    e4=(v4, v5)
+    e5=(v5, v6)
+    e6=(v6, v7)
+    e7=(v7, v4)
 
      o--- ------o
     /|         /|
@@ -39,17 +48,23 @@ import Stats from 'three/libs/stats.module.js';
   |/         |/
   o--- ------o
 
+    e8=(v0, v4)
+    e9=(v1, v5)
+    e10=(v2, v6)
+    e11=(v3, v7)
+
 */
 
 
 // 三角測量テーブル
 // https://github.com/deep110/terrain-editor-js/blob/master/marching-cubes.js
 
-// しきい値を超えた頂点のパターンをインデックスとして参照すると、どの辺をカットすべきかわかる表
+// しきい値を超えた頂点のパターンをインデックスとして参照すると、
+// どの辺の3点を使ってポリゴンを生成すればよいかが分かる早見表。
+
 // 一つの箱の中に三角形は最大5個作成される
-// 3 * 5 = 15
-// 左から順に3個ずつ取り出して三角形にしていく
-// -1はそれ以降、処理対象の辺がないことを意味する
+// 3 * 5 = 15 なので-1でパディングして16桁の配列にする。
+// 左から順に3個ずつ取り出して三角形にして、-1を見つけたらそれ以降は処理しない。
 
 const triangulationTable = [
 
@@ -347,31 +362,133 @@ const edgeTable = [
   //
   // 格納されている値を2進数で表記したとき、各桁はエッジを表している。
   // 1が立っているエッジで等圧面が交わることを表している。
-  // この表を参照することで、どのエッジで交わるのかはわかるものの、
+  // この表を参照することで、どのエッジ上で交わるのかがわかるので、
+  // しきい値を超えている度合いに応じて、交点の位置を特定する。
+  //
   // 実際に3角形のポリゴンを生成するにはどの3点の組み合わせを用いるのか、を知る必要がある。
   // それにはtriangulationTableを参照する必要がある。
-  //
-  /*                        1           */
-  /*                 765432109876543210 */
+
+  //                         1
+  //                    5432109876543210
   /*  0 = 0000 0000 */0b0000000000000000,
+
+  //                    5432109876543210
   /*  1 = 0000 0001 */0b0000000100001001, // 0x109 e0, e3, e8
+
+  //                    5432109876543210
   /*  2 = 0000 0010 */0b0000001000000011, // 0x203 e0, e1, e9
+
+  //                    5432109876543210
   /*  3 = 0000 0011 */0b0000001100001010, // 0x30a e1, e3, e8, e9
+
+  //                    5432109876543210
   /*  4 = 0000 0100 */0b0000010000000110, // 0x406 e1, e2, e10
+
+  //                    5432109876543210
   /*  5 = 0000 0101 */0b0000010100001111, // 0x50f e0, e1, e2, e3, e10
+
+  //                    5432109876543210
   /*  6 = 0000 0110 */0b0000011000000101, // 0x605 e0, e2, e9, e10
+
+  //                    5432109876543210
   /*  7 = 0000 0111 */0b0000011100001100, // 0x70c e2, e3, e8, e9, e10
+
+  //                    5432109876543210
   /*  8 = 0000 1000 */0b0000100000001100, // 0x80c e2, e3, e11
+
+  //                    5432109876543210
   /*  9 = 0000 1001 */0b0000100100000101, // 0x905 e0, e2, e8, e11
+
+  //                    5432109876543210
   /* 10 = 0000 1010 */0b0000101000001111, // 0xa0f e0, e1, e2, e3, e9, e11
+
+  //                    5432109876543210
   /* 11 = 0000 1011 */0b0000101100000110, // 0xb06 e1, e2, e8, e9, e11
+
+  //                    5432109876543210
   /* 12 = 0000 1100 */0b0000110000001010, // 0xc0a e1, e3, e9, e10
+
+  //                    5432109876543210
   /* 13 = 0000 1101 */0b0000110100000011, // 0xd03 e0, e1, e8, e10, e11
+
+  //                    5432109876543210
   /* 14 = 0000 1110 */0b0000111000001001, // 0xe09 e0, e3, e8, e9, e10
+
+  //                    5432109876543210
   /* 15 = 0000 1111 */0b0000111100000000, // 0xf00 e8, e9, e10, e11
-  0x190, 0x99, 0x393, 0x29a, 0x596, 0x49f, 0x795, 0x69c,
-  0x99c, 0x895, 0xb9f, 0xa96, 0xd9a, 0xc93, 0xf99, 0xe90,
-  0x230, 0x339, 0x33, 0x13a, 0x636, 0x73f, 0x435, 0x53c,
+
+  //                    5432109876543210
+  /* 16 = 0001 0000 */0b0000000110010000, // 0x190 e4, e7, e8
+
+  //                    5432109876543210
+  /* 17 = 0001 0001 */0b0000000010011001, // 0x99  e0, e3, e4, e7
+
+  //                    5432109876543210
+  /* 18 = 0001 0010 */0b0000001110010011, // 0x393 e0, e1, e4, e7, e8, e9
+
+  //                    5432109876543210
+  /* 19 = 0001 0011 */0b0000001010011010, // 0x29a e1 e3 e3 e4 e7 e9
+
+  //                    5432109876543210
+  /* 20 = 0001 0100*/0b00000010110010110, // 0x596 e1, e2, e4, e7, e8, e10
+
+  //                    5432109876543210
+  /* 21 = 0001 0101*/0b00000010010011111, // 0x49f e0, e1, e2, e3, e4, e7, e10
+
+  //                    5432109876543210
+  /* 22 = 0001 0110*/0b00000011110010101, // 0x795 e0, e2, e4, e7, e8, e9, e10
+
+  //                    5432109876543210
+  /* 23 = 0001 0111*/0b00000011010011100, // 0x69c e2, e3, e4, e7, e9, e10
+
+  //                    5432109876543210
+  /* 24 = 0001 1000*/0b00000100110011100, // 0x99c e2, e3, e4, e7, e8, e11
+
+  //                    5432109876543210
+  /* 25 = 0001 1001*/0b00000100010010101, // 0x895 e0, e2, e4, e7, e11
+
+  //                    5432109876543210
+  /* 26 = 0001 0010*/0b00000101110011111, // 0xb9f e0, e1, e2, e3, e4, e7, e8, e9, e11
+
+  //                    5432109876543210
+  /* 27 = 0001 0011*/0b00000101010010110, // 0xa96 e1, e2, e4, e7, e9, e11
+
+  //                    5432109876543210
+  /* 28 = 0001 0100*/0b00000110110011010, // 0xd9a e1, e3, e4, e7, e8, e10, e11
+
+  //                    5432109876543210
+  /* 29 = 0001 0101*/0b00000110010010011, // 0xc93 e0, e1, e4, e7, e10, e11
+
+  //                    5432109876543210
+  /* 30 = 0001 0110*/0b00000111110011001, // 0xf99 e0, e3, e4, e7, e8, e9, e10, e11
+
+  //                    5432109876543210
+  /* 31 = 0001 0111*/0b00000111010010000, // 0xe90 e4, e9, e10, e11
+
+  //                    5432109876543210
+  /* 32 = 0001 1000*/0b00000001000110000, // 0x230 e4, e5, e9
+
+  //                    5432109876543210
+  /* 33 = 0001 1001*/0b00000001100111001, // 0x339 e0, e3, e4, e5, e8, e9
+
+  //                    5432109876543210
+  /* 34 = 0001 1010*/0b00000000000110011, // 0x33 e0, e1, e4, e5
+
+  //                    5432109876543210
+  /* 35 = 0001 1011*/0b00000000100111010, // 0x13a e1, e3, e4, e5, e8
+
+  //                    5432109876543210
+  /* 36 = 0001 1100*/0b00000011000110110, // 0x636 e1, e2, e4, e5, e9, e10
+
+  //                    5432109876543210
+  /* 37 = 0001 1101*/0b00000011100111111, // 0x73f e1, e2, e3, e4, e5, e8, e9, e10
+
+  //                    5432109876543210
+  /* 38 = 0001 1110*/0b00000010000110101, // 0x435 e0, e2, e4, e5, e10
+
+  //                    5432109876543210
+  /* 39 = 0001 1111*/0b00000010100111100, // 0x53c e2, e3, e4, e5, e8, e10
+
   0xa3c, 0xb35, 0x83f, 0x936, 0xe3a, 0xf33, 0xc39, 0xd30,
   0x3a0, 0x2a9, 0x1a3, 0xaa, 0x7a6, 0x6af, 0x5a5, 0x4ac,
   0xbac, 0xaa5, 0x9af, 0x8a6, 0xfaa, 0xea3, 0xda9, 0xca0,
@@ -407,18 +524,34 @@ class MarchingCubes {
   xMax;
   yMax;
   zMax;
+
   sampleSize;
 
-  vertices; // Float32Array
+  // Float32Array
+  // 固定長で確保しないといけないので、すべてのボクセルのすべての辺に頂点が存在する前提で頂点バッファを作成
+  // 実際にはその一部しか使わない
+  vertices;
+
+  // エッジ上の頂点を格納する一時変数
+  // すべての辺の上に交差点がくる前提で12個収まるようにする
   edges;
 
+
   constructor(xMax, yMax, zMax, sampleSize = 1) {
+
     this.xMax = xMax;
     this.yMax = yMax;
     this.zMax = zMax;
+
     this.sampleSize = sampleSize;
 
-    this.vertices = new Float32Array(this.xMax * this.yMax * this.zMax * 8 * 12 * 3);
+    // すべての辺の上に頂点を作るとして、最大のバッファを用意する
+    this.vertices = new Float32Array((this.xMax * 2) * (this.yMax * 2) * (this.zMax * 2) * 12 * 3);
+
+    console.log(`Length of vertices = ${this.vertices.length}`);
+
+    // e0~e11のすべての辺に、Float32Array(3)を格納しておく
+    // ここには後ほど交点の座標を格納する
     this.edges = [];
     for (let i = 0; i < 12; i++) {
       this.edges.push(new Float32Array(3));
@@ -437,7 +570,7 @@ class MarchingCubes {
 
     for (let i = -this.xMax; i < this.xMax; i++) {
 
-      // 右にxMAX移動した場所を指すので、0～2*xMAXの範囲を移動する
+      // terrainの頂点バッファは0始まりなので、0始まりに変換する
       fI = i + this.xMax;
 
       // X座標
@@ -445,7 +578,7 @@ class MarchingCubes {
 
       for (let j = -this.yMax + 1; j < this.yMax - 1; j++) {
 
-        // 上にyMAX移動した場所を指すので、0～2*yMAXの範囲を移動する
+      // terrainの頂点バッファは0始まりなので、0始まりに変換する
         fJ = j + this.yMax;
 
         // Y座標
@@ -453,7 +586,7 @@ class MarchingCubes {
 
         for (let k = -this.zMax; k < this.zMax; k++) {
 
-          // 手前にzMAX移動した場所を指すので、0～2*zMaxの範囲を移動する
+          // terrainの頂点バッファは0始まりなので、0始まりに変換する
           fK = k + this.zMax;
 
           // Z座標
@@ -472,78 +605,173 @@ class MarchingCubes {
           let cubeIndex = this.#getCubeIndex(surfaceLevel, v0, v1, v2, v3, v4, v5, v6, v7);
 
           let edgeIndex = edgeTable[cubeIndex];
+
           if (edgeIndex == 0) {
             continue;
           }
+
           let mu = this.sampleSize / 2;
-          if (edgeIndex & 1) {
+
+          // ここの部分は絵を描くと分かりやすい
+
+          // edgeTableを参照することで、どのエッジに交点があるか分かるので、
+          // しきい値との乖離具合いに応じて交点の座標をを決定する
+
+          // e0=(v0, v1)で交差
+          if (edgeIndex & 0b0001) {
             mu = (surfaceLevel - v0) / (v1 - v0);
-            this.#setFloatArray(this.edges[0], this.#lerp(x, x + this.sampleSize, mu), y, z);
-          }
-          if (edgeIndex & 2) {
-            mu = (surfaceLevel - v1) / (v2 - v1);
-            this.#setFloatArray(this.edges[1], x + this.sampleSize, y, this.#lerp(z, z + this.sampleSize, mu));
-          }
-          if (edgeIndex & 4) {
-            mu = (surfaceLevel - v3) / (v2 - v3);
-            this.#setFloatArray(this.edges[2], this.#lerp(x, x + this.sampleSize, mu), y, z + this.sampleSize);
-          }
-          if (edgeIndex & 8) {
-            mu = (surfaceLevel - v0) / (v3 - v0);
-            this.#setFloatArray(this.edges[3], x, y, this.#lerp(z, z + this.sampleSize, mu));
-          }
-          if (edgeIndex & 16) {
-            mu = (surfaceLevel - v4) / (v5 - v4);
-            this.#setFloatArray(this.edges[4], this.#lerp(x, x + this.sampleSize, mu), y + this.sampleSize, z);
-          }
-          if (edgeIndex & 32) {
-            mu = (surfaceLevel - v5) / (v6 - v5);
-            this.#setFloatArray(this.edges[5], x + this.sampleSize, y + this.sampleSize, this.#lerp(z, z + this.sampleSize, mu));
-          }
-          if (edgeIndex & 64) {
-            mu = (surfaceLevel - v7) / (v6 - v7);
-            this.#setFloatArray(this.edges[6], this.#lerp(x, x + this.sampleSize, mu), y + this.sampleSize, z + this.sampleSize);
-          }
-          if (edgeIndex & 128) {
-            mu = (surfaceLevel - v4) / (v7 - v4);
-            this.#setFloatArray(this.edges[7], x, y + this.sampleSize, this.#lerp(z, z + this.sampleSize, mu));
-          }
-          if (edgeIndex & 256) {
-            mu = (surfaceLevel - v0) / (v4 - v0);
-            this.#setFloatArray(this.edges[8], x, this.#lerp(y, y + this.sampleSize, mu), z);
-          }
-          if (edgeIndex & 512) {
-            mu = (surfaceLevel - v1) / (v5 - v1);
-            this.#setFloatArray(this.edges[9], x + this.sampleSize, this.#lerp(y, y + this.sampleSize, mu), z);
-          }
-          if (edgeIndex & 1024) {
-            mu = (surfaceLevel - v2) / (v6 - v2);
-            this.#setFloatArray(this.edges[10], x + this.sampleSize, this.#lerp(y, y + this.sampleSize, mu), z + this.sampleSize);
-          }
-          if (edgeIndex & 2048) {
-            mu = (surfaceLevel - v3) / (v7 - v3);
-            this.#setFloatArray(this.edges[11], x, this.#lerp(y, y + this.sampleSize, mu), z + this.sampleSize);
+            this.#setFloatArray(
+              this.edges[0],
+              this.#lerp(x, x + this.sampleSize, mu),
+              y,
+              z
+            );
           }
 
+          // e1=(v1, v2)で交差
+          if (edgeIndex & 0b0010) {
+            mu = (surfaceLevel - v1) / (v2 - v1);
+            this.#setFloatArray(
+              this.edges[1],
+              x + this.sampleSize,
+              y,
+              this.#lerp(z, z + this.sampleSize, mu)
+            );
+          }
+
+          // e2=(v2, v3)で交差
+          if (edgeIndex & 0b0100) {
+            mu = (surfaceLevel - v3) / (v2 - v3);
+            this.#setFloatArray(
+              this.edges[2],
+              this.#lerp(x, x + this.sampleSize, mu),
+              y,
+              z + this.sampleSize
+            );
+          }
+
+          // e3=(v3, v0)で交差
+          if (edgeIndex & 0b1000) {
+            mu = (surfaceLevel - v0) / (v3 - v0);
+            this.#setFloatArray(
+              this.edges[3],
+              x,
+              y,
+              this.#lerp(z, z + this.sampleSize, mu)
+            );
+          }
+
+          // e4=(v4, v5)で交差
+          if (edgeIndex & 0b00010000) {
+            mu = (surfaceLevel - v4) / (v5 - v4);
+            this.#setFloatArray(
+              this.edges[4],
+              this.#lerp(x, x + this.sampleSize, mu),
+              y + this.sampleSize,
+              z
+            );
+          }
+
+          // e5=(v5, v6)で交差
+          if (edgeIndex & 0b00100000) {
+            mu = (surfaceLevel - v5) / (v6 - v5);
+            this.#setFloatArray(
+              this.edges[5],
+              x + this.sampleSize,
+              y + this.sampleSize,
+              this.#lerp(z, z + this.sampleSize, mu)
+            );
+          }
+
+          // e6=(v6, v7)で交差
+          if (edgeIndex & 0b01000000) {
+            mu = (surfaceLevel - v7) / (v6 - v7);
+            this.#setFloatArray(
+              this.edges[6],
+              this.#lerp(x, x + this.sampleSize, mu),
+              y + this.sampleSize,
+              z + this.sampleSize
+            );
+          }
+
+          // e7=(v7, v4)で交差
+          if (edgeIndex & 0b10000000) {
+            mu = (surfaceLevel - v4) / (v7 - v4);
+            this.#setFloatArray(
+              this.edges[7],
+              x,
+              y + this.sampleSize,
+              this.#lerp(z, z + this.sampleSize, mu)
+            );
+          }
+
+          // e8=(v0, v4)で交差
+          if (edgeIndex & 0b000100000000) {
+            mu = (surfaceLevel - v0) / (v4 - v0);
+            this.#setFloatArray(
+              this.edges[8],
+              x,
+              this.#lerp(y, y + this.sampleSize, mu),
+              z
+            );
+          }
+
+          // e9=(v1, v5)で交差
+          if (edgeIndex & 0b001000000000) {
+            mu = (surfaceLevel - v1) / (v5 - v1);
+            this.#setFloatArray(
+              this.edges[9],
+              x + this.sampleSize,
+              this.#lerp(y, y + this.sampleSize, mu),
+              z
+            );
+          }
+
+          // e10=(v2, v6)で交差
+          if (edgeIndex & 0b010000000000) {
+            mu = (surfaceLevel - v2) / (v6 - v2);
+            this.#setFloatArray(
+              this.edges[10],
+              x + this.sampleSize,
+              this.#lerp(y, y + this.sampleSize, mu),
+              z + this.sampleSize
+            );
+          }
+
+          // e11=(v3, v7)で交差
+          if (edgeIndex & 0b100000000000) {
+            mu = (surfaceLevel - v3) / (v7 - v3);
+            this.#setFloatArray(
+              this.edges[11],
+              x,
+              this.#lerp(y, y + this.sampleSize, mu),
+              z + this.sampleSize
+            );
+          }
+
+          // どの3点を使ってポリゴンを作るか、をtriangulationTableで求める
           const triLen = triangulationTable[cubeIndex];
+
           for (let i = 0; i < triLen.length; i++) {
+            // -1を見つけたら終了
             if (triLen[i] === -1) {
               break;
             }
-            const e = this.edges[triLen[i]];
-            this.vertices[vIdx] = e[0];
-            this.vertices[vIdx + 1] = e[1];
-            this.vertices[vIdx + 2] = e[2];
+            const edgeIndex = triLen[i];
+            const pos = this.edges[edgeIndex];
+            this.vertices[vIdx] = pos[0];
+            this.vertices[vIdx + 1] = pos[1];
+            this.vertices[vIdx + 2] = pos[2];
             vIdx += 3;
           }
         }
       }
     }
 
+    console.log(`vIdx = ${vIdx}`);
+
     geometry.setAttribute('position', new THREE.BufferAttribute(this.vertices.slice(0, vIdx), 3));
     geometry.computeVertexNormals();
-
-    // tell three.js that mesh has been updated
     geometry.attributes.position.needsUpdate = true;
     geometry.attributes.normal.needsUpdate = true;
   }
@@ -608,7 +836,6 @@ class Terrain {
     this.zMax = Math.floor(depth / (2 * sampleSize));
     this.sampleSize = sampleSize;
 
-
     /*
 
     |<--------- width ---------->|
@@ -630,8 +857,7 @@ class Terrain {
                    |
     |----|----|----+----|----|----|
 
-  */
-
+    */
 
     this.xMax2 = 2 * this.xMax;
     this.yMax2 = 2 * this.yMax;
@@ -672,7 +898,7 @@ class Terrain {
 
 
   __getIndex(i, j, k) {
-    // これが元の実装だけど、間違っていて、
+    // これが元の実装だけど、これは間違っていて、
     return i * this.xMax2 * this.zMax2 + j + k * this.zMax2;
   }
 
@@ -687,10 +913,10 @@ class Terrain {
     // X軸方向に一つずつ積み上げて(xMax2 + 1)に到達したら
     // Y軸に一つずらして、またX軸を積み上げて、
     // XY平面が埋まったら、Z軸方向に一つずらす
-    return i  + j * (this.xMax2 + 1) + k * (this.xMax2 + 1) * (this.yMax2 + 1);
+    return i + j * (this.xMax2 + 1) + k * (this.xMax2 + 1) * (this.yMax2 + 1);
   }
 
-  getCoordinates(index){
+  getCoordinates(index) {
     // getIndexの逆演算
     // getIndex(i, j, k)で求めた一次元バッファのインデックス値から元の[i, j, k]を求める
     const i = index % (this.xMax2 + 1);
