@@ -196,9 +196,16 @@ export class Main {
     const axesHelper = new THREE.AxesHelper(10000);
     this.scene.add(axesHelper);
 
+    // objectsの作成と、シーンへの追加、targets.tableへの追加をまとめて処理
     this.initTable();
+
+    // targets.sphereに位置情報を格納
     this.initSphere();
+
+    // targets.herixに位置情報を格納
     this.initHerix();
+
+    // targets.gridに位置情報を格納
     this.initGrid();
 
     const buttonTable = document.getElementById("table");
