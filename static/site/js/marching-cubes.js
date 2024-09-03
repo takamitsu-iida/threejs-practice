@@ -731,8 +731,8 @@ class MarchingCubes {
 
     console.log(`Length of vertices = ${this.vertices.length}`);
 
-    // e0~e11のすべての辺に、Float32Array(3)を格納しておく
-    // ここには後ほど交点の座標を格納する
+    // edgesには後ほど交点の座標を格納する
+    // e0 ~ e11 のすべての辺に頂点を配置できるようにFloat32Array(3)を格納する
     for (let i = 0; i < 12; i++) {
       this.edges.push(new Float32Array(3));
     }
@@ -740,7 +740,7 @@ class MarchingCubes {
   }
 
 
-  generateMesh(geometry, surfaceLevel, terrain) {
+  generateMesh(geometry, isoLevel, terrain) {
 
     // 結果はgeometryに格納される
 
@@ -787,7 +787,7 @@ class MarchingCubes {
           const v7 = terrain.getField(fI, fJ + 1, fK + 1)
 
           // surfaceLevelを超えた頂点に対応したインデックスを取得
-          let cubeIndex = this.getCubeIndex(surfaceLevel, v0, v1, v2, v3, v4, v5, v6, v7);
+          let cubeIndex = this.getCubeIndex(isoLevel, v0, v1, v2, v3, v4, v5, v6, v7);
 
           // どの辺上に交点が来るのか、edgeTableで調べる
           let edgeIndex = edgeTable[cubeIndex];
@@ -807,7 +807,7 @@ class MarchingCubes {
             // edgeIndexを2進数で表現したときの桁の部分がエッジ番号に対応するので、
             // この場合はe0で交差する
             // e0=(v0, v1)
-            mu = (surfaceLevel - v0) / (v1 - v0);
+            mu = (isoLevel - v0) / (v1 - v0);
             this.setFloatArray(
               this.edges[0],
               this.#lerp(x, x + this.sampleSize, mu),
@@ -818,7 +818,7 @@ class MarchingCubes {
 
           // e1=(v1, v2)で交差
           if (edgeIndex & 0b0010) {
-            mu = (surfaceLevel - v1) / (v2 - v1);
+            mu = (isoLevel - v1) / (v2 - v1);
             this.setFloatArray(
               this.edges[1],
               x + this.sampleSize,
@@ -829,7 +829,7 @@ class MarchingCubes {
 
           // e2=(v2, v3)で交差
           if (edgeIndex & 0b0100) {
-            mu = (surfaceLevel - v3) / (v2 - v3);
+            mu = (isoLevel - v3) / (v2 - v3);
             this.setFloatArray(
               this.edges[2],
               this.#lerp(x, x + this.sampleSize, mu),
@@ -840,7 +840,7 @@ class MarchingCubes {
 
           // e3=(v3, v0)で交差
           if (edgeIndex & 0b1000) {
-            mu = (surfaceLevel - v0) / (v3 - v0);
+            mu = (isoLevel - v0) / (v3 - v0);
             this.setFloatArray(
               this.edges[3],
               x,
@@ -851,7 +851,7 @@ class MarchingCubes {
 
           // e4=(v4, v5)で交差
           if (edgeIndex & 0b00010000) {
-            mu = (surfaceLevel - v4) / (v5 - v4);
+            mu = (isoLevel - v4) / (v5 - v4);
             this.setFloatArray(
               this.edges[4],
               this.#lerp(x, x + this.sampleSize, mu),
@@ -862,7 +862,7 @@ class MarchingCubes {
 
           // e5=(v5, v6)で交差
           if (edgeIndex & 0b00100000) {
-            mu = (surfaceLevel - v5) / (v6 - v5);
+            mu = (isoLevel - v5) / (v6 - v5);
             this.setFloatArray(
               this.edges[5],
               x + this.sampleSize,
@@ -873,7 +873,7 @@ class MarchingCubes {
 
           // e6=(v6, v7)で交差
           if (edgeIndex & 0b01000000) {
-            mu = (surfaceLevel - v7) / (v6 - v7);
+            mu = (isoLevel - v7) / (v6 - v7);
             this.setFloatArray(
               this.edges[6],
               this.#lerp(x, x + this.sampleSize, mu),
@@ -884,7 +884,7 @@ class MarchingCubes {
 
           // e7=(v7, v4)で交差
           if (edgeIndex & 0b10000000) {
-            mu = (surfaceLevel - v4) / (v7 - v4);
+            mu = (isoLevel - v4) / (v7 - v4);
             this.setFloatArray(
               this.edges[7],
               x,
@@ -895,7 +895,7 @@ class MarchingCubes {
 
           // e8=(v0, v4)で交差
           if (edgeIndex & 0b000100000000) {
-            mu = (surfaceLevel - v0) / (v4 - v0);
+            mu = (isoLevel - v0) / (v4 - v0);
             this.setFloatArray(
               this.edges[8],
               x,
@@ -906,7 +906,7 @@ class MarchingCubes {
 
           // e9=(v1, v5)で交差
           if (edgeIndex & 0b001000000000) {
-            mu = (surfaceLevel - v1) / (v5 - v1);
+            mu = (isoLevel - v1) / (v5 - v1);
             this.setFloatArray(
               this.edges[9],
               x + this.sampleSize,
@@ -917,7 +917,7 @@ class MarchingCubes {
 
           // e10=(v2, v6)で交差
           if (edgeIndex & 0b010000000000) {
-            mu = (surfaceLevel - v2) / (v6 - v2);
+            mu = (isoLevel - v2) / (v6 - v2);
             this.setFloatArray(
               this.edges[10],
               x + this.sampleSize,
@@ -928,7 +928,7 @@ class MarchingCubes {
 
           // e11=(v3, v7)で交差
           if (edgeIndex & 0b100000000000) {
-            mu = (surfaceLevel - v3) / (v7 - v3);
+            mu = (isoLevel - v3) / (v7 - v3);
             this.setFloatArray(
               this.edges[11],
               x,
@@ -959,7 +959,9 @@ class MarchingCubes {
     console.log(`vIdx = ${vIdx}`);
 
     geometry.setAttribute('position', new THREE.BufferAttribute(this.vertices.slice(0, vIdx), 3));
+
     geometry.computeVertexNormals();
+
     geometry.attributes.position.needsUpdate = true;
     geometry.attributes.normal.needsUpdate = true;
   }
@@ -991,13 +993,6 @@ class MarchingCubes {
 }
 
 
-const ISO_LEVEL = 0;
-const WIDTH = 80;
-const HEIGHT = 40;
-const DEPTH = 80;
-// const SAMPLE_SIZE = 15;
-const SAMPLE_SIZE = 1;
-
 class Terrain {
 
   xMax;
@@ -1010,6 +1005,8 @@ class Terrain {
 
   sampleSize;
 
+  isoLevel;
+
   fieldBuffer;
 
   geometry;
@@ -1018,7 +1015,7 @@ class Terrain {
 
   marchingCubes;
 
-  constructor(width, height, depth, sampleSize) {
+  constructor(width, height, depth, sampleSize, isoLevel = 0) {
 
     this.xMax = Math.floor((width / sampleSize) / 2);
 
@@ -1027,6 +1024,8 @@ class Terrain {
     this.zMax = Math.floor((depth / sampleSize) / 2);
 
     this.sampleSize = sampleSize;
+
+    this.isoLevel = isoLevel;
 
     /*
 
@@ -1085,7 +1084,11 @@ class Terrain {
     this.marchingCubes = new MarchingCubes(this.xMax, this.yMax, this.zMax, sampleSize);
 
     // メッシュを作成
-    this.marchingCubes.generateMesh(this.geometry, ISO_LEVEL, this);
+    this.marchingCubes.generateMesh(this.geometry, this.isoLevel, this);
+  }
+
+  update() {
+    this.marchingCubes.generateMesh(this.geometry, this.isoLevel, this);
   }
 
   //
@@ -1173,8 +1176,8 @@ class Terrain {
 
   heightValue(x, y, z) {
     // X、Zを入力に加えることで、XZ平面に綺麗な波を作る
-    const noise = this.simplex.noise(x * 0.05, z * 0.05) * 10;
-    return y + noise;
+    const xzNoise = this.simplex.noise(x * 0.05, z * 0.05) * 10;
+    return y + xzNoise;
   }
 
 
@@ -1196,6 +1199,9 @@ export class Main {
   controller;
   statsjs;
 
+  // Terrainクラスオブジェクト
+  terrain;
+
   renderParams = {
     clock: new THREE.Clock(),
     delta: 0,
@@ -1203,11 +1209,12 @@ export class Main {
   }
 
   params = {
-    gridSize: 10,
-    gridNums: { x: 50, y: 50 },
-    threshold: 0.4,
+    width: 60,
+    height: 60,
+    depth: 60,
+    sampleSize: 1,
+    isoLevel: 0,
   }
-
 
   constructor(params) {
 
@@ -1221,13 +1228,21 @@ export class Main {
     this.initStatsjs();
 
     // Terrainクラスをインスタンス化して、
-    const terrain = new Terrain(WIDTH, HEIGHT, DEPTH, SAMPLE_SIZE);
+    this.terrain = new Terrain(
+      this.params.width,
+      this.params.height,
+      this.params.depth,
+      this.params.sampleSize,
+      this.params.isoLevel
+    );
 
-    // メッシュをシーンに追加
-    const mesh = terrain.getMesh();
+    // メッシュを作成して、
+    const mesh = this.terrain.getMesh();
+
+    // シーンに追加
     this.scene.add(mesh);
 
-    // リサイズイベント
+    // リサイズイベントを登録
     window.addEventListener("resize", () => { this.onWindowResize(); }, false);
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
@@ -1284,9 +1299,13 @@ export class Main {
     this.scene.add(new THREE.AxesHelper(100));
 
     // ディレクショナルライト
-    const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.5);
-    directionalLight.position.set(-5, 2, 10);
-    this.scene.add(directionalLight);
+    const directionalLight1 = new THREE.DirectionalLight(0xFFFFFF, 0.6);
+    directionalLight1.position.set(-5, 5, 20);
+    this.scene.add(directionalLight1);
+
+    const directionalLight2 = new THREE.DirectionalLight(0xFFFFFF, 0.6);
+    directionalLight1.position.set(5, 5, 20);
+    this.scene.add(directionalLight2);
 
     // 環境光
     this.scene.add(new THREE.AmbientLight(0xffffff, 0.5));
@@ -1298,11 +1317,15 @@ export class Main {
     });
 
     gui
-      .add(this.params, "threshold")
-      .min(0.1)
-      .max(0.6)
-      .step(0.01)
-      .name("threshold");
+      .add(this.params, "isoLevel")
+      .min(-10)
+      .max(10)
+      .step(0.1)
+      .name("isosurface level")
+      .onChange((value) => {
+        this.terrain.isoLevel = value;
+        this.terrain.update();
+      });
   }
 
 
