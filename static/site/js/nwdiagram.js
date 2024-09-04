@@ -819,8 +819,11 @@ export class FiveStageClosGraph {
     let tier2Radius = 160;
     tier2Radius = options.hasOwnProperty("tier2Radius") ? options.tier2Radius : tier2Radius;
 
-    let tier1Radius = 80;
+    let tier1Radius = 40;
     tier1Radius = options.hasOwnProperty("tier1Radius") ? options.tier1Radius : tier1Radius;
+
+    let tier1Height = 120;
+    tier1Height = options.hasOwnProperty("tier1Height") ? options.tier1Height : tier1Height;
 
     // クラスタの数
     const numClusters = this.clusters.length;
@@ -880,7 +883,7 @@ export class FiveStageClosGraph {
       }
     });
 
-    let tier1Height = 100;
+
 
     // tier1のノードの位置を決める
     for (let i = 0; i < 4; i++) {
