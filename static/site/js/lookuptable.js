@@ -45,7 +45,7 @@ export class Main {
   }
 
   params = {
-    colorMap: 'rainbow',
+    colorMap: 'rainbow', // 'cooltowarm', 'blackbody', 'grayscale'
     maxY: 20,
     minY: -20,
   }
@@ -85,8 +85,8 @@ export class Main {
 
     // lookuptable.js
     this.lut = new Lut();
-    this.lut.setMax( 20 );
-    this.lut.setMin( -20 );
+    this.lut.setMax(this.params.maxY);
+    this.lut.setMin(this.params.minY);
 
     this.sprite = new THREE.Sprite(new THREE.SpriteMaterial({
       map: new THREE.CanvasTexture(this.lut.createCanvas())
@@ -145,13 +145,15 @@ export class Main {
       // 座標を変更
       const x = position.getX(i);
       const z = position.getZ(i);
-      let y = (Math.sin(x * 0.05) + Math.cos(z * 0.05)) * this.params.maxY;
+      let y = Math.sin(x * 0.05) * this.params.maxY + Math.cos(z * 0.05) * this.params.maxY;
+      /*
       if (y > this.params.maxY) {
         y = this.params.maxY;
       }
       if (y < this.params.minY) {
         y = this.params.minY;
       }
+        */
       position.setY(i, y);
     }
 
@@ -165,7 +167,7 @@ export class Main {
     const c = new THREE.Color();
     const vertexColorList = [];
     let colorIndex = 0;
-    for (let i=0; i < position.count; i++) {
+    for (let i = 0; i < position.count; i++) {
       const y = position.getY(i);
       c.copy(this.lut.getColor(y)).convertSRGBToLinear();
 
@@ -262,7 +264,7 @@ export class Main {
     const c = new THREE.Color();
 
     // 各頂点の色を変えていく
-    for (let i=0; i < position.count; i++) {
+    for (let i = 0; i < position.count; i++) {
       const y = position.getY(i);
       c.copy(this.lut.getColor(y)).convertSRGBToLinear();
       this.ground.geometry.attributes.color.array[i * 4 + 0] = c.r;
