@@ -700,7 +700,6 @@ const edgeTable = [
 
 
 
-
 class MarchingCubes {
 
   xMax;
@@ -721,13 +720,12 @@ class MarchingCubes {
     this.xMax = xMax;
     this.yMax = yMax;
     this.zMax = zMax;
-
     this.sampleSize = sampleSize;
 
     // Float32Arrayは固定長で確保しないといけないので、
-    // すべてのボクセルの全ての辺の上に頂点を作る前提でバッファを用意する
-    // 実際にはその一部しか使わない
-    this.vertices = new Float32Array((this.xMax * 2) * (this.yMax * 2) * (this.zMax * 2) * 12 * 3);
+    // すべてのボクセルの全ての辺の上に頂点を作る前提でバッファを用意するが、実際にはその一部しか使わない
+    // Terraiと違って +1 する必要はない
+    this.vertices = new Float32Array((this.xMax + 0) * (this.yMax + 0) * (this.zMax + 0) * 12 * 3);
 
     console.log(`Length of vertices = ${this.vertices.length}`);
 
@@ -742,49 +740,34 @@ class MarchingCubes {
 
   generateMesh(geometry, isoLevel, terrain) {
 
-    // 結果はgeometryに格納される
-
-    let fI, fJ, fK;
+    // 結果はgeometryに反映される
 
     let x, y, z;
-
     let vIdx = 0;
 
-    for (let i = -this.xMax; i < this.xMax; i++) {
-
-      // terrainの頂点バッファは0始まりなので、0始まりに変換する
-      fI = i + this.xMax;
-
+    for (let i = 0; i < this.xMax; i++) {
       // X座標
       x = i * this.sampleSize;
 
-      for (let j = -this.yMax + 1; j < this.yMax - 1; j++) {
-
-        // terrainの頂点バッファは0始まりなので、0始まりに変換する
-        fJ = j + this.yMax;
-
+      for (let j = 0; j < this.yMax; j++) {
         // Y座標
         y = j * this.sampleSize;
 
-        for (let k = -this.zMax; k < this.zMax; k++) {
-
-          // terrainの頂点バッファは0始まりなので、0始まりに変換する
-          fK = k + this.zMax;
-
+        for (let k = 0; k < this.zMax; k++) {
           // Z座標
           z = k * this.sampleSize;
 
           // 起点を左奥として、時計回りに平面を回る
-          const v0 = terrain.getField(fI, fJ, fK);
-          const v1 = terrain.getField(fI + 1, fJ, fK);
-          const v2 = terrain.getField(fI + 1, fJ, fK + 1);
-          const v3 = terrain.getField(fI, fJ, fK + 1);
+          const v0 = terrain.getFieldValue(i, j, k);
+          const v1 = terrain.getFieldValue(i + 1, j, k);
+          const v2 = terrain.getFieldValue(i + 1, j, k + 1);
+          const v3 = terrain.getFieldValue(i, j, k + 1);
 
           // 上に移動して、時計回りに平面を回る
-          const v4 = terrain.getField(fI, fJ + 1, fK);
-          const v5 = terrain.getField(fI + 1, fJ + 1, fK);
-          const v6 = terrain.getField(fI + 1, fJ + 1, fK + 1);
-          const v7 = terrain.getField(fI, fJ + 1, fK + 1)
+          const v4 = terrain.getFieldValue(i, j + 1, k);
+          const v5 = terrain.getFieldValue(i + 1, j + 1, k);
+          const v6 = terrain.getFieldValue(i + 1, j + 1, k + 1);
+          const v7 = terrain.getFieldValue(i, j + 1, k + 1)
 
           // surfaceLevelを超えた頂点に対応したインデックスを取得
           let cubeIndex = this.getCubeIndex(isoLevel, v0, v1, v2, v3, v4, v5, v6, v7);
@@ -797,159 +780,132 @@ class MarchingCubes {
             continue;
           }
 
-          // グリッドの中央で初期化
-          // これをそのまま使うとかなり荒い感じになるので、比率で補間する
-          let mu = this.sampleSize / 2;
-
-          // ここの部分は絵を参照すると分かりやすい
+          //
+          // ここから先の部分は立方体の絵を参照すると分かりやすい
+          //
 
           if (edgeIndex & 0b0001) {
-            // edgeIndexを2進数で表現したときの桁の部分がエッジ番号に対応するので、
-            // この場合はe0で交差する
+            // edgeIndexを2進数で表現したときの桁の部分がエッジ番号に対応するので、この場合はe0で交差する
             // e0=(v0, v1)
-            mu = (isoLevel - v0) / (v1 - v0);
-            this.setFloatArray(
-              this.edges[0],
-              this.#lerp(x, x + this.sampleSize, mu),
-              y,
-              z
-            );
+            const pointOnEdge = this.edges[0];
+            const mu = (isoLevel - v0) / (v1 - v0);
+            pointOnEdge[0] = this.lerp(x, x + this.sampleSize, mu);
+            pointOnEdge[1] = y;
+            pointOnEdge[2] = z;
           }
 
           // e1=(v1, v2)で交差
           if (edgeIndex & 0b0010) {
-            mu = (isoLevel - v1) / (v2 - v1);
-            this.setFloatArray(
-              this.edges[1],
-              x + this.sampleSize,
-              y,
-              this.#lerp(z, z + this.sampleSize, mu)
-            );
+            const pointOnEdge = this.edges[1];
+            const mu = (isoLevel - v1) / (v2 - v1);
+            pointOnEdge[0] = x + this.sampleSize;
+            pointOnEdge[1] = y;
+            pointOnEdge[2] = this.lerp(z, z + this.sampleSize, mu);
           }
 
           // e2=(v2, v3)で交差
           if (edgeIndex & 0b0100) {
-            mu = (isoLevel - v3) / (v2 - v3);
-            this.setFloatArray(
-              this.edges[2],
-              this.#lerp(x, x + this.sampleSize, mu),
-              y,
-              z + this.sampleSize
-            );
+            const pointOnEdge = this.edges[2];
+            const mu = (isoLevel - v3) / (v2 - v3);
+            pointOnEdge[0] = this.lerp(x, x + this.sampleSize, mu);
+            pointOnEdge[1] = y;
+            pointOnEdge[2] = z + this.sampleSize;
           }
 
           // e3=(v3, v0)で交差
           if (edgeIndex & 0b1000) {
-            mu = (isoLevel - v0) / (v3 - v0);
-            this.setFloatArray(
-              this.edges[3],
-              x,
-              y,
-              this.#lerp(z, z + this.sampleSize, mu)
-            );
+            const pointOnEdge = this.edges[3];
+            const mu = (isoLevel - v0) / (v3 - v0);
+            pointOnEdge[0] = x;
+            pointOnEdge[1] = y;
+            pointOnEdge[2] = this.lerp(z, z + this.sampleSize, mu);
           }
 
           // e4=(v4, v5)で交差
           if (edgeIndex & 0b00010000) {
-            mu = (isoLevel - v4) / (v5 - v4);
-            this.setFloatArray(
-              this.edges[4],
-              this.#lerp(x, x + this.sampleSize, mu),
-              y + this.sampleSize,
-              z
-            );
+            const pointOnEdge = this.edges[4];
+            const mu = (isoLevel - v4) / (v5 - v4);
+            pointOnEdge[0] = this.lerp(x, x + this.sampleSize, mu);
+            pointOnEdge[1] = y + this.sampleSize;
+            pointOnEdge[2] = z;
           }
 
           // e5=(v5, v6)で交差
           if (edgeIndex & 0b00100000) {
-            mu = (isoLevel - v5) / (v6 - v5);
-            this.setFloatArray(
-              this.edges[5],
-              x + this.sampleSize,
-              y + this.sampleSize,
-              this.#lerp(z, z + this.sampleSize, mu)
-            );
+            const pointOnEdge = this.edges[5];
+            const mu = (isoLevel - v5) / (v6 - v5);
+            pointOnEdge[0] = x + this.sampleSize;
+            pointOnEdge[1] = y + this.sampleSize;
+            pointOnEdge[2] = this.lerp(z, z + this.sampleSize, mu);
           }
 
           // e6=(v6, v7)で交差
           if (edgeIndex & 0b01000000) {
-            mu = (isoLevel - v7) / (v6 - v7);
-            this.setFloatArray(
-              this.edges[6],
-              this.#lerp(x, x + this.sampleSize, mu),
-              y + this.sampleSize,
-              z + this.sampleSize
-            );
+            const pointOnEdge = this.edges[6];
+            const mu = (isoLevel - v7) / (v6 - v7);
+            pointOnEdge[0] = this.lerp(x, x + this.sampleSize, mu);
+            pointOnEdge[1] = y + this.sampleSize;
+            pointOnEdge[2] = z + this.sampleSize;
           }
 
           // e7=(v7, v4)で交差
           if (edgeIndex & 0b10000000) {
-            mu = (isoLevel - v4) / (v7 - v4);
-            this.setFloatArray(
-              this.edges[7],
-              x,
-              y + this.sampleSize,
-              this.#lerp(z, z + this.sampleSize, mu)
-            );
+            const pointOnEdge = this.edges[7];
+            const mu = (isoLevel - v4) / (v7 - v4);
+            pointOnEdge[0] = x;
+            pointOnEdge[1] = y + this.sampleSize;
+            pointOnEdge[2] = this.lerp(z, z + this.sampleSize, mu);
           }
 
           // e8=(v0, v4)で交差
           if (edgeIndex & 0b000100000000) {
-            mu = (isoLevel - v0) / (v4 - v0);
-            this.setFloatArray(
-              this.edges[8],
-              x,
-              this.#lerp(y, y + this.sampleSize, mu),
-              z
-            );
+            const pointOnEdge = this.edges[8];
+            const mu = (isoLevel - v0) / (v4 - v0);
+            pointOnEdge[0] = x;
+            pointOnEdge[1] = this.lerp(y, y + this.sampleSize, mu);
+            pointOnEdge[2] = z;
           }
 
           // e9=(v1, v5)で交差
           if (edgeIndex & 0b001000000000) {
-            mu = (isoLevel - v1) / (v5 - v1);
-            this.setFloatArray(
-              this.edges[9],
-              x + this.sampleSize,
-              this.#lerp(y, y + this.sampleSize, mu),
-              z
-            );
+            const pointOnEdge = this.edges[9];
+            const mu = (isoLevel - v1) / (v5 - v1);
+            pointOnEdge[0] = x + this.sampleSize;
+            pointOnEdge[1] = this.lerp(y, y + this.sampleSize, mu);
+            pointOnEdge[2] = z;
           }
 
           // e10=(v2, v6)で交差
           if (edgeIndex & 0b010000000000) {
-            mu = (isoLevel - v2) / (v6 - v2);
-            this.setFloatArray(
-              this.edges[10],
-              x + this.sampleSize,
-              this.#lerp(y, y + this.sampleSize, mu),
-              z + this.sampleSize
-            );
+            const pointOnEdge = this.edges[10];
+            const mu = (isoLevel - v2) / (v6 - v2);
+            pointOnEdge[0] = x + this.sampleSize;
+            pointOnEdge[1] = this.lerp(y, y + this.sampleSize, mu);
+            pointOnEdge[2] = z + this.sampleSize;
           }
 
           // e11=(v3, v7)で交差
           if (edgeIndex & 0b100000000000) {
-            mu = (isoLevel - v3) / (v7 - v3);
-            this.setFloatArray(
-              this.edges[11],
-              x,
-              this.#lerp(y, y + this.sampleSize, mu),
-              z + this.sampleSize
-            );
+            const pointOnEdge = this.edges[11];
+            const mu = (isoLevel - v3) / (v7 - v3);
+            pointOnEdge[0] = x;
+            pointOnEdge[1] = this.lerp(y, y + this.sampleSize, mu);
+            pointOnEdge[2] = z + this.sampleSize;
           }
 
           // どの3点を使ってポリゴンを作るか、をtriangulationTableで求める
-          const triLen = triangulationTable[cubeIndex];
+          const triangulationRow = triangulationTable[cubeIndex];
 
-          for (let i = 0; i < triLen.length; i++) {
-            // -1を見つけたら終了
-            if (triLen[i] === -1) {
+          for (let i = 0; i < triangulationRow.length; i++) {
+            // 行を左から順に走査して-1を見つけたら終了
+            if (triangulationRow[i] === -1) {
               break;
             }
-            const edgeIndex = triLen[i];
-            const pos = this.edges[edgeIndex];
-            this.vertices[vIdx] = pos[0];
-            this.vertices[vIdx + 1] = pos[1];
-            this.vertices[vIdx + 2] = pos[2];
+            const edgeIndex = triangulationRow[i];
+            const pointOnEdge = this.edges[edgeIndex];
+            this.vertices[vIdx] = pointOnEdge[0];
+            this.vertices[vIdx + 1] = pointOnEdge[1];
+            this.vertices[vIdx + 2] = pointOnEdge[2];
             vIdx += 3;
           }
         }
@@ -958,8 +914,10 @@ class MarchingCubes {
 
     console.log(`vIdx = ${vIdx}`);
 
+    // verticesに値を詰め込んだ部分を取り出して、頂点のpositionを設定する
     geometry.setAttribute('position', new THREE.BufferAttribute(this.vertices.slice(0, vIdx), 3));
 
+    // 各三角形ポリゴンの法線ベクトルを計算し直す
     geometry.computeVertexNormals();
 
     geometry.attributes.position.needsUpdate = true;
@@ -981,33 +939,28 @@ class MarchingCubes {
     return cubeIndex;
   }
 
-  setFloatArray(arr, x, y, z) {
-    arr[0] = x;
-    arr[1] = y;
-    arr[2] = z;
-  }
-
-  #lerp(start, end, amt) {
-    return (1 - amt) * start + amt * end;
+  lerp(start, end, ratio) {
+    return (1 - ratio) * start + ratio * end;
   }
 }
 
 
 class Terrain {
 
+  width;
+  height;
+  depth;
+
+  sampleSize;
+  isoLevel;
+
   xMax;
   yMax;
   zMax;
 
-  xMax2;
-  yMax2;
-  zMax2;
-
-  sampleSize;
-
-  isoLevel;
-
   fieldBuffer;
+
+  simplex;
 
   geometry;
   material;
@@ -1017,56 +970,41 @@ class Terrain {
 
   constructor(width, height, depth, sampleSize, isoLevel = 0) {
 
-    this.xMax = Math.floor((width / sampleSize) / 2);
-
-    this.yMax = Math.floor((height / sampleSize) / 2);
-
-    this.zMax = Math.floor((depth / sampleSize) / 2);
-
+    this.width = width;
+    this.height = height;
+    this.depth = depth;
     this.sampleSize = sampleSize;
-
     this.isoLevel = isoLevel;
 
     /*
 
-     |<--------- width ---------->|
-                   |
-    |--------------+--------------|
-    -2/width       0              2/width
+    |<--------- width ----------->|
 
-
-     ----|----|----+----|----|----|
-         |<-->|
-     width / sampleSize
-
+    +----+----+----+----+----+----+
+    0    1    2    3   ...    xMax
 
     |----|----|----+----|----|----|
-    -xMax... -1    0    1    2... xMax
-
-
-                   |<---------- xMax2 ---------->|
-    ---------------+----|----|----|----|----|----|
-                   0                             xMax2
+         |<-->|
+        width/sampleSize
 
     */
-
-    this.xMax2 = 2 * this.xMax;
-    this.yMax2 = 2 * this.yMax;
-    this.zMax2 = 2 * this.zMax;
-
+    this.xMax = Math.floor(this.width / this.sampleSize);
+    this.yMax = Math.floor(this.height / this.sampleSize);
+    this.zMax = Math.floor(this.depth / this.sampleSize);
     console.log(`width=${width}, sampleSize=${sampleSize}`);
-    console.log(`xMax=${this.xMax}, xMax2=${this.xMax2}`);
-    console.log(`yMax=${this.yMax}, yMax2=${this.yMax2}`);
-    console.log(`zMax=${this.zMax}, zMax2=${this.zMax2}`);
-
-    // ボクセルを立方体状に積み上げたバッファ
-    this.fieldBuffer = new Float32Array((this.xMax + 1) * 2 * (this.yMax + 1) * 2 * (this.zMax + 1) * 2);
+    console.log(`xMax=${this.xMax}, yMax=${this.yMax}, zMax=${this.zMax}`);
 
     // 注意
-    // 必要なバッファは3乗に比例するので、むやみに大きくできない
+    // 立方体状に積み上げたボクセルの各頂点が保持する値を格納するバッファ
+    // ボクセルは一つ先まで作っておかないと、右端のボクセルでポリゴンをつくれなくなってしまう
+    this.fieldBuffer = new Float32Array((this.xMax + 1) * (this.yMax + 1) * (this.zMax + 1));
+
     console.log(`length of fieldBuffer=${this.fieldBuffer.length}`);
 
-    // バッファジオメトリ
+    // ノイズ生成器
+    this.simplex = new SimplexNoise();
+
+    // ジオメトリ
     this.geometry = new THREE.BufferGeometry();
 
     // マテリアル
@@ -1074,14 +1012,15 @@ class Terrain {
       color: 0xffffff
     });
 
-    // メッシュ化
+    // メッシュ
     this.mesh = new THREE.Mesh(this.geometry, this.material);
 
     // this.fieldBufferに値を入れる
     this.generateHeightField();
 
     // MarchingCubesクラスをインスタンス化
-    this.marchingCubes = new MarchingCubes(this.xMax, this.yMax, this.zMax, sampleSize);
+    // フィールドの大きさよりも小さい範囲でマーチングキューブを実行しても構わない
+    this.marchingCubes = new MarchingCubes(this.xMax, this.yMax, this.zMax, this.sampleSize);
 
     // メッシュを作成
     this.marchingCubes.generateMesh(this.geometry, this.isoLevel, this);
@@ -1091,47 +1030,29 @@ class Terrain {
     this.marchingCubes.generateMesh(this.geometry, this.isoLevel, this);
   }
 
-  //
-  // getIndex(x, y, z)  x, y, zの値を一次元の配列に格納するときにインデックスを求める関数
-  // getCoordinates(index)  格納されているインデックスから元のx, y, zを求める関数
-  //
-
-  __getIndex(i, j, k) {
-    // これが元の実装だけど、これは間違っていて、
-    return i * this.xMax2 * this.zMax2 + j + k * this.zMax2;
-  }
-
-  _getIndex(i, j, k) {
-    // これが正しい
-    return i * (this.yMax2 + 1) * (this.zMax2 + 1) + j + k * (this.yMax2 + 1);
-  }
-
+  // (x, y, z)を一次元の配列に格納するときのインデックスを求める関数
   getIndex(i, j, k) {
-    // でも、この方が分かりやすいので、これを採用する。
-
-    // X軸方向に一つずつ積み上げて(xMax2 + 1)に到達したら
+    // X軸方向に一つずつ積み上げて(xMax + 1)に到達したら
     // Y軸に一つずらして、またX軸を積み上げて、
     // XY平面が埋まったら、Z軸方向に一つずらす
-    return i + j * (this.xMax2 + 1) + k * (this.xMax2 + 1) * (this.yMax2 + 1);
+    return i + j * (this.xMax + 1) + k * (this.xMax + 1) * (this.yMax + 1);
   }
 
+  // 格納されているインデックスから元のx, y, zを求める関数（getIndexの逆）
   getCoordinates(index) {
-    // getIndexの逆演算
-    // getIndex(i, j, k)で求めた一次元バッファのインデックス値から元の[i, j, k]を求める
-    const i = index % (this.xMax2 + 1);
-    const j = Math.floor(index / (this.xMax2 + 1)) % (this.yMax2 + 1);
-    const k = Math.floor(index / ((this.xMax2 + 1) * (this.yMax2 + 1)));
+    const i = index % (this.xMax + 1);
+    const j = Math.floor(index / (this.xMax + 1)) % (this.yMax + 1);
+    const k = Math.floor(index / ((this.xMax + 1) * (this.yMax + 1)));
     return [i, j, k];
   }
 
-  setField(i, j, k, amt) {
+  setFieldValue(i, j, k, value) {
     const index = this.getIndex(i, j, k);
-    // console.log(`(${i}, ${j}, ${k}), ${index}`);
-    // console.log(`${this.getCoordinates(index)}`);
-    this.fieldBuffer[index] = amt;
+    this.fieldBuffer[index] = value;
   }
 
-  getField(i, j, k) {
+
+  getFieldValue(i, j, k) {
     const index = this.getIndex(i, j, k);
     return this.fieldBuffer[index];
   }
@@ -1141,45 +1062,41 @@ class Terrain {
   }
 
   generateHeightField() {
-
-    for (let i = -this.xMax; i < this.xMax + 1; i++) {
-      // xはボクセルのX方向の位置
+    for (let i = 0; i < this.xMax + 1; i++) {
       let x = i * this.sampleSize;
 
-      for (let j = -this.yMax; j < this.yMax + 1; j++) {
-        // yはボクセルのY方向の位置
+      for (let j = 0; j < this.yMax + 1; j++) {
         let y = j * this.sampleSize;
 
-        for (let k = -this.zMax; k < this.zMax + 1; k++) {
-          // zはボクセルのZ方向の位置
+        for (let k = 0; k < this.zMax + 1; k++) {
           let z = k * this.sampleSize;
 
-          // ノイズを乗せた値を決める
-          const height = this.heightValue(x, y, z);
+          // ノイズを乗せた値を求めて
+          const value = this.getRandomValue(x, y, z);
 
-          // バッファは0始まりなので、格納位置に気をつけないといけない
-          // i, j, k はマイナス始まりなので、ゼロ始まりに戻す
-          const xIndex = i + this.xMax;
-          const yIndex = j + this.yMax;
-          const zIndex = k + this.zMax;
-
-          this.setField(xIndex, yIndex, zIndex, height);
-
+          // その値を格納する
+          this.setFieldValue(i, j, k, value);
         }
       }
     }
   }
 
 
-  // ノイズ生成
-  simplex = new SimplexNoise();
-
-  heightValue(x, y, z) {
+  getRandomValue(x, y, z) {
     // X、Zを入力に加えることで、XZ平面に綺麗な波を作る
     const xzNoise = this.simplex.noise(x * 0.05, z * 0.05) * 10;
-    return y + xzNoise;
-  }
 
+    // Y軸方向のボクセルは
+    //   0 < y < height
+    // の範囲内にしか存在しないことに注意
+    // heightValue=0がこの範囲内に来ないと描画されなくなる
+
+    // これを返却すれば、何を言いたいか分かるはず
+    // return (y - this.height / 2);
+
+    // Y座標の位置を高さの半分下げ、そこにノイズを加える
+    return (y - this.height / 2) + xzNoise;
+  }
 
 }
 
