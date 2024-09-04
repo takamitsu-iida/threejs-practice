@@ -57,15 +57,24 @@ export class Main {
     this.scene.add(this.directionalLight);
 
     // 平面
-    const g = new THREE.PlaneGeometry(400, 400, 32, 32);
+    const geometry = new THREE.PlaneGeometry(400, 400, 32, 32);
 
-    // X軸を中心に-90度回転してXZ平面と平行にする
-    g.rotateX(-Math.PI / 2)
+    // console.log(geometry.attributes);
+    // 初期状態においてアトリビュートはpositionとuvしか存在しないことが分かる
+
+    // 頂点の位置情報
+    //
+    // const position = geometry.attributes.position;
+    // console.log(position);
+    //
+    // positionはFloat32BufferAttribute型
+    // position.countには個数が格納されている
 
     // 頂点のUV座標
-    const uv = g.attributes.uv;
+    //
+    // const uv = geometry.attributes.uv;
     // console.log(uv);
-
+    //
     // uvはFloat32BufferAttribute型
     // https://threejs.org/docs/#api/en/core/BufferAttribute
     //
@@ -75,21 +84,18 @@ export class Main {
     //
     // uv.countには(u, v)の個数が格納されている
 
-    // 頂点の位置情報
-    const pos = g.attributes.position;
-    // console.log(pos);
-    // posはFloat32BufferAttribute型
+    // X軸を中心に-90度回転してXZ平面と平行にする
+    geometry.rotateX(-Math.PI / 2)
 
-    const m = new THREE.MeshBasicMaterial({
+    const material = new THREE.MeshBasicMaterial({
       wireframe: true,
     });
 
-    this.ground = new THREE.Mesh(g, m);
+    this.ground = new THREE.Mesh(geometry, material);
     this.scene.add(this.ground);
 
     // コントローラ
     this.controller = new OrbitControls(this.camera, this.renderer.domElement);
-    // this.controller.autoRotate = true;
     this.controller.maxDistance = 1000; // ズーム上限
     this.controller.maxPolarAngle = (Math.PI * 0.8) / 2; // 角度上限
     this.controller.minPolarAngle = 0; // 角度下限
