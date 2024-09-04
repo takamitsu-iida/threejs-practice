@@ -13,59 +13,6 @@ import { GUI } from "three/libs/lil-gui.module.min.js";
 // stats.js
 import Stats from 'three/libs/stats.module.js';
 
-/*
-  HTMLではこのように指定する
-
-  <!-- three.js -->
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "./static/build/three.module.js",
-        "three/libs/": "./static/libs/",
-        "three/controls/": "./static/controls/"
-      }
-    }
-  </script>
-
-  <script type="module">
-    import WebGL from './static/libs/capabilities/WebGL.js';
-    import { main } from "./static/site/js/nwdiagram.js";
-
-    window.addEventListener("load", () => {
-      if (WebGL.isWebGLAvailable()) {
-        main();
-      } else {
-        document.getElementById("threejsContainer").appendChild(WebGL.getWebGLErrorMessage());
-      }
-    });
-  </script>
-
-以下のようなディレクトリ配置になるようにbuild、controls、libsディレクトリを作成し
-three.jsのソースコードから必要なファイルをコピーする。
-
-static
-├── build
-│   ├── three.module.js
-│   └── three.module.min.js
-├── controls
-│   ├── OrbitControls.js
-│   ├── TrackballControls.js
-│   └── TransformControls.js
-├── libs
-│   ├── CSS2DRenderer.js
-│   ├── CSS3DRenderer.js
-│   ├── capabilities
-│   │   ├── WebGL.js
-│   │   └── WebGPU.js
-│   ├── lil-gui.module.min.js
-│   ├── stats.module.js
-│   └── tween.module.js
-└── site
-    ├── css
-    ├── img
-    └── js
-*/
-
 
 export class ObjectSelection {
 
@@ -650,7 +597,8 @@ const CLUSTERS_EXAMPLE_3 = [
 export function createSampleGraph(options) {
   options = options || {}
   const clusters = options.hasOwnProperty("clusters") ? options.clusters : CLUSTERS_EXAMPLE_1;
-  return new FiveStageClosGraph({ clusters: clusters }).circularLayout().getGraph();
+  // return new FiveStageClosGraph({ clusters: clusters }).circularLayout().getGraph();
+  return new FiveStageClosGraph({ clusters: clusters }).sphereLayout().getGraph();
 }
 
 
@@ -843,6 +791,96 @@ export class FiveStageClosGraph {
       }
 
     });
+
+    // tier1のノードの位置を決める
+    for (let i = 0; i < 4; i++) {
+      const nodeId = `t1_${i}`;
+      const radius = tier1Radius;
+      const tier1Theta = 2 * Math.PI / 4;
+      const theta = tier1Theta * i;
+      const x = radius * Math.cos(theta);
+      const y = (i%2 === 0) ? tier1Height : -1 * tier1Height;
+      const z = radius * Math.sin(theta);
+      const n = this.graph.getElementById(nodeId);
+      if (n) {
+        n.position = { x, y, z };
+      }
+    }
+
+    return this;
+  }
+
+  sphereLayout(options) {
+    options = options || {};
+
+    let tier3Radius = 320;
+    tier3Radius = options.hasOwnProperty("tier3Radius") ? options.tier3Radius : tier3Radius;
+
+    let tier2Radius = 160;
+    tier2Radius = options.hasOwnProperty("tier2Radius") ? options.tier2Radius : tier2Radius;
+
+    let tier1Radius = 80;
+    tier1Radius = options.hasOwnProperty("tier1Radius") ? options.tier1Radius : tier1Radius;
+
+    // クラスタの数
+    const numClusters = this.clusters.length;
+
+    // クラスタを放射線状に配置するときの角度
+    const tier3Theta = 2 * Math.PI / numClusters;
+
+    // 一時変数
+    const vec3 = new THREE.Vector3();
+
+    // 各クラスタについて
+    this.clusters.forEach((cluster, index) => {
+
+      // clusterIdとnumTier3を取り出しておく
+      const clusterId = cluster.clusterId;
+      const numTier3 = cluster.numTier3;
+
+      // 何番目のクラスタか、によって放射線状に配置する角度を決める
+      const theta = tier3Theta * index;
+
+      // Tier3ノードを配置する極角度を決める
+      const tier3Phi = (Math.PI * 0.9) / (numTier3 + 1);
+
+      // tier3のノードの位置を決める
+      for (let i = 0; i < numTier3; i++) {
+        const nodeId = `c${clusterId}_t3_${i}`;
+
+        // 極角度
+        const phi = Math.PI * 0.05 + tier3Phi * (i + 1);
+
+        // 位置を決める
+        vec3.setFromSphericalCoords(tier3Radius, phi, theta);
+
+        const n = this.graph.getElementById(nodeId);
+        if (n) {
+          n.position = vec3.clone();
+        }
+      }
+
+      // Tier2ノードを配置する極角度を決める
+      const tier2Phi = Math.PI / 3;
+
+      // tier2のノードの位置を決める
+      for (let i = 0; i < 2; i++) {
+        const nodeId = `c${clusterId}_t2_${i}`;
+
+        // 極角度
+        const phi = tier2Phi * (i + 1);
+
+        // 位置を決める
+        vec3.setFromSphericalCoords(tier2Radius, phi, theta);
+
+        const n = this.graph.getElementById(nodeId);
+        if (n) {
+          n.position = vec3.clone();
+        }
+      }
+    });
+
+    let tier1Height = 100;
 
     // tier1のノードの位置を決める
     for (let i = 0; i < 4; i++) {
