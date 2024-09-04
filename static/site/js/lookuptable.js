@@ -45,7 +45,8 @@ export class Main {
   }
 
   params = {
-    colorMap: 'rainbow', // 'cooltowarm', 'blackbody', 'grayscale'
+    // 'rainbow', 'cooltowarm', 'blackbody', 'grayscale'
+    colorMap: 'blackbody',
     maxY: 20,
     minY: -20,
   }
@@ -85,8 +86,9 @@ export class Main {
 
     // lookuptable.js
     this.lut = new Lut();
-    this.lut.setMax(this.params.maxY);
-    this.lut.setMin(this.params.minY);
+    this.lut.setColorMap(this.params.colorMap);
+    this.lut.setMax(this.params.maxY * 2);
+    this.lut.setMin(this.params.minY * 2);
 
     this.sprite = new THREE.Sprite(new THREE.SpriteMaterial({
       map: new THREE.CanvasTexture(this.lut.createCanvas())
@@ -146,14 +148,6 @@ export class Main {
       const x = position.getX(i);
       const z = position.getZ(i);
       let y = Math.sin(x * 0.05) * this.params.maxY + Math.cos(z * 0.05) * this.params.maxY;
-      /*
-      if (y > this.params.maxY) {
-        y = this.params.maxY;
-      }
-      if (y < this.params.minY) {
-        y = this.params.minY;
-      }
-        */
       position.setY(i, y);
     }
 
@@ -166,6 +160,8 @@ export class Main {
     //
     // ジオメトリにcolor属性を**追加する**
     //
+
+    /*
 
     const c = new THREE.Color();
     const vertexColorList = [];
@@ -184,11 +180,15 @@ export class Main {
     geometry.setAttribute("color", new THREE.Float32BufferAttribute(vertexColorList, 4));
     geometry.attributes.color.needsUpdate = true;
 
+    */
+
     const material = new THREE.MeshBasicMaterial({
       wireframe: false,
       side: THREE.DoubleSide,
       vertexColors: true,
     });
+
+
 
     this.ground = new THREE.Mesh(geometry, material);
     this.scene.add(this.ground);
@@ -253,8 +253,8 @@ export class Main {
 
   changeColorMap() {
     this.lut.setColorMap(this.params.colorMap);
-    this.lut.setMax(this.params.maxY);
-    this.lut.setMin(this.params.minY);
+    this.lut.setMax(this.params.maxY * 2);
+    this.lut.setMin(this.params.minY * 2);
 
     const map = this.sprite.material.map;
     this.lut.updateCanvas(map.image);

@@ -44,7 +44,7 @@ Deeperの有料会員になれば3Dで海底地形図が見れるみたいだけ
 
 まだ実力が足りないので、まずはポイントクラウドを表示してみる感じかな。
 
-<br>
+<br><br><br>
 
 # 作例一覧
 
@@ -73,6 +73,21 @@ https://takamitsu-iida.github.io/threejs-practice/index-examples.html
 
 [Basic examples from https://discourse.threejs.org](https://hofk.de/main/discourse.threejs/2023/index2023.html)
 
+
+<br>
+
+# 実行環境
+
+ブラウザ上で動くのでどんなPC、スマホでも動くと思いきや、そうでもない。
+
+MacOSでは以下のメッセージが出力されて、何も描画されないことがある。
+頂点バッファを直接操作すると、このメッセージが出ることが多い模様。
+
+```
+[.WebGL-0x12004ecc700] GL_INVALID_OPERATION: Vertex buffer is not big enough for the draw callUnderstand this warning
+```
+
+最低限、MacOSでも期待通りの動作をするか、は確認した方がよい。
 
 
 <br>
