@@ -769,7 +769,7 @@ class MarchingCubes {
           const v6 = terrain.getFieldValue(i + 1, j + 1, k + 1);
           const v7 = terrain.getFieldValue(i, j + 1, k + 1)
 
-          // surfaceLevelを超えた頂点に対応したインデックスを取得
+          // isoLevelを超えた頂点に対応したインデックスを取得
           let cubeIndex = this.getCubeIndex(isoLevel, v0, v1, v2, v3, v4, v5, v6, v7);
 
           // どの辺上に交点が来るのか、edgeTableで調べる
