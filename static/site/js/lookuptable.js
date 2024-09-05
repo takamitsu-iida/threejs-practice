@@ -141,21 +141,21 @@ export class Main {
     // ジオメトリの位置座標を加工して波打たせる
     const position = geometry.attributes.position;
 
+    // 頂点座標を変更
     for (let i = 0; i < position.count; i++) {
-      // 座標を変更
       const x = position.getX(i);
       const y = position.getY(i);
       const z = position.getZ(i);
 
-      const nextY = Math.sin(x * 0.05) * this.params.maxY + Math.cos(z * 0.05) * this.params.maxY;
+      const nextY = y + Math.sin(x * 0.05) * this.params.maxY + Math.cos(z * 0.05) * this.params.maxY;
 
       position.setX(i, x);
-      position.setY(i, y);
-      position.setZ(i, nextY);
+      position.setY(i, nextY);
+      position.setZ(i, z);
     }
 
     // 法線ベクトルを計算し直す
-    geometry.computeVertexNormals();
+    // geometry.computeVertexNormals();
 
     // これをセットしておかないとレンダラは更新してくれない
     position.needsUpdate = true;
