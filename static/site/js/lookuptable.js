@@ -140,6 +140,9 @@ export class Main {
     // X軸を中心に-90度回転してXZ平面と平行にする
     geometry.rotateX(-Math.PI / 2)
 
+    /*
+
+
     // ジオメトリの位置座標を加工して波打たせる
     const position = geometry.attributes.position;
 
@@ -161,7 +164,6 @@ export class Main {
     // ジオメトリにcolor属性を**追加する**
     //
 
-    /*
 
     const c = new THREE.Color();
     const vertexColorList = [];
