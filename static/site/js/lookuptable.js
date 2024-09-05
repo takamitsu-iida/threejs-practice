@@ -155,7 +155,7 @@ export class Main {
     }
 
     // 法線ベクトルを計算し直す
-    // geometry.computeVertexNormals();
+    geometry.computeVertexNormals();
 
     // これをセットしておかないとレンダラは更新してくれない
     position.needsUpdate = true;
