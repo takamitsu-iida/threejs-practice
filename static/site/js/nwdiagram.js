@@ -1634,28 +1634,5 @@ export class Diagram {
     // console.log(this.scene.children);
   }
 
-  //
-  // グラフのレイアウト変更
-  //
-  changeGraphLayout(layoutName) {
-
-    if (layoutName === "circular") {
-      this.graph.circularLayout();
-    }
-
-    if (layoutName === "sphere") {
-      this.graph.sphereLayout();
-    }
-
-    this.graph.getNodes().forEach((node) => {
-
-      let nodeGroup = this.scene.getObjectByName(`${node.data.id}_group`);
-      if (nodeGroup) {
-        node.position.set(node.position.x, node.position.y, node.position.z);
-      }
-
-    });
-
-  }
 
 }
