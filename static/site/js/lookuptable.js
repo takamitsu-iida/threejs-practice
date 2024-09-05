@@ -188,8 +188,8 @@ export class Main {
       wireframe: false,
       side: THREE.DoubleSide,
       vertexColors: true,
-      transparent: false,
-      opacity: 0.5,
+      transparent: true,
+      opacity: 0.8,
     });
 
     this.ground = new THREE.Mesh(geometry, material);
