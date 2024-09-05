@@ -6,7 +6,7 @@ import { Lut } from "three/libs/math/Lut.js";
 import { GUI } from "three/libs/lil-gui.module.min.js";
 
 // stats.js
-import Stats from 'three/libs/stats.module.js';
+import Stats from "three/libs/stats.module.js";
 
 
 export class Main {
