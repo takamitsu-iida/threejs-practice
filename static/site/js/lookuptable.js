@@ -117,16 +117,14 @@ export class Main {
 
     // 頂点の位置情報
     //
-    // const position = geometry.attributes.position;
-    // console.log(position);
+    // console.log(geometry.attributes.position);
     //
     // positionはFloat32BufferAttribute型
     // position.countには個数が格納されている
 
     // 頂点のUV座標
     //
-    // const uv = geometry.attributes.uv;
-    // console.log(uv);
+    // console.log(geometry.attributes.uv);
     //
     // uvはFloat32BufferAttribute型
     // https://threejs.org/docs/#api/en/core/BufferAttribute
@@ -140,18 +138,20 @@ export class Main {
     // X軸を中心に-90度回転してXZ平面と平行にする
     geometry.rotateX(-Math.PI / 2)
 
-    /*
-
-
     // ジオメトリの位置座標を加工して波打たせる
     const position = geometry.attributes.position;
 
     for (let i = 0; i < position.count; i++) {
       // 座標を変更
       const x = position.getX(i);
+      const y = position.getY(i);
       const z = position.getZ(i);
-      let y = Math.sin(x * 0.05) * this.params.maxY + Math.cos(z * 0.05) * this.params.maxY;
+
+      const nextY = Math.sin(x * 0.05) * this.params.maxY + Math.cos(z * 0.05) * this.params.maxY;
+
+      position.setX(i, x);
       position.setY(i, y);
+      position.setZ(i, nextY);
     }
 
     // 法線ベクトルを計算し直す
@@ -164,6 +164,7 @@ export class Main {
     // ジオメトリにcolor属性を**追加する**
     //
 
+    /*
 
     const c = new THREE.Color();
     const vertexColorList = [];
