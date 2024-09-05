@@ -164,34 +164,35 @@ export class Main {
     // ジオメトリにcolor属性を**追加する**
     //
 
-    /*
-
     const c = new THREE.Color();
-    const vertexColorList = [];
+
+    // alphaを使う前提で x4
+    const colorBuffer = new Float32Array(position.count * 4);
+
     let colorIndex = 0;
     for (let i = 0; i < position.count; i++) {
-      const y = position.getY(i);
+      colorIndex = i * 4;
+
+      const y = geometry.attributes.position.getY(i);
+
       c.copy(this.lut.getColor(y)).convertSRGBToLinear();
 
-      vertexColorList[colorIndex + 0] = c.r;
-      vertexColorList[colorIndex + 1] = c.g;
-      vertexColorList[colorIndex + 2] = c.b;
-      vertexColorList[colorIndex + 3] = 1;
-      colorIndex = i * 4;
+      colorBuffer[colorIndex + 0] = c.r;
+      colorBuffer[colorIndex + 1] = c.g;
+      colorBuffer[colorIndex + 2] = c.b;
+      colorBuffer[colorIndex + 3] = 1;
     }
 
-    geometry.setAttribute("color", new THREE.Float32BufferAttribute(vertexColorList, 4));
-    geometry.attributes.color.needsUpdate = true;
+    geometry.setAttribute("color", new THREE.Float32BufferAttribute(colorBuffer, 4));
 
-    */
+    geometry.attributes.color.needsUpdate = true;
 
     const material = new THREE.MeshBasicMaterial({
       wireframe: false,
       side: THREE.DoubleSide,
       vertexColors: true,
+      transparent: true,
     });
-
-
 
     this.ground = new THREE.Mesh(geometry, material);
     this.scene.add(this.ground);
