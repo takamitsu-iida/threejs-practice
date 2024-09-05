@@ -16,11 +16,25 @@ JavaScriptだけで描画すると重たくなってしまうのを解決した�
 
 https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html
 
+- (clusters, routers/cluster) = (10, 20) の場合、ルータ224台、エッジ440本
+- (clusters, routers/cluster) = (20, 30) の場合、ルータ664台、エッジ1,280本
+- (clusters, routers/cluster) = (30, 30) の場合、ルータ964台、エッジ1,920本
+
+<br>
+
+実用するなら見やすいレイアウトを追求しないといけませんが、たとえ見づらくてもアートっぽい雰囲気を感じられればそれでいいかな、という気になります。
+
 <br>
 
 > [!NOTE]
 >
-> 搭載しているGPUの性能によっては重いです。
+> グラフィックボードを持たないシンクライアントやWebGLをサポートしていないブラウザでは
+>
+> `Your graphics card does not seem to support WebGL`
+>
+> としか表示されません。
+>
+> 搭載しているGPUの性能によっては重い処理になります。
 > 2015 EarlyモデルのMacbook Proでは60fps出せませんでした。
 
 <br>
@@ -33,13 +47,8 @@ https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html
 >
 > としか表示されません。
 
-<br>
 
-クラスタ数30、クラスタあたり30台のtier3ルータがいる場合、 `30 * (30 + 2) + 4 = 964` すなわち1,000台弱のルータを描画しています。ルータ間を接続するエッジは1,920本になります。
-
-実用するなら見やすいレイアウトを追求しないといけませんが、たとえ見づらくてもアートっぽい雰囲気を感じられればそれでいいかな、という気になります。
-
-<br>
+<br><br>
 
 ## 目標２．海底地形図作成
 
