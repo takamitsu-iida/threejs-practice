@@ -343,263 +343,88 @@ export class Graph {
 
 
 const CLUSTERS_EXAMPLE_1 = [
-  {
-    clusterId: 1,
-    numTier3: 20
-  },
-  {
-    clusterId: 2,
-    numTier3: 20
-  },
-  {
-    clusterId: 3,
-    numTier3: 20
-  },
-  {
-    clusterId: 4,
-    numTier3: 20
-  },
-  {
-    clusterId: 5,
-    numTier3: 20
-  },
-  {
-    clusterId: 6,
-    numTier3: 20
-  },
-  {
-    clusterId: 7,
-    numTier3: 20
-  },
-  {
-    clusterId: 8,
-    numTier3: 20
-  },
-  {
-    clusterId: 9,
-    numTier3: 20
-  },
-  {
-    clusterId: 10,
-    numTier3: 20
-  }
+  { clusterId: 1, numTier3: 20 },
+  { clusterId: 2, numTier3: 20 },
+  { clusterId: 3, numTier3: 20 },
+  { clusterId: 4, numTier3: 20 },
+  { clusterId: 5, numTier3: 20 },
+  { clusterId: 6, numTier3: 20 },
+  { clusterId: 7, numTier3: 20 },
+  { clusterId: 8, numTier3: 20 },
+  { clusterId: 9, numTier3: 20 },
+  { clusterId: 10, numTier3: 20 }
 ];
 
 
 const CLUSTERS_EXAMPLE_2 = [
-  {
-    clusterId: 1,
-    numTier3: 30
-  },
-  {
-    clusterId: 2,
-    numTier3: 30
-  },
-  {
-    clusterId: 3,
-    numTier3: 30
-  },
-  {
-    clusterId: 4,
-    numTier3: 30
-  },
-  {
-    clusterId: 5,
-    numTier3: 30
-  },
-  {
-    clusterId: 6,
-    numTier3: 30
-  },
-  {
-    clusterId: 7,
-    numTier3: 30
-  },
-  {
-    clusterId: 8,
-    numTier3: 30
-  },
-  {
-    clusterId: 9,
-    numTier3: 30
-  },
-  {
-    clusterId: 10,
-    numTier3: 30
-  },
-  {
-    clusterId: 11,
-    numTier3: 30
-  },
-  {
-    clusterId: 12,
-    numTier3: 30
-  },
-  {
-    clusterId: 13,
-    numTier3: 30
-  },
-  {
-    clusterId: 14,
-    numTier3: 30
-  },
-  {
-    clusterId: 15,
-    numTier3: 30
-  },
-  {
-    clusterId: 16,
-    numTier3: 30
-  },
-  {
-    clusterId: 17,
-    numTier3: 30
-  },
-  {
-    clusterId: 18,
-    numTier3: 30
-  },
-  {
-    clusterId: 19,
-    numTier3: 30
-  },
-  {
-    clusterId: 20,
-    numTier3: 30
-  }
+  { clusterId: 1, numTier3: 30 },
+  { clusterId: 2, numTier3: 30 },
+  { clusterId: 3, numTier3: 30 },
+  { clusterId: 4, numTier3: 30 },
+  { clusterId: 5, numTier3: 30 },
+  { clusterId: 6, numTier3: 30 },
+  { clusterId: 7, numTier3: 30 },
+  { clusterId: 8, numTier3: 30 },
+  { clusterId: 9, numTier3: 30 },
+  { clusterId: 10, numTier3: 30 },
+  { clusterId: 11, numTier3: 30 },
+  { clusterId: 12, numTier3: 30 },
+  { clusterId: 13, numTier3: 30 },
+  { clusterId: 14, numTier3: 30 },
+  { clusterId: 15, numTier3: 30 },
+  { clusterId: 16, numTier3: 30 },
+  { clusterId: 17, numTier3: 30 },
+  { clusterId: 18, numTier3: 30 },
+  { clusterId: 19, numTier3: 30 },
+  { clusterId: 20, numTier3: 30 }
 ];
 
 
 const CLUSTERS_EXAMPLE_3 = [
-  {
-    clusterId: 1,
-    numTier3: 30
-  },
-  {
-    clusterId: 2,
-    numTier3: 30
-  },
-  {
-    clusterId: 3,
-    numTier3: 30
-  },
-  {
-    clusterId: 4,
-    numTier3: 30
-  },
-  {
-    clusterId: 5,
-    numTier3: 30
-  },
-  {
-    clusterId: 6,
-    numTier3: 30
-  },
-  {
-    clusterId: 7,
-    numTier3: 30
-  },
-  {
-    clusterId: 8,
-    numTier3: 30
-  },
-  {
-    clusterId: 9,
-    numTier3: 30
-  },
-  {
-    clusterId: 10,
-    numTier3: 30
-  },
-  {
-    clusterId: 11,
-    numTier3: 30
-  },
-  {
-    clusterId: 12,
-    numTier3: 30
-  },
-  {
-    clusterId: 13,
-    numTier3: 30
-  },
-  {
-    clusterId: 14,
-    numTier3: 30
-  },
-  {
-    clusterId: 15,
-    numTier3: 30
-  },
-  {
-    clusterId: 16,
-    numTier3: 30
-  },
-  {
-    clusterId: 17,
-    numTier3: 30
-  },
-  {
-    clusterId: 18,
-    numTier3: 30
-  },
-  {
-    clusterId: 19,
-    numTier3: 30
-  },
-  {
-    clusterId: 20,
-    numTier3: 30
-  },
-  {
-    clusterId: 21,
-    numTier3: 30
-  },
-  {
-    clusterId: 22,
-    numTier3: 30
-  },
-  {
-    clusterId: 23,
-    numTier3: 30
-  },
-  {
-    clusterId: 24,
-    numTier3: 30
-  },
-  {
-    clusterId: 25,
-    numTier3: 30
-  },
-  {
-    clusterId: 26,
-    numTier3: 30
-  },
-  {
-    clusterId: 27,
-    numTier3: 30
-  },
-  {
-    clusterId: 28,
-    numTier3: 30
-  },
-  {
-    clusterId: 29,
-    numTier3: 30
-  },
-  {
-    clusterId: 30,
-    numTier3: 30
-  }
+  { clusterId: 1, numTier3: 30 },
+  { clusterId: 2, numTier3: 30 },
+  { clusterId: 3, numTier3: 30 },
+  { clusterId: 4, numTier3: 30 },
+  { clusterId: 5, numTier3: 30 },
+  { clusterId: 6, numTier3: 30 },
+  { clusterId: 7, numTier3: 30 },
+  { clusterId: 8, numTier3: 30 },
+  { clusterId: 9, numTier3: 30 },
+  { clusterId: 10, numTier3: 30 },
+  { clusterId: 11, numTier3: 30 },
+  { clusterId: 12, numTier3: 30 },
+  { clusterId: 13, numTier3: 30 },
+  { clusterId: 14, numTier3: 30 },
+  { clusterId: 15, numTier3: 30 },
+  { clusterId: 16, numTier3: 30 },
+  { clusterId: 17, numTier3: 30 },
+  { clusterId: 18, numTier3: 30 },
+  { clusterId: 19, numTier3: 30 },
+  { clusterId: 20, numTier3: 30 },
+  { clusterId: 21, numTier3: 30 },
+  { clusterId: 22, numTier3: 30 },
+  { clusterId: 23, numTier3: 30 },
+  { clusterId: 24, numTier3: 30 },
+  { clusterId: 25, numTier3: 30 },
+  { clusterId: 26, numTier3: 30 },
+  { clusterId: 27, numTier3: 30 },
+  { clusterId: 28, numTier3: 30 },
+  { clusterId: 29, numTier3: 30 },
+  { clusterId: 30, numTier3: 30 }
 ];
 
 
 export function createSampleGraph(options) {
   options = options || {}
   const clusters = options.hasOwnProperty("clusters") ? options.clusters : CLUSTERS_EXAMPLE_1;
+  const layout = options.hasOwnProperty("layout") ? options.layout : "circular";
 
-  // return new FiveStageClosGraph({ clusters: clusters }).circularLayout().getGraph();
-  return new FiveStageClosGraph({ clusters: clusters }).sphereLayout().getGraph();
+  const fiveStageClosGraph = new FiveStageClosGraph({ clusters: clusters });
+
+  if (layout === "sphere") {
+    return fiveStageClosGraph.sphereLayout().getGraph();
+  }
+  return fiveStageClosGraph.circularLayout().getGraph();
 }
 
 
@@ -804,7 +629,7 @@ export class FiveStageClosGraph {
       const tier1Theta = 2 * Math.PI / 4;
       const theta = tier1Theta * i;
       const x = radius * Math.cos(theta);
-      const y = (i%2 === 0) ? tier1Height : -1 * tier1Height;
+      const y = (i % 2 === 0) ? tier1Height : -1 * tier1Height;
       const z = radius * Math.sin(theta);
       const n = this.graph.getElementById(nodeId);
       if (n) {
@@ -895,7 +720,7 @@ export class FiveStageClosGraph {
       const tier1Theta = 2 * Math.PI / 4;
       const theta = tier1Theta * i;
       const x = radius * Math.cos(theta);
-      const y = (i%2 === 0) ? tier1Height : -1 * tier1Height;
+      const y = (i % 2 === 0) ? tier1Height : -1 * tier1Height;
       const z = radius * Math.sin(theta);
       const n = this.graph.getElementById(nodeId);
       if (n) {
@@ -911,7 +736,7 @@ export class FiveStageClosGraph {
 
 // レイヤー定義
 export class LAYERS {
-  static LABEL       = 1;
+  static LABEL = 1;
   static REDUNDANT_0 = 2;
   static REDUNDANT_1 = 3;
 }
@@ -1020,7 +845,7 @@ class Node extends THREE.Group {
           transparent: true,
           opacity: this.sphereOpacity,
           depthTest: true  // オブジェクト内部の線を隠すための設定
-         });
+        });
       }
 
       // メッシュを作成
@@ -1301,7 +1126,9 @@ export class Diagram {
   // グラフ表示用のパラメータ
   graphParams = {
     redundant_0: true,
-    redundant_1: true
+    redundant_1: true,
+    clusters: CLUSTERS_EXAMPLE_1,  // CLUSTERS_EXAMPLE_1, CLUSTERS_EXAMPLE_2, CLUSTERS_EXAMPLE_3,
+    layout: "circular",  // "circular", "sphere",
   }
 
   // OrbitControlのパラメータ
@@ -1318,7 +1145,7 @@ export class Diagram {
     this.labelParams.showLabels = this.options.hasOwnProperty("showLabels") ? this.options.showLabels : this.labelParams.showLabels;
     this.labelParams.labelFontSize = this.options.hasOwnProperty("labelFontSize") ? this.options.labelFontSize : this.labelParams.labelFontSize;
     this.axesHelperEnabled = this.options.hasOwnProperty("axesHelper") ? this.options.axesHelper : true;
-    this.orbitParams.autoRotate = this.options.hasOwnProperty("autoRotate") ? this.options.autoRotate: this.orbitParams.autoRotate;
+    this.orbitParams.autoRotate = this.options.hasOwnProperty("autoRotate") ? this.options.autoRotate : this.orbitParams.autoRotate;
 
     this.initRenderer();
     this.initController();
@@ -1413,24 +1240,10 @@ export class Diagram {
 
   // マウス操作のコントロールを初期化
   initController() {
-    // OrbitControls
     this.controller = new OrbitControls(this.camera, this.renderer.domElement);
     this.controller.enableDamping = true;
     this.controller.autoRotate = this.orbitParams.autoRotate;
     this.controller.autoRotateSpeed = 1.0;
-
-    /*
-    // TrackballControls
-    // import { TrackballControls } from "three/controls/TrackballControls.js";
-    this.controller = new TrackballControls(camera, renderer.domElement);
-    this.controller.rotateSpeed = 10;
-    this.controller.zoomSpeed = 2.0;
-    this.controller.panSpeed = 0.1;
-    this.controller.noZoom = false;
-    this.controller.noPan = false;
-    this.controller.staticMoving = false;
-    this.controller.dynamicDampingFactor = 0.3;
-    */
   }
 
 
@@ -1623,39 +1436,94 @@ export class Diagram {
     // テスト用
     // ボタンを押したらシーン上のグラフを全て削除
     {
-      document.getElementById("idButton1").addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        this.removeGraph();
-      });
+      const tag = document.getElementById("idButton1");
+      if (tag) {
+        tag.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          this.removeGraph();
+        });
+      }
     }
 
     // クリックでデータを切り替え
     {
       ['idData1', 'idData2', 'idData3'].forEach((id) => {
         const tag = document.getElementById(id);
-        if (!tag) { return; }
-        tag.addEventListener('click', (evt) => {
-          evt.stopPropagation();
-          evt.preventDefault();
-          document.getElementsByName('dataChangeMenu').forEach((element) => {
-            element.classList.remove('active');
-          });
-          evt.target.classList.add('active');
+        if (tag) {
+          tag.addEventListener('click', (evt) => {
+            evt.stopPropagation();
+            evt.preventDefault();
+            document.getElementsByName('dataChangeMenu').forEach((element) => {
+              element.classList.remove('active');
+            });
+            evt.target.classList.add('active');
 
-          this.removeGraph();
-          switch (id) {
-            case 'idData1':
-              this.graph = createSampleGraph({clusters: CLUSTERS_EXAMPLE_1});
-              break;
-            case 'idData2':
-              this.graph = createSampleGraph({clusters: CLUSTERS_EXAMPLE_2});
-              break;
-            case 'idData3':
-              this.graph = createSampleGraph({clusters: CLUSTERS_EXAMPLE_3});
-          }
-          this.drawGraph(this.graph);
-        });
+            // クリックしたメニューに応じてgraphParams.clustersを変更する
+            switch (id) {
+              case 'idData1':
+                this.graphParams.clusters = CLUSTERS_EXAMPLE_1;
+                break;
+              case 'idData2':
+                this.graphParams.clusters = CLUSTERS_EXAMPLE_2;
+                break;
+              case 'idData3':
+                this.graphParams.clusters = CLUSTERS_EXAMPLE_3;
+                break;
+            }
+
+            // シーン上のオブジェクトを全て削除して、
+            this.removeGraph();
+
+            // 新たにサンプル用のグラフを作成する
+            this.graph = createSampleGraph({
+              clusters: this.graphParams.clusters,
+              layout: this.graphParams.layout,
+            });
+
+            // シーン上に追加
+            this.drawGraph(this.graph);
+          });
+        }
+      });
+    }
+
+    // クリックでレイアウト変更
+    {
+      ['idLayout1', 'idLayout2'].forEach((id) => {
+        const tag = document.getElementById(id);
+        if (tag) {
+          tag.addEventListener('click', (evt) => {
+            evt.stopPropagation();
+            evt.preventDefault();
+            document.getElementsByName('layoutChangeMenu').forEach((element) => {
+              element.classList.remove('active');
+            });
+            evt.target.classList.add('active');
+
+            switch (id) {
+              case 'idLayout1':
+                this.graphParams.layout = "circular";
+                break;
+              case 'idLayout2':
+                this.graphParams.layout = "sphere";
+                break;
+            }
+
+            // シーン上のオブジェクトを全て削除して、
+            this.removeGraph();
+
+            // 新たにサンプル用のグラフを作成する
+            this.graph = createSampleGraph({
+              clusters: this.graphParams.clusters,
+              layout: this.graphParams.layout,
+            });
+
+            // シーン上に追加
+            this.drawGraph(this.graph);
+
+          });
+        }
       });
     }
 
@@ -1764,6 +1632,30 @@ export class Diagram {
 
     // シーンに残っているオブジェクトを表示する
     // console.log(this.scene.children);
+  }
+
+  //
+  // グラフのレイアウト変更
+  //
+  changeGraphLayout(layoutName) {
+
+    if (layoutName === "circular") {
+      this.graph.circularLayout();
+    }
+
+    if (layoutName === "sphere") {
+      this.graph.sphereLayout();
+    }
+
+    this.graph.getNodes().forEach((node) => {
+
+      let nodeGroup = this.scene.getObjectByName(`${node.data.id}_group`);
+      if (nodeGroup) {
+        node.position.set(node.position.x, node.position.y, node.position.z);
+      }
+
+    });
+
   }
 
 }

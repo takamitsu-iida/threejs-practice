@@ -266,6 +266,7 @@
     .label.large {
       font-size: 20px;
     }
+
   </style>
 
   <!-- CCapture.js -->
@@ -286,34 +287,51 @@
         <!-- メニュー ここから -->
         <div class="menu-content">
           <ul>
-            <li><a href="#">メニューリンク1</a></li>
-            <li><a href="#">メニューリンク2</a></li>
-            <li><a href="#">メニューリンク3</a></li>
+            <li>
+              <a href="https://github.com/takamitsu-iida/threejs-practice" target="_blank" rel="noopener noreferrer">source code</a>
+            </li>
           </ul>
         </div>
         <!-- メニュー ここまで -->
       </span>
 
-      <span class="control_span" style="margin-left: 60px;">
+      <span class="control_span" style="margin-left: 50px;">
         (clusters, routers/cluster)&nbsp;
         <a id="idData1" name="dataChangeMenu" class="active">(10, 20)</a>
         <a id="idData2" name="dataChangeMenu">(20, 30)</a>
         <a id="idData3" name="dataChangeMenu">(30, 30)</a>
       </span>
 
-      <span><button id="idButton1">グラフ消去</button></span>
+      <span class="control_span" style="margin-left: 10px;">
+        Layout &nbsp;
+        <a id="idLayout1" name="layoutChangeMenu" class="active">Circular</a>
+        <a id="idLayout2" name="layoutChangeMenu">Sphere</a>
+      </span>
 
+      <!-- テスト用
+      <span><button id="idButton1">グラフ消去</button></span>
+      -->
+
+      <!--
       <span style="float: right">
         <a href="https://github.com/takamitsu-iida/threejs-practice" target="_blank" rel="noopener noreferrer">source code</a> (github)
       </span>
+      -->
 
     </div>
 
     <div class="main_panel">
+
       <div id="threejsContainer"></div>
       <div id="statsjsContainer"></div>
       <div id="guiContainer"></div>
       <div id="infoContainer"></div>
+
+      <div id="layout">
+        <button id="buttonCircular">Circular</button>
+        <button id="buttonSphere">Sphere</button>
+      </div>
+
     </div>
 
   </div>

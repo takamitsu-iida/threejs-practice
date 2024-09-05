@@ -255,14 +255,11 @@ export class Main {
 
     }
 
-
     new TWEEN
       .Tween(this)
       .to({}, duration * 2)
       .onUpdate(() => { this.renderer.render(this.scene, this.camera); })
       .start();
-
-
   }
 
 
