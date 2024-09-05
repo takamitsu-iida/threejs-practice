@@ -32,9 +32,18 @@ export class Main {
   }
 
   params = {
+    width: 100,  // X方向の幅
+    depth: 100,  // Z方向の奥行き
+
     segments: 100,  // グリッドの分割数
     roughness: 10,  // 地形の凹凸の高さを調整するパラメータ
     frequency: 10, // 波の頻度を調節するパラメータ
+
+    // HSL
+    hue: 0.3, // 色相を調整するパラメータ
+    saturation: 1.0, // 彩度を調整するパラメータ
+    lightness: 0.5, // 輝度を調整するパラメータ
+
   }
 
   // メッシュ
@@ -135,19 +144,37 @@ export class Main {
       .add(this.params, "roughness", 1, 50, 1)
       .name("roughness")
       .onChange(() => {
-        this.scene.remove(this.terrainMesh);
-        this.terrainMesh = this.generateTerrain();
-        this.scene.add(this.terrainMesh);
+        this.updateTerrain();
       });
 
-      gui
+    gui
       .add(this.params, "frequency", 5, 20, 1)
       .name("frequency")
       .onChange(() => {
-        this.scene.remove(this.terrainMesh);
-        this.terrainMesh = this.generateTerrain();
-        this.scene.add(this.terrainMesh);
+        this.updateTerrain();
       });
+
+    gui
+      .add(this.params, "hue", 0, 1, 0.01) // 色相のパラメータをGUIに追加
+      .name("hue")
+      .onChange(() => {
+        this.updateTerrain();
+      });
+
+    gui
+      .add(this.params, "saturation", 0, 1, 0.01) // 彩度のパラメータをGUIに追加
+      .name("saturation")
+      .onChange(() => {
+        this.updateTerrain();
+      });
+
+    gui
+      .add(this.params, "lightness", 0, 1, 0.01) // 輝度のパラメータをGUIに追加
+      .name("lightness")
+      .onChange(() => {
+        this.updateTerrain();
+      });
+
 
   }
 
@@ -201,8 +228,11 @@ export class Main {
 
   generateTerrain() {
 
-    const width = 100;  // X方向の幅
-    const depth = 100;  // Z方向の奥行き
+    // 幅（X軸方向）
+    const width = this.params.width;
+
+    // 奥行き（Z軸方向）
+    const depth = this.params.depth;
 
     // 分割数
     const segments = this.params.segments;
@@ -216,6 +246,10 @@ export class Main {
     const geometry = new THREE.BufferGeometry();
     const vertices = new Float32Array((segments + 1) * (segments + 1) * 3);
     const colors = new Float32Array((segments + 1) * (segments + 1) * 3);
+
+    const hue = this.params.hue; // 色相のパラメータ
+    const saturation = this.params.saturation; // 彩度のパラメータ
+    const lightness = this.params.lightness; // 輝度のパラメータ
 
     /*
 
@@ -245,7 +279,14 @@ export class Main {
         vertices[vIndex++] = z;
 
         const color = new THREE.Color();
-        color.setHSL(0.3, 1.0, (y + roughness) / (2 * roughness)); // 高さに基づいて色を設定
+
+        // H（Hue, 色相）: 色の種類を表します。0から1の範囲で指定され、0が赤、0.33が緑、0.66が青、1が再び赤に戻ります。
+        // S（Saturation, 彩度）: 色の鮮やかさを表します。0がグレースケール、1が最も鮮やかな色です。
+        // L（Lightness, 輝度）: 色の明るさを表します。0が黒、0.5が標準の明るさ、1が白です。
+
+        // 高さに基づいて色を設定、低い部分は暗く、高い部分は明るく表示
+        // color.setHSL(0.3, 1.0, (y + roughness) / (2 * roughness));
+        color.setHSL(hue, saturation, (y + roughness) / (2 * roughness) * lightness);
 
         colors[cIndex++] = color.r;
         colors[cIndex++] = color.g;
@@ -301,6 +342,51 @@ export class Main {
     const mesh = new THREE.Mesh(geometry, material);
 
     return mesh;
+  }
+
+
+
+  updateTerrain() {
+    const width = this.params.width;
+    const depth = this.params.depth;
+
+    const segments = this.params.segments;
+    const roughness = this.params.roughness; // 凹凸のパラメータ
+    const frequency = this.params.frequency; // 波の頻度のパラメータ
+    const hue = this.params.hue; // 色相のパラメータ
+    const saturation = this.params.saturation; // 彩度のパラメータ
+    const lightness = this.params.lightness; // 輝度のパラメータ
+
+    const vertices = this.terrainMesh.geometry.attributes.position.array;
+    const colors = this.terrainMesh.geometry.attributes.color.array;
+
+    const noise = new ImprovedNoise();
+
+    let vIndex = 0;
+    let cIndex = 0;
+    for (let i = 0; i <= segments; i++) {
+      for (let j = 0; j <= segments; j++) {
+        const x = (i / segments) * width;
+        const z = (j / segments) * depth;
+        const y = noise.noise(x / frequency, z / frequency, 0) * roughness; // 高さにノイズを乗せる
+
+        vertices[vIndex++] = x;
+        vertices[vIndex++] = y;
+        vertices[vIndex++] = z;
+
+        const color = new THREE.Color();
+
+        // 高さに基づいて色を設定、低い部分は暗く、高い部分は明るく表示
+        color.setHSL(hue, saturation, (y + roughness) / (2 * roughness) * lightness);
+
+        colors[cIndex++] = color.r;
+        colors[cIndex++] = color.g;
+        colors[cIndex++] = color.b;
+      }
+    }
+
+    this.terrainMesh.geometry.attributes.position.needsUpdate = true;
+    this.terrainMesh.geometry.attributes.color.needsUpdate = true;
   }
 
 
