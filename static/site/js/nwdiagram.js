@@ -597,6 +597,7 @@ const CLUSTERS_EXAMPLE_3 = [
 export function createSampleGraph(options) {
   options = options || {}
   const clusters = options.hasOwnProperty("clusters") ? options.clusters : CLUSTERS_EXAMPLE_1;
+
   // return new FiveStageClosGraph({ clusters: clusters }).circularLayout().getGraph();
   return new FiveStageClosGraph({ clusters: clusters }).sphereLayout().getGraph();
 }
@@ -623,6 +624,10 @@ export class FiveStageClosGraph {
     this.clusters = options.hasOwnProperty("clusters") ? options.clusters : [];
     this.graph = new Graph();
     this.createNodeEdge();
+
+    console.log(`nodes: ${this.graph.nodes.length}`);
+    console.log(`edges: ${this.graph.edges.length}`);
+
   }
 
   getGraph() {
@@ -822,7 +827,7 @@ export class FiveStageClosGraph {
     let tier1Radius = 40;
     tier1Radius = options.hasOwnProperty("tier1Radius") ? options.tier1Radius : tier1Radius;
 
-    let tier1Height = 120;
+    let tier1Height = 160;
     tier1Height = options.hasOwnProperty("tier1Height") ? options.tier1Height : tier1Height;
 
     // クラスタの数
@@ -882,8 +887,6 @@ export class FiveStageClosGraph {
         }
       }
     });
-
-
 
     // tier1のノードの位置を決める
     for (let i = 0; i < 4; i++) {
