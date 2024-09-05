@@ -139,26 +139,23 @@ export class Main {
     geometry.rotateX(-Math.PI / 2)
 
     // ジオメトリの位置座標を加工して波打たせる
-    const position = geometry.attributes.position;
-
-    // 頂点座標を変更
-    for (let i = 0; i < position.count; i++) {
-      const x = position.getX(i);
-      const y = position.getY(i);
-      const z = position.getZ(i);
+    for (let i = 0; i < geometry.attributes.position.count; i++) {
+      const x = geometry.attributes.position.getX(i);
+      const y = geometry.attributes.position.getY(i);
+      const z = geometry.attributes.position.getZ(i);
 
       const nextY = y + Math.sin(x * 0.05) * this.params.maxY + Math.cos(z * 0.05) * this.params.maxY;
 
-      position.setX(i, x);
-      position.setY(i, nextY);
-      position.setZ(i, z);
+      geometry.attributes.position.setX(i, x);
+      geometry.attributes.position.setY(i, nextY);
+      geometry.attributes.position.setZ(i, z);
     }
 
     // 法線ベクトルを計算し直す
     geometry.computeVertexNormals();
 
     // これをセットしておかないとレンダラは更新してくれない
-    position.needsUpdate = true;
+    geometry.attributes.position.needsUpdate = true;
 
     //
     // ジオメトリにcolor属性を**追加する**
@@ -167,10 +164,10 @@ export class Main {
     const c = new THREE.Color();
 
     // alphaを使う前提で x4
-    const colorBuffer = new Float32Array(position.count * 4);
+    const colorBuffer = new Float32Array(geometry.attributes.position.count * 4);
 
     let colorIndex = 0;
-    for (let i = 0; i < position.count; i++) {
+    for (let i = 0; i < geometry.attributes.position.count; i++) {
       colorIndex = i * 4;
 
       const y = geometry.attributes.position.getY(i);
