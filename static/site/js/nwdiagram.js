@@ -267,6 +267,9 @@ export class CanvasLabel {
 //
 export class Graph {
 
+  nodes;
+  edges;
+
   constructor(elements) {
     this.nodes = [];
     this.edges = [];
@@ -419,12 +422,12 @@ export function createSampleGraph(options) {
   const clusters = options.hasOwnProperty("clusters") ? options.clusters : CLUSTERS_EXAMPLE_1;
   const layout = options.hasOwnProperty("layout") ? options.layout : "circular";
 
-  const fiveStageClosGraph = new FiveStageClosGraph({ clusters: clusters });
+  const fiveStageClosGraph = new FiveStageClosGraph({
+    clusters: clusters,
+    layout: layout
+  });
 
-  if (layout === "sphere") {
-    return fiveStageClosGraph.sphereLayout().getGraph();
-  }
-  return fiveStageClosGraph.circularLayout().getGraph();
+  return fiveStageClosGraph.getGraph();
 }
 
 
@@ -441,18 +444,26 @@ export class FiveStageClosGraph {
   ];
   */
 
-  // Graphクラスのインスタンス
+  // Graphクラスのインスタンス、最後にこれを返す
   graph;
 
   constructor(options) {
     this.options = options || {};
     this.clusters = options.hasOwnProperty("clusters") ? options.clusters : [];
+    this.layout = options.hasOwnProperty("layout") ? options.layout : "circular";
+
+    // 空のGraphインスタンスを作成
     this.graph = new Graph();
+
+    // ノードとエッジを作成してgraphに追加
     this.createNodeEdge();
+    console.log(`(nodes, edges) = (${this.graph.nodes.length}, ${this.graph.edges.length})`);
 
-    console.log(`nodes: ${this.graph.nodes.length}`);
-    console.log(`edges: ${this.graph.edges.length}`);
+    // レイアウトを計算
+    this.calcLayout();
 
+    // レイアウトを設定
+    this.setLayout(this.layout);
   }
 
   getGraph() {
@@ -478,13 +489,18 @@ export class FiveStageClosGraph {
             label: nodeId,
             clusterId: clusterId,
             tier: 3,
+            // 事前に位置を決めておく
+            positions: {
+              circular: { x: 0, y: 0, z: 0 },
+              sphere: { x: 0, y: 0, z: 0 }
+            }
           },
           position: { x: 0, y: 0, z: 0 }
         };
         this.graph.addNode(node);
       }
 
-      // tier2のノード 0系, 1系 を追加
+      // tier2のノードには 0系, 1系 を追加
       for (let i = 0; i < 2; i++) {
         const nodeId = `c${clusterId}_t2_${i}`;
         const node = {
@@ -494,7 +510,12 @@ export class FiveStageClosGraph {
             label: nodeId,
             clusterId: clusterId,
             tier: 2,
-            redundantId: i // 0系, 1系
+            redundantId: i, // 0系, 1系
+            //
+            positions: {
+              circular: { x: 0, y: 0, z: 0 },
+              sphere: { x: 0, y: 0, z: 0 }
+            }
           },
           position: { x: 0, y: 0, z: 0 }
         };
@@ -532,7 +553,12 @@ export class FiveStageClosGraph {
           id: nodeId,
           label: nodeId,
           tier: 1,
-          redundantId: redundantId
+          redundantId: redundantId,
+          //
+          positions: {
+            circular: { x: 0, y: 0, z: 0 },
+            sphere: { x: 0, y: 0, z: 0 }
+          }
         },
         position: { x: 0, y: 0, z: 0 }
       };
@@ -556,6 +582,24 @@ export class FiveStageClosGraph {
       });
     }
   }
+
+  calcLayout() {
+    this.sphereLayout();
+    this.circularLayout();
+  }
+
+  setLayout(layout) {
+    this.layout = layout;
+
+    this.graph.nodes.forEach((node) => {
+      const position = node.data.positions[this.layout];
+      node.position.x = position.x;
+      node.position.y = position.y;
+      node.position.z = position.z;
+    });
+  }
+
+
 
   circularLayout(options) {
     options = options || {};
@@ -603,7 +647,7 @@ export class FiveStageClosGraph {
         const z = radius * Math.sin(theta);
         const n = this.graph.getElementById(nodeId);
         if (n) {
-          n.position = { x, y, z };
+          n.data.positions.circular = { x, y, z };
         }
       }
 
@@ -616,7 +660,7 @@ export class FiveStageClosGraph {
         const z = radius * Math.sin(theta);
         const n = this.graph.getElementById(nodeId);
         if (n) {
-          n.position = { x, y, z };
+          n.data.positions.circular = { x, y, z };
         }
       }
 
@@ -633,7 +677,7 @@ export class FiveStageClosGraph {
       const z = radius * Math.sin(theta);
       const n = this.graph.getElementById(nodeId);
       if (n) {
-        n.position = { x, y, z };
+        n.data.positions.circular = { x, y, z };
       }
     }
 
@@ -689,7 +733,7 @@ export class FiveStageClosGraph {
 
         const n = this.graph.getElementById(nodeId);
         if (n) {
-          n.position = vec3.clone();
+          n.data.positions.sphere = { x: vec3.x, y: vec3.y, z: vec3.z };
         }
       }
 
@@ -708,7 +752,7 @@ export class FiveStageClosGraph {
 
         const n = this.graph.getElementById(nodeId);
         if (n) {
-          n.position = vec3.clone();
+          n.data.positions.sphere = { x: vec3.x, y: vec3.y, z: vec3.z };
         }
       }
     });
@@ -724,7 +768,7 @@ export class FiveStageClosGraph {
       const z = radius * Math.sin(theta);
       const n = this.graph.getElementById(nodeId);
       if (n) {
-        n.position = { x, y, z };
+        n.data.positions.sphere = { x, y, z };
       }
     }
 
@@ -967,27 +1011,26 @@ class Edge extends THREE.Group {
 
     super();
 
-    options = options || {};
-
-    let lineColor = NODE_COLORS.DEFAULT;
-    if (edge.data.hasOwnProperty("redundantId")) {
-      lineColor = edge.data.redundantId === 0 ? NODE_COLORS.REDUNDANT_0 : NODE_COLORS.REDUNDANT_1;
-    }
-
     // グラフのエッジ情報を保持しておく
     this.edge = edge;
+    this.source = source;
+    this.target = target;
+
+    // オプション情報を保持しておく
+    this.options = options || {};
+
+    // 冗長系によって色を変える
+    let lineColor = NODE_COLORS.DEFAULT;
+    if (this.edge.data.hasOwnProperty("redundantId")) {
+      lineColor = edge.data.redundantId === 0 ? NODE_COLORS.REDUNDANT_0 : NODE_COLORS.REDUNDANT_1;
+    }
 
     // グループに名前を設定
     this.name = `${this.edge.data.id}_group`
 
     // 線のジオメトリを作成
     // Tier1ノードとの接続は曲線、それ以外は直線
-    let geometry;
-    if (source.data.tier === 1 || target.data.tier === 1) {
-      geometry = this.createCurveGeometry(source, target);
-    } else {
-      geometry = this.createLineGeometry(source, target);
-    }
+    const geometry = this.createGeometry(source, target);
 
     // マテリアルを作成
     // WebGLの仕様のため線の太さは指定できない
@@ -1026,6 +1069,15 @@ class Edge extends THREE.Group {
     this.add(this.line);
   }
 
+
+  createGeometry(source, target) {
+    if (source.data.tier === 1 || target.data.tier === 1) {
+      return this.createCurveGeometry(source, target);
+    }
+    return this.createLineGeometry(source, target);
+  }
+
+
   createLineGeometry(source, target) {
     const vertices = [];
 
@@ -1042,6 +1094,7 @@ class Edge extends THREE.Group {
 
     return geometry;
   }
+
 
   createCurveGeometry(source, target) {
     const sourcePosition = new THREE.Vector3(source.position.x, source.position.y, source.position.z);
@@ -1064,6 +1117,13 @@ class Edge extends THREE.Group {
     geometry.setFromPoints(points);
 
     return geometry;
+  }
+
+
+  updateGeometry() {
+    const geometry = this.createGeometry(this.source, this.target);
+    this.line.geometry.dispose();
+    this.line.geometry = geometry;
   }
 
 }
@@ -1510,17 +1570,26 @@ export class Diagram {
                 break;
             }
 
-            // シーン上のオブジェクトを全て削除して、
-            this.removeGraph();
+            this.graph.getNodes().forEach((node) => {
+              // Graphのnodeデータの位置情報を指定されたレイアウトにあわせて更新する
+              node.position.x = node.data.positions[this.graphParams.layout].x;
+              node.position.y = node.data.positions[this.graphParams.layout].y;
+              node.position.z = node.data.positions[this.graphParams.layout].z;
 
-            // 新たにサンプル用のグラフを作成する
-            this.graph = createSampleGraph({
-              clusters: this.graphParams.clusters,
-              layout: this.graphParams.layout,
+              // シーン上のNodeクラスオブジェクトの位置を更新する
+              let nodeGroup = this.scene.getObjectByName(`${node.data.id}_group`);
+              if (nodeGroup) {
+                  nodeGroup.position.set(node.position.x, node.position.y, node.position.z);
+              }
             });
 
-            // シーン上に追加
-            this.drawGraph(this.graph);
+            this.graph.getEdges().forEach((edge) => {
+              // シーン上のEdgeクラスオブジェクトの位置を更新する
+              let edgeGroup = this.scene.getObjectByName(`${edge.data.id}_group`);
+              if (edgeGroup) {
+                edgeGroup.updateGeometry();
+              }
+            });
 
           });
         }
