@@ -833,7 +833,7 @@ class Node extends THREE.Group {
     this.name = `${this.node.data.id}_group`
 
     // 位置を設定
-    this.position.set(node.position.x, node.position.y, node.position.z);
+    this.position.set(this.node.position.x, this.node.position.y, this.node.position.z);
 
     //
     // ノード本体を表現する20面体を作成
@@ -972,6 +972,12 @@ class Node extends THREE.Group {
       this.add(this.cone);
     }
   }
+
+
+  updatePosition() {
+    this.position.set(this.node.position.x, this.node.position.y, this.node.position.z);
+  }
+
 
   // ブリンクエフェクト
   // 色で制御するとマウスオーバーの色制御と競合するのでopacityを制御する
@@ -1579,7 +1585,7 @@ export class Diagram {
               // シーン上のNodeクラスオブジェクトの位置を更新する
               let nodeGroup = this.scene.getObjectByName(`${node.data.id}_group`);
               if (nodeGroup) {
-                  nodeGroup.position.set(node.position.x, node.position.y, node.position.z);
+                nodeGroup.updatePosition();
               }
             });
 

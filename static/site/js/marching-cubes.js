@@ -981,7 +981,7 @@ class Terrain {
     |<--------- width ----------->|
 
     +----+----+----+----+----+----+
-    0    1    2    3   ...    xMax
+    0    1    2    3   ...       xMax
 
     |----|----|----+----|----|----|
          |<-->|
@@ -996,8 +996,11 @@ class Terrain {
 
     // 注意
     // 立方体状に積み上げたボクセルの各頂点が保持する値を格納するバッファ
-    // ボクセルは一つ先まで作っておかないと、右端のボクセルでポリゴンをつくれなくなってしまう
+    // width=4, sampleSize=2 の場合、xMax=2 となり、X軸方向の頂点の数は xMax + 1 = 3 となる
     this.fieldBuffer = new Float32Array((this.xMax + 1) * (this.yMax + 1) * (this.zMax + 1));
+
+    // メモ
+    // ややこくなるので、xMax, yMax, zMax は最初から+1しておいた方がよいかも？
 
     console.log(`length of fieldBuffer=${this.fieldBuffer.length}`);
 
@@ -1050,7 +1053,6 @@ class Terrain {
     const index = this.getIndex(i, j, k);
     this.fieldBuffer[index] = value;
   }
-
 
   getFieldValue(i, j, k) {
     const index = this.getIndex(i, j, k);
