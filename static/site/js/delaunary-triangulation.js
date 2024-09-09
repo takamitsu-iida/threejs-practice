@@ -76,9 +76,13 @@ export class Main {
 
   params = {
     wireframe: true,
+
+    terrainSize: { x: 200, y: 200 },
+    pointsCount: 1000,
   }
 
   // メッシュ
+  pointCloud;
   terrainMesh;
 
   // perlin noise
@@ -97,6 +101,9 @@ export class Main {
 
     // 地形を生成
     this.generateTerrain();
+
+    // XZ平面にグリッドを表示
+    // this.gridMarker(this.terrainMesh);
 
     // リサイズイベントを登録
     window.addEventListener("resize", () => { this.onWindowResize(); }, false);
@@ -173,6 +180,18 @@ export class Main {
         this.terrainMesh.material.wireframe = this.params.wireframe;
       });
 
+    gui
+      .add(this.params, "pointsCount", 3, 10000, 10)
+      .name("pointsCount")
+      .onChange((value) => {
+        if (this.pointCloud.geometry.attributes.position.count === value) {
+          return;
+        }
+        this.scene.remove(this.pointCloud);
+        this.scene.remove(this.terrainMesh);
+        this.generateTerrain();
+      });
+
   }
 
   initStatsjs() {
@@ -224,16 +243,17 @@ export class Main {
   }
 
   generateTerrain() {
-    const pointSize = { x: 200, y: 200 };
-    const pointsCount = 1000;
+    const terrainSize = this.params.terrainSize;
+    const pointsCount = this.params.pointsCount;
     const points3d = [];
 
+    // ランダムに配置した点群データを作成
     for (let i = 0; i < pointsCount; i++) {
       // .randFloatSpread ( range : Float ) : Float
       // Random float in the interval [- range / 2, range / 2].
-      let x = THREE.MathUtils.randFloatSpread(pointSize.x);
-      let z = THREE.MathUtils.randFloatSpread(pointSize.y);
-      let y = this.perlin.noise(x / pointSize.x * 5, z / pointSize.y * 5, 3.0) * 50;
+      let x = THREE.MathUtils.randFloatSpread(terrainSize.x);
+      let z = THREE.MathUtils.randFloatSpread(terrainSize.y);
+      let y = this.perlin.noise(x / terrainSize.x * 5, z / terrainSize.y * 5, 3.0) * 50;
 
       points3d.push(new THREE.Vector3(x, y, z));
     }
@@ -243,19 +263,19 @@ export class Main {
     // setFromPoints()で頂点を設定
     geometry.setFromPoints(points3d);
 
-    // 点群を表示
-    var pointCloud = new THREE.Points(
-      geometry,
-      new THREE.PointsMaterial({
-        color: 0x99ccff,
-        size: 1.5,
-      })
-    );
+    // 点群のマテリアルを作成
+    const pointsMaterial = new THREE.PointsMaterial({
+      color: 0x99ccff,
+      size: 1.0,
+    });
 
-    this.scene.add(pointCloud);
+    // 点群を作成
+    this.pointCloud = new THREE.Points(geometry, pointsMaterial);
+
+    this.scene.add(this.pointCloud);
 
     // Delaunay三角形分割
-    const indexDelaunay = Delaunator.from(
+    const delaunay = Delaunator.from(
       points3d.map(v => {
         return [v.x, v.z];
       })
@@ -263,9 +283,12 @@ export class Main {
 
     // Delaunay三角形のインデックスをmeshIndexに代入してThree.jsのインデックスに変換
     const meshIndex = [];
-    for (let i = 0; i < indexDelaunay.triangles.length; i++) {
-      meshIndex.push(indexDelaunay.triangles[i]);
+    for (let i = 0; i < delaunay.triangles.length; i++) {
+      meshIndex.push(delaunay.triangles[i]);
     }
+
+    // おおよそ6倍になる
+    // console.log(meshIndex);
 
     // 点群のジオメトリにインデックスを追加してポリゴン化
     geometry.setIndex(meshIndex);
@@ -273,17 +296,78 @@ export class Main {
     // 法線ベクトルを計算
     geometry.computeVertexNormals();
 
+    // マテリアルを生成
+    const material = new THREE.MeshLambertMaterial({
+      color: "silver",
+      wireframe: this.params.wireframe,
+    });
+
     // メッシュを生成
-    this.terrainMesh = new THREE.Mesh(
-      geometry, // re-use the existing geometry
-      new THREE.MeshLambertMaterial({
-        color: "purple",
-        wireframe: this.params.wireframe,
-      })
-    );
+    this.terrainMesh = new THREE.Mesh(geometry, material);
 
     this.scene.add(this.terrainMesh);
+  }
+
+  gridMarker(mesh) {
+
+    // メッシュの境界を特定
+    const boundingBox = new THREE.Box3().setFromObject(mesh);
+    const minX = Math.floor(boundingBox.min.x);
+    const maxX = Math.floor(boundingBox.max.x);
+    const minZ = Math.floor(boundingBox.min.z);
+    const maxZ = Math.floor(boundingBox.max.z);
+
+    const gridUnit = 5;
+
+    // Raycasterを作成
+    const raycaster = new THREE.Raycaster();
+
+    // レイを飛ばす元の座標
+    const targetVec = new THREE.Vector3();
+
+    // レイを飛ばす向きを表す単位ベクトル、この場合は上空から地面に向かう方向
+    const dirVec = new THREE.Vector3(0, -1, 0);
+
+    const markerGeometry = new THREE.BufferGeometry();
+    const markerPoints = [];
+
+    for (let x = minX * 2; x < maxX * 2; x += gridUnit) {
+      for (let z = minZ * 2; z < maxZ * 2; z += gridUnit) {
+
+        // レイを飛ばす始点
+        targetVec.set(x, 1000, z);
+
+        // 上空から地面方向に向かってレイを飛ばす
+        raycaster.set(targetVec, dirVec);
+
+        // メッシュとの交差判定
+        const intersects = raycaster.intersectObjects([mesh]);
+
+        if (intersects.length > 0) {
+          const intersect = intersects[0];
+          markerPoints.push(new THREE.Vector3(x, intersect.point.y, z));
+        } else {
+          markerPoints.push(new THREE.Vector3(x, 0, z));
+          // console.log(`交点なし: ${x}, ${z}`);
+        }
+
+      }
+    }
+
+    // setFromPoints()で頂点を設定
+    markerGeometry.setFromPoints(markerPoints);
+
+    // 点群のマテリアルを作成
+    const markerMaterial = new THREE.PointsMaterial({
+      color: 0xff0000,
+      size: 1.0,
+    });
+
+    const markerPointCloud = new THREE.Points(markerGeometry, markerMaterial);
+
+    this.scene.add(markerPointCloud);
 
   }
+
 
 }
