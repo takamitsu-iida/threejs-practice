@@ -437,6 +437,32 @@
 
 
 
+      <h2>地形・その３</h2>
+
+      <p>元になるデータがグリッドの場合は三角形のポリゴンを簡単に作れるけど、データが点群だった場合にどうするか。</p>
+      <p>これを解決するのがデローネ三角形。</p>
+      <p>DelaunatorというJavaScriptのライブラリがあるので、これを使うと簡単に点群をポリゴン化できる。</p>
+      <br>
+      引用元は<a href="https://hofk.de/main/discourse.threejs/2018/Triangulation/Triangulation.html">こちら</a>。
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-delaunary-triangulation.html">
+          <div>Live Demo</div><br>
+          <div><img src="./asset/index-delaunary-triangulation.html.png" /></div>
+        </a>
+      </p>
+
+      <p>
+        HTML <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-delaunary-triangulation.html">index-delaunary-triangulation.thml.html</a>
+      </p>
+      <p>
+        JavaScript <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/delaunary-triangulation.js">delaunary-triangulation.js</a>
+      </p>
+
+
+
       <h2>プレーンジオメトリ</h2>
 
       <p>ネットに掲載されていたシェーダーの使用例からシェーダー部分を取り除いたもの。</p>
