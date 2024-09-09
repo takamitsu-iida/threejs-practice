@@ -88,7 +88,8 @@ https://takamitsu-iida.github.io/threejs-practice/index-examples.html
 WindowsのChromeでは動いているのに、MacOSでは以下のメッセージがコンソールに出力されて何も描画されないことがありました。
 
 ```
-[.WebGL-0x12004ecc700] GL_INVALID_OPERATION: Vertex buffer is not big enough for the draw callUnderstand this warning
+[.WebGL-0x12004ecc700] GL_INVALID_OPERATION:
+ Vertex buffer is not big enough for the draw callUnderstand this warning
 ```
 
 ジオメトリの頂点を直接操作したときにこのメッセージが出ることが多いようですが、
