@@ -37,16 +37,6 @@ https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html
 > 搭載しているGPUの性能によっては重い処理になります。
 > 2015 EarlyモデルのMacbook Proでは60fps出せませんでした。
 
-<br>
-
-> [!NOTE]
->
-> グラフィックボードを持たないシンクライアントやWebGLをサポートしていないブラウザでは
->
-> `Your graphics card does not seem to support WebGL`
->
-> としか表示されません。
-
 
 <br><br>
 
@@ -56,7 +46,7 @@ https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html
 
 Deeperの有料会員になれば3Dで海底地形図が見れるようですが、それをなんとか自分のチカラでやってみたい、という思いです。
 
-まだ実力が足りないので、まずはポイントクラウドを表示してみる感じかな。
+まだ実力が足りないので、まずはポイントクラウドを表示してみて、デローネ三角形でポリゴンにしたらどうなるかを実験してみたい。
 
 <br><br><br>
 
