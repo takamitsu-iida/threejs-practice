@@ -76,7 +76,7 @@ CSVのデータは14万ポイント。
 
 勉強用に作ったものを一覧化したものです。
 
-https://takamitsu-iida.github.io/threejs-practice/index-examples.html
+https://takamitsu-iida.github.io/threejs-practice/index-load-csv.html
 
 参照元は本家Three.jsであったり、Udemyであったり、ネット上の記事であったりとマチマチですが、
 後で自分が参照するときに困らないようにソースコードはできるだけ同じような書き方に変えています。
