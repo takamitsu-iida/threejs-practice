@@ -31,7 +31,7 @@ export class Main {
   }
 
   params = {
-    path: "https://takamitsu-iida.github.io/aburatsubo-terrain-data/data/data.csv",
+    path: "./static/data/depth_map_data.csv",
     csvData: null,
 
     autoRotate: true,

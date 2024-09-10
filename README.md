@@ -42,9 +42,7 @@ https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html
 
 ## 目標２．海底地形図作成
 
-魚群探知機から抽出した水深のCSVデータを加工して3Dで表示したい。
-
-Deeperの有料会員になれば3Dで海底地形図が見れるようですが、それをなんとか自分のチカラでやってみたい、という思いです。
+魚群探知機から抽出した水深のCSVデータを加工して3Dで海底地形図を表示したい。
 
 まだ実力が足りないので、
 まずはポイントクラウドを表示してみて、
@@ -54,7 +52,7 @@ Deeperの有料会員になれば3Dで海底地形図が見れるようですが
 
 https://takamitsu-iida.github.io/threejs-practice/index-load-csv.html
 
-CSVのデータは14万ポイント。
+用いたCSVのデータは14万ポイント。
 
 ある程度はPythonで処理して異常値を弾いたつもりですが、まだまだおかしなデータが含まれてる感じがします。
 
