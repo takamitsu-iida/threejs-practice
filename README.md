@@ -45,10 +45,7 @@ https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html
 魚群探知機から抽出した水深のCSVデータを加工して3Dで海底地形図を表示したい。
 
 まだ実力が足りないので、
-まずはポイントクラウドを表示してみて、
-デローネ三角形でポリゴンにしたらどうなるかを実験してみたいところ。
-
-試しにCSVファイルを読み込んでポイントクラウドにしたものがこれです。
+まずはポイントクラウドを表示してみてどう見えるか。試しにやってみたのがこれです。
 
 https://takamitsu-iida.github.io/threejs-practice/index-load-csv.html
 
@@ -67,6 +64,12 @@ https://takamitsu-iida.github.io/threejs-practice/index-load-csv.html
 | 75%   |     35.165      |    139.61       |     22.875   |
 | max   |     35.1797     |    139.622      |     47.539   |
 
+
+<br>
+
+ポイント数は十分だろうからデローネ三角形でポリゴン化してみようかな、と漠然と考えていたけど、
+明らかにデータが密な場所と疎な場所で差がありすぎるので、
+先にどうやってデータ補間するかを解決しないと。
 
 <br><br><br>
 
