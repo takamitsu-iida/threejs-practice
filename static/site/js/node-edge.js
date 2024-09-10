@@ -19,7 +19,7 @@ export class Main {
 
   params = {
     autoRotate: true,
-    autoRotateSpeed: 3.0,
+    autoRotateSpeed: 2.0,
   }
 
   constructor() {
