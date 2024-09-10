@@ -52,7 +52,7 @@ Deeperの有料会員になれば3Dで海底地形図が見れるようですが
 
 試しにCSVファイルを読み込んでポイントクラウドにしたものがこれです。
 
-https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html
+https://takamitsu-iida.github.io/threejs-practice/index-load-csv.html
 
 CSVのデータは14万ポイント。
 
@@ -76,7 +76,7 @@ CSVのデータは14万ポイント。
 
 勉強用に作ったものを一覧化したものです。
 
-https://takamitsu-iida.github.io/threejs-practice/index-load-csv.html
+https://takamitsu-iida.github.io/threejs-practice/index-examples.html
 
 参照元は本家Three.jsであったり、Udemyであったり、ネット上の記事であったりとマチマチですが、
 後で自分が参照するときに困らないようにソースコードはできるだけ同じような書き方に変えています。
