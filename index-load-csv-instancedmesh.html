@@ -8,7 +8,7 @@
 
   <link rel="shortcut icon" type="image/x-icon" href="./static/site/img/favicon.ico">
 
-  <title>Instanced Geometry Example</title>
+  <title>Instanced Mesh Example</title>
 
   <style type="text/css">
     * {
@@ -103,38 +103,6 @@
         transform: rotate(1turn)
       }
     }
-
-    #buttonMenu {
-      position: absolute;
-      bottom: 20px;
-      width: 100%;
-      text-align: center;
-    }
-
-    #buttonMenu button {
-      color: rgba(127, 255, 255, 0.75);
-      background: transparent;
-      outline: 1px solid rgba(127, 255, 255, 0.75);
-      border: 0px;
-      padding: 5px 10px;
-      cursor: pointer;
-    }
-
-    #buttonMenu button:hover {
-      background-color: rgba(0, 255, 255, 0.5);
-    }
-
-    #buttonMenu button:active {
-      color: #000000;
-      background-color: rgba(0, 255, 255, 0.75);
-    }
-
-    /* SelectionHelper */
-    .selectBox {
-      border: 1px solid #55aaff;
-      background-color: rgba(75, 160, 255, 0.3);
-      position: fixed;
-    }
   </style>
 
 </head>
@@ -147,12 +115,6 @@
   <div id="threejsContainer"></div>
   <div id="statsjsContainer"></div>
   <div id="guiContainer"></div>
-
-  <div id="buttonMenu">
-    <button id="enableSelectionBox">SelectionBox ON</button>
-    <button id="disableSelectionBox">SelectionBox OFF</button>
-  </div>
-
 </body>
 
 <!-- three.js -->
@@ -168,7 +130,7 @@
 
 <script type="module">
   import WebGL from './static/libs/capabilities/WebGL.js';
-  import { Main } from "./static/site/js/load-csv-instancedgeometry-selectionbox.js";
+  import { Main } from "./static/site/js/load-csv-instancedmesh.js";
 
   window.addEventListener("load", () => {
     if (WebGL.isWebGL2Available()) {

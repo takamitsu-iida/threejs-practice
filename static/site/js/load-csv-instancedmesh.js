@@ -277,7 +277,6 @@ export class Main {
     const dataList = this.params.csvData;
 
     // データの入れ物
-    const positionArray = new Float32Array(dataList.length * 3);
     const colorArray = new Float32Array(dataList.length * 3);
 
     dataList.forEach((obj, index) => {
@@ -300,9 +299,7 @@ export class Main {
     const geometry = new THREE.InstancedBufferGeometry();
 
     // 元になるジオメトリを一つ作成
-    // Boxが高速、Icosahedronは重くて使えない
     const originGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
-    // const originGeometry = new THREE.IcosahedronGeometry(0.1, 3);
 
     // シェーダーで必要になるパラメータを追加しておく
     geometry.setAttribute("position", originGeometry.attributes.position.clone());
@@ -316,42 +313,27 @@ export class Main {
     geometry.setAttribute("instancePosition", new THREE.InstancedBufferAttribute(positionArray, 3));
     geometry.setAttribute("instanceColor", new THREE.InstancedBufferAttribute(colorArray, 3));
 
-    const vertex = /* glsl */ `
-      attribute vec3 instancePosition;
-      attribute vec3 instanceColor;
-
-      varying vec3 vColor;
-
-      void main() {
-        // vec4 modelPosition = modelMatrix * vec4(position, 1.0);
-        vec4 modelPosition = modelMatrix * vec4(position + instancePosition, 1.0);
-        vec4 viewPosition = viewMatrix * modelPosition;
-        vec4 projectionPosition = projectionMatrix * viewPosition;
-
-        gl_Position = projectionPosition;
-
-        vColor = instanceColor;
-      }
-    `;
-
-    const fragment = /* glsl */ `
-      varying vec3 vColor;
-
-      void main() {
-        gl_FragColor = vec4(vColor, 1.0);
-      }
-    `;
-
-    const material = new THREE.ShaderMaterial({
-      vertexShader: vertex,
-      fragmentShader: fragment,
-      uniforms: {},
-      vertexColors: false,
-      transparent: false,
-      depthTest: false,
+    // マテリアル
+    const material = new THREE.MeshPhongMaterial({
+      color: 0xffffff,
     });
 
-    this.pointCloud = new THREE.Mesh(geometry, material);
+    // インスタンスメッシュをデータの数だけ作成
+    this.pointCloud = new THREE.InstancedMesh(geometry, material, dataList.length);
+
+    for (let index=0; index<dataList.length; index++) {
+      const matrix = new THREE.Matrix4();
+      matrix.setPosition(
+        positionArray[index * 3 + 0],
+        positionArray[index * 3 + 1],
+        positionArray[index * 3 + 2]
+      );
+      this.pointCloud.setMatrixAt(index, matrix);
+
+      const color = new THREE.Color(colorArray[index * 3 + 0], colorArray[index * 3 + 1], colorArray[index * 3 + 2]);
+      this.pointCloud.setColorAt(index, color);
+    };
+
     this.scene.add(this.pointCloud);
 
     // アトリビュートの更新を通知

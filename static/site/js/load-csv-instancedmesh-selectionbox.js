@@ -7,6 +7,9 @@ import { GUI } from "three/libs/lil-gui.module.min.js";
 // stats.js
 import Stats from "three/libs/stats.module.js";
 
+// SelectionBox
+import { SelectionBox } from "three/libs/interactive/SelectionBox.js";
+import { SelectionHelper } from "three/libs/interactive/SelectionHelper.js";
 
 export class Main {
 
@@ -69,6 +72,10 @@ export class Main {
 
     // CSVデータを元に点群を初期化
     this.initPointCloud();
+
+    // SelectionBoxを初期化
+    this.initSelectionBox();
+    // this.initSelection();
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
@@ -279,6 +286,7 @@ export class Main {
     // データの入れ物
     const positionArray = new Float32Array(dataList.length * 3);
     const colorArray = new Float32Array(dataList.length * 3);
+    const removedArray = new Float32Array(dataList.length);
 
     dataList.forEach((obj, index) => {
 
@@ -292,6 +300,9 @@ export class Main {
       colorArray[index * 3 + 1] = 0.8;
       colorArray[index * 3 + 2] = 1.0;
 
+      // 削除フラグ
+      removedArray[index] = 0.0;
+
     });
 
     // THREE.InstancedBufferGeometry を使ってポイントクラウドを描画する
@@ -300,14 +311,13 @@ export class Main {
     const geometry = new THREE.InstancedBufferGeometry();
 
     // 元になるジオメトリを一つ作成
-    // Boxが高速、Icosahedronは重くて使えない
     const originGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
-    // const originGeometry = new THREE.IcosahedronGeometry(0.1, 3);
 
     // シェーダーで必要になるパラメータを追加しておく
     geometry.setAttribute("position", originGeometry.attributes.position.clone());
     geometry.setAttribute("normal", originGeometry.attributes.normal.clone());
     geometry.setAttribute("uv", originGeometry.attributes.uv.clone());
+    geometry.setIndex(originGeometry.index.clone());
     if (originGeometry.index) {
       geometry.setIndex(originGeometry.index.clone());
     }
@@ -315,48 +325,192 @@ export class Main {
     // 個々に設定するアトリビュートを追加
     geometry.setAttribute("instancePosition", new THREE.InstancedBufferAttribute(positionArray, 3));
     geometry.setAttribute("instanceColor", new THREE.InstancedBufferAttribute(colorArray, 3));
+    geometry.setAttribute("removed", new THREE.InstancedBufferAttribute(removedArray, 1));
 
-    const vertex = /* glsl */ `
-      attribute vec3 instancePosition;
-      attribute vec3 instanceColor;
-
-      varying vec3 vColor;
-
-      void main() {
-        // vec4 modelPosition = modelMatrix * vec4(position, 1.0);
-        vec4 modelPosition = modelMatrix * vec4(position + instancePosition, 1.0);
-        vec4 viewPosition = viewMatrix * modelPosition;
-        vec4 projectionPosition = projectionMatrix * viewPosition;
-
-        gl_Position = projectionPosition;
-
-        vColor = instanceColor;
-      }
-    `;
-
-    const fragment = /* glsl */ `
-      varying vec3 vColor;
-
-      void main() {
-        gl_FragColor = vec4(vColor, 1.0);
-      }
-    `;
-
-    const material = new THREE.ShaderMaterial({
-      vertexShader: vertex,
-      fragmentShader: fragment,
-      uniforms: {},
-      vertexColors: false,
-      transparent: false,
-      depthTest: false,
+    // マテリアル
+    const material = new THREE.MeshPhongMaterial({
+      transparent: true,
+      opacity: 1.0,
+      color: 0xffffff,
     });
 
-    this.pointCloud = new THREE.Mesh(geometry, material);
+    // インスタンスメッシュをデータの数だけ作成
+    this.pointCloud = new THREE.InstancedMesh(originGeometry, material, dataList.length);
+
+    for (let index = 0; index < dataList.length; index++) {
+      const matrix = new THREE.Matrix4();
+      matrix.setPosition(
+        positionArray[index * 3 + 0],
+        positionArray[index * 3 + 1],
+        positionArray[index * 3 + 2]
+      );
+      this.pointCloud.setMatrixAt(index, matrix);
+
+      const color = new THREE.Color(
+        colorArray[index * 3 + 0],
+        colorArray[index * 3 + 1],
+        colorArray[index * 3 + 2]
+      );
+      this.pointCloud.setColorAt(index, color);
+    };
+
     this.scene.add(this.pointCloud);
 
     // アトリビュートの更新を通知
     // geometry.attributes.instancePosition.needsUpdate = true;
     // geometry.attributes.instanceColor.needsUpdate = true;
+  }
+
+
+  initSelectionBox() {
+    const selectionBox = new SelectionBox(this.camera, this.pointCloud);
+    selectionBox.enabled = false;
+
+    // 第三引数のselectBoxはCSSと合わせる
+    const selectionHelper = new SelectionHelper(this.renderer, 'selectBox');
+    selectionHelper.enabled = false;
+
+    const onPointerDown = (event) => {
+      selectionBox.startPoint.set(
+        (event.clientX / window.innerWidth) * 2 - 1,
+        -(event.clientY / window.innerHeight) * 2 + 1,
+        0.5
+      );
+    };
+
+    const onPointerMove = (event) => {
+      if (selectionHelper.isDown) {
+        selectionBox.endPoint.set(
+          (event.clientX / window.innerWidth) * 2 - 1,
+          -(event.clientY / window.innerHeight) * 2 + 1,
+          0.5
+        );
+      }
+    };
+
+    const onPointerUp = (event) => {
+      selectionBox.endPoint.set(
+        (event.clientX / window.innerWidth) * 2 - 1,
+        -(event.clientY / window.innerHeight) * 2 + 1,
+        0.5
+      );
+
+      selectionBox.select();
+
+      const instances = selectionBox.instances;
+      const indeces = Object.values(instances)[0];
+      const color = new THREE.Color();
+      color.setRGB(1, 1, 0);
+      if (indeces.length > 0) {
+        console.log(indeces);
+        for (let i = 0; i < indeces.length; i++) {
+          // this.pointCloud.geometry.attributes.removed.array[indeces[i]] = 1.0;
+          // this.pointCloud.geometry.attributes.removed.needsUpdate = true;
+
+          this.pointCloud.setColorAt(indeces[i], color);
+          this.pointCloud.instanceColor.needsUpdate = true;
+
+        }
+
+
+      }
+
+      selectionBox.instances = {};
+
+    }
+
+    // Selectionを有効にするボタン
+    const enableButton = document.getElementById('enableSelectionBox');
+    enableButton.addEventListener('click', () => {
+      selectionBox.enabled = true;
+      selectionHelper.enabled = true;
+
+      document.addEventListener('pointerdown', onPointerDown);
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', onPointerUp);
+      // OrbitControlsを無効にする
+      this.controller.enabled = false;
+    });
+
+    // Selectionを無効にするボタンを追加
+    const disableButton = document.getElementById('disableSelectionBox');
+    disableButton.addEventListener('click', () => {
+      selectionBox.enabled = false;
+      selectionHelper.enabled = false;
+
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', onPointerUp);
+      // OrbitControlsを有効にする
+      this.controller.enabled = true;
+    });
+
+
+  }
+
+
+  initSelection() {
+    const raycaster = new THREE.Raycaster();
+
+    // レイが交差する対象
+    let intersects = [];
+
+    // マウス位置
+    const mousePosition = new THREE.Vector2()
+
+    const onMouseMove = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      // DOM要素(canvas)を取得する
+      // これはeventから取得してもよいし、paramsで渡されたものを使ってもよい
+      // const element = this.domElement;
+      const element = event.currentTarget;
+
+      // その要素の位置を取得
+      const clientRect = element.getBoundingClientRect();
+
+      // canvas要素の左上を起点とするマウス座標
+      const x = event.clientX - clientRect.x;
+      const y = event.clientY - clientRect.y;
+
+      // canvas要素の幅、高さ (paddingが含まれるのでCSSで0にしておくこと)
+      const w = element.clientWidth;
+      const h = element.clientHeight;
+
+      // マウス座標を(-1, 1)の範囲に変換
+      mousePosition.x = +(x / w) * 2 - 1;
+      mousePosition.y = -(y / h) * 2 + 1;
+
+      // マウス座標に向かってレイを飛ばす
+      raycaster.setFromCamera(mousePosition, this.camera);
+      intersects = raycaster.intersectObject(this.pointCloud);
+      if (intersects.length > 0) {
+        console.log(intersects[0]);
+        const instancedMesh = intersects[0].object;
+
+        const instanceId = intersects[0].instanceId;
+        // console.log(this.pointCloud.geometry.attributes.instancePosition.array[instanceId]);
+
+        instancedMesh.setColorAt(instanceId, new THREE.Color().setHex(Math.random() * 0xffffff));
+        instancedMesh.instanceColor.needsUpdate = true;
+
+      }
+
+    };
+
+    this.renderer.domElement.addEventListener("mousemove", (event) => { onMouseMove(event); });
+
+    const colorPoint = (index) => {
+      this.pointCloud.geometry.attributes.color.setXYZ(index, 0, 1, 0);
+      this.pointCloud.geometry.attributes.color.needsUpdate = true;
+    };
+
+
+    const onPointerUp = (event) => {
+      // OrbitControlsを有効にする
+      // this.controller.enabled = true;
+    };
 
   }
 

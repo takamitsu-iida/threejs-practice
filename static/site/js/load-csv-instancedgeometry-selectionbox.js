@@ -7,9 +7,10 @@ import { GUI } from "three/libs/lil-gui.module.min.js";
 // stats.js
 import Stats from "three/libs/stats.module.js";
 
-//
+// SelectionBox
 import { SelectionBox } from "three/libs/interactive/SelectionBox.js";
 import { SelectionHelper } from "three/libs/interactive/SelectionHelper.js";
+
 
 export class Main {
 
@@ -72,6 +73,9 @@ export class Main {
 
     // CSVデータを元に点群を初期化
     this.initPointCloud();
+
+    // Selectionを初期化
+    this.initSelectionBox();
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
@@ -298,7 +302,6 @@ export class Main {
 
       // 削除フラグ
       removedArray[index] = 0.0;
-
     });
 
     // THREE.InstancedBufferGeometry を使ってポイントクラウドを描画する
@@ -306,14 +309,17 @@ export class Main {
     // GPUに対して同じ図形を描画せよ、と指示することで高速化できる
     const geometry = new THREE.InstancedBufferGeometry();
 
-    // 元になる立方体のジオメトリを一つ作成
-    const originBox = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    // 元になるジオメトリを一つ作成
+    // Boxが高速、Icosahedronは重くて使えない
+    const originGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
 
     // シェーダーで必要になるパラメータを追加しておく
-    geometry.setAttribute("position", originBox.attributes.position.clone());
-    geometry.setAttribute("normal", originBox.attributes.normal.clone());
-    geometry.setAttribute("uv", originBox.attributes.uv.clone());
-    geometry.setIndex(originBox.index.clone());
+    geometry.setAttribute("position", originGeometry.attributes.position.clone());
+    geometry.setAttribute("normal", originGeometry.attributes.normal.clone());
+    geometry.setAttribute("uv", originGeometry.attributes.uv.clone());
+    if (originGeometry.index) {
+      geometry.setIndex(originGeometry.index.clone());
+    }
 
     // 個々に設定するアトリビュートを追加
     geometry.setAttribute("instancePosition", new THREE.InstancedBufferAttribute(positionArray, 3));
@@ -328,11 +334,6 @@ export class Main {
       varying vec3 vColor;
 
       void main() {
-        if (removed > 0.5) {
-          gl_Position = vec4(0.0, 0.0, 0.0, 0.0);
-          return;
-        }
-
         // vec4 modelPosition = modelMatrix * vec4(position, 1.0);
         vec4 modelPosition = modelMatrix * vec4(position + instancePosition, 1.0);
         vec4 viewPosition = viewMatrix * modelPosition;
@@ -340,7 +341,11 @@ export class Main {
 
         gl_Position = projectionPosition;
 
-        vColor = instanceColor;
+        if (removed > 0.0) {
+          vColor = vec3(0.0, 0.0, 0.0);
+        } else {
+          vColor =  instanceColor;
+        }
       }
     `;
 
@@ -361,16 +366,26 @@ export class Main {
       depthTest: false,
     });
 
-    this.pointCloud = new THREE.Mesh(geometry, material);
+    this.pointCloud = new THREE.InstancedMesh(geometry, material, dataList.length);
+
+    for (let index = 0; index < dataList.length; index++) {
+      const matrix = new THREE.Matrix4();
+      matrix.setPosition(
+        positionArray[index * 3 + 0],
+        positionArray[index * 3 + 1],
+        positionArray[index * 3 + 2]
+      );
+      this.pointCloud.setMatrixAt(index, matrix);
+    };
+
     this.scene.add(this.pointCloud);
 
     // アトリビュートの更新を通知
-    geometry.attributes.instancePosition.needsUpdate = true;
-    geometry.attributes.instanceColor.needsUpdate = true;
+    // geometry.attributes.instancePosition.needsUpdate = true;
 
   }
 
-  /*
+
   initSelection() {
     const raycaster = new THREE.Raycaster();
 
@@ -381,8 +396,6 @@ export class Main {
     const mousePosition = new THREE.Vector2()
 
     const onMouseMove = (event) => {
-      event.preventDefault();
-      event.stopPropagation();
 
       // DOM要素(canvas)を取得する
       // これはeventから取得してもよいし、paramsで渡されたものを使ってもよい
@@ -406,42 +419,106 @@ export class Main {
 
       // マウス座標に向かってレイを飛ばす
       raycaster.setFromCamera(mousePosition, this.camera);
-      intersects = raycaster.intersectObject(this.pointCloud, true);
+      intersects = raycaster.intersectObject(this.pointCloud);
+
+
       if (intersects.length > 0) {
-
         console.log(intersects[0]);
+        const instancedMesh = intersects[0].object;
 
-        const { x, y, z } = intersects[0].point;
-        // console.log(`intersecting at (x: ${x}, y: ${y}, z: ${z})`);
-        // console.log(`index: ${intersects[0].index}`);
-
-        colorPoint(intersects[0].index);
-
+        const instanceId = intersects[0].instanceId;
+        // console.log(this.pointCloud.geometry.attributes.instancePosition.array[instanceId]);
 
       }
 
     };
 
-    this.renderer.domElement.addEventListener("mousemove", (event) => { onMouseMove(event); });
+    this.renderer.domElement.addEventListener("mousemove", onMouseMove);
+
+  }
 
 
-    const colorPoint = (index) => {
-      this.pointCloud.geometry.attributes.color.setXYZ(index, 0, 1, 0);
-      this.pointCloud.geometry.attributes.color.needsUpdate = true;
+
+
+  initSelectionBox() {
+    const selectionBox = new SelectionBox(this.camera, this.pointCloud);
+    selectionBox.enabled = false;
+
+    // 第三引数のselectBoxはCSSと合わせる
+    const selectionHelper = new SelectionHelper(this.renderer, 'selectBox');
+    selectionHelper.enabled = false;
+
+    const onPointerDown = (event) => {
+      const element = event.currentTarget;
+      const w = element.clientWidth;
+      const h = element.clientHeight;
+
+      selectionBox.startPoint.set(
+        (event.clientX / w) * 2 - 1,
+        -(event.clientY / h) * 2 + 1,
+        0.5
+      );
     };
 
+    const onPointerMove = (event) => {
+      if (selectionHelper.isDown) {
+        const element = event.currentTarget;
+        const w = element.clientWidth;
+        const h = element.clientHeight;
+
+        selectionBox.endPoint.set(
+          (event.clientX / w) * 2 - 1,
+          -(event.clientY / h) * 2 + 1,
+          0.5
+        );
+      }
+    };
 
     const onPointerUp = (event) => {
-      // OrbitControlsを有効にする
-      this.controller.enabled = true;
-    };
+      const element = event.currentTarget;
+      const w = element.clientWidth;
+      const h = element.clientHeight;
+
+      selectionBox.endPoint.set(
+        (event.clientX / w) * 2 - 1,
+        -(event.clientY / h) * 2 + 1,
+        0.5
+      );
+
+      selectionBox.select();
+
+      const instances = selectionBox.instances;
+      const indeces = Object.values(instances)[0];
+
+      if (indeces.length > 0) {
+        console.log(indeces);
+        for (let i = 0; i < indeces.length; i++) {
+          const index = indeces[i];
+          // console.log(index);
+          this.pointCloud.geometry.attributes.removed.array[index] = 1.0;
+          this.pointCloud.geometry.attributes.removed.needsUpdate = true;
+
+        }
+
+      }
+
+      selectionBox.instances = {};
+
+      console.log(this.pointCloud);
+
+    }
 
     // Selectionを有効にするボタン
     const enableButton = document.getElementById('enableSelectionBox');
     enableButton.addEventListener('click', () => {
-      document.addEventListener('pointerdown', onPointerDown);
-      document.addEventListener('pointermove', onPointerMove);
-      document.addEventListener('pointerup', onPointerUp);
+      selectionBox.enabled = true;
+      selectionHelper.enabled = true;
+
+      // マウスイベントを追加
+      this.renderer.domElement.addEventListener('pointerdown', onPointerDown);
+      this.renderer.domElement.addEventListener('pointermove', onPointerMove);
+      this.renderer.domElement.addEventListener('pointerup', onPointerUp);
+
       // OrbitControlsを無効にする
       this.controller.enabled = false;
     });
@@ -449,15 +526,19 @@ export class Main {
     // Selectionを無効にするボタンを追加
     const disableButton = document.getElementById('disableSelectionBox');
     disableButton.addEventListener('click', () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('pointermove', onPointerMove);
-      document.removeEventListener('pointerup', onPointerUp);
+      selectionBox.enabled = false;
+      selectionHelper.enabled = false;
+
+      // マウスイベントを削除
+      this.renderer.domElement.removeEventListener('pointerdown', onPointerDown);
+      this.renderer.domElement.removeEventListener('pointermove', onPointerMove);
+      this.renderer.domElement.removeEventListener('pointerup', onPointerUp);
+
       // OrbitControlsを有効にする
       this.controller.enabled = true;
     });
+
+
   }
-  */
-
-
 
 }
