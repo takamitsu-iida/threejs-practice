@@ -75,7 +75,6 @@ export class Main {
 
     // SelectionBoxを初期化
     this.initSelectionBox();
-    // this.initSelection();
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
@@ -91,6 +90,12 @@ export class Main {
         throw new Error(`HTTP status: ${response.status}`);
       }
 
+      // テキストデータを取得
+      const text = await response.text();
+
+      // CSVデータをパース
+      this.params.csvData = this.parseCsv(text);
+
       // 瞬時にfetchできても0.5秒はローディング画面を表示する
       const interval = setInterval(() => {
         loadingContainer.classList.add('fadeout');
@@ -101,12 +106,6 @@ export class Main {
       loadingContainer.addEventListener('transitionend', (event) => {
         event.target.remove();
       });
-
-      // テキストデータを取得
-      const text = await response.text();
-
-      // CSVデータをパース
-      this.params.csvData = this.parseCsv(text);
 
     } catch (error) {
       const errorMessage = `Error while loading CSV: ${error}`;
@@ -146,7 +145,7 @@ export class Main {
 
     // |       |             lat |             lon |        depth |
     // |:------|----------------:|----------------:|-------------:|
-    // | mean  |     35.1641     |    139.607      |     17.0863  |
+    // | mean  |     35.1641     |    139.608      |     16.4776  |
 
     // 小数点以下を消すなら、このスケールになるんだけど、とんでもなくでかい数字になるので
     // const scale = 100000000000000;
@@ -154,8 +153,11 @@ export class Main {
     // このくらいがちょうど良さそう
     const scale = 10000;
 
-    rowData.lat = -1 * (parseFloat(rowData.lat) - 35.1641) * scale;
-    rowData.lon = (parseFloat(rowData.lon) - 139.607) * scale;
+    const latMean = 35.1641;
+    const lonMean = 139.608;
+
+    rowData.lat = -1 * (parseFloat(rowData.lat) - latMean) * scale;
+    rowData.lon = (parseFloat(rowData.lon) - lonMean) * scale;
     rowData.depth = -1 * parseFloat(rowData.depth);
 
   }
@@ -208,7 +210,7 @@ export class Main {
     const axesHelper = new THREE.AxesHelper(10000);
     this.scene.add(axesHelper);
 
-    this.scene.add(new THREE.AmbientLight(0xffffff));
+    this.scene.add(new THREE.AmbientLight(0xffffff, 2));
 
   }
 
@@ -296,9 +298,9 @@ export class Main {
       positionArray[index * 3 + 2] = obj.lat;    // 緯度
 
       // 色
-      colorArray[index * 3 + 0] = 0.6;
+      colorArray[index * 3 + 0] = 0.7;
       colorArray[index * 3 + 1] = 0.8;
-      colorArray[index * 3 + 2] = 1.0;
+      colorArray[index * 3 + 2] = 0.9;
 
       // 削除フラグ
       removedArray[index] = 0.0;
@@ -311,7 +313,8 @@ export class Main {
     const geometry = new THREE.InstancedBufferGeometry();
 
     // 元になるジオメトリを一つ作成
-    const originGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    // const originGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    const originGeometry = new THREE.SphereGeometry(0.1, 6, 6);
 
     // シェーダーで必要になるパラメータを追加しておく
     geometry.setAttribute("position", originGeometry.attributes.position.clone());
@@ -371,52 +374,51 @@ export class Main {
     selectionHelper.enabled = false;
 
     const onPointerDown = (event) => {
+      const element = event.currentTarget;
+
       selectionBox.startPoint.set(
-        (event.clientX / window.innerWidth) * 2 - 1,
-        -(event.clientY / window.innerHeight) * 2 + 1,
+        (event.clientX / element.clientWidth) * 2 - 1,
+        -(event.clientY / element.clientHeight) * 2 + 1,
         0.5
       );
     };
 
     const onPointerMove = (event) => {
       if (selectionHelper.isDown) {
+        const element = event.currentTarget;
+
         selectionBox.endPoint.set(
-          (event.clientX / window.innerWidth) * 2 - 1,
-          -(event.clientY / window.innerHeight) * 2 + 1,
+          (event.clientX / element.clientWidth) * 2 - 1,
+          -(event.clientY / element.clientHeight) * 2 + 1,
           0.5
         );
       }
     };
 
     const onPointerUp = (event) => {
+      const element = event.currentTarget;
+
       selectionBox.endPoint.set(
-        (event.clientX / window.innerWidth) * 2 - 1,
-        -(event.clientY / window.innerHeight) * 2 + 1,
+        (event.clientX / element.clientWidth) * 2 - 1,
+        -(event.clientY / element.clientHeight) * 2 + 1,
         0.5
       );
 
       selectionBox.select();
-
-      const instances = selectionBox.instances;
-      const indeces = Object.values(instances)[0];
-      const color = new THREE.Color();
-      color.setRGB(1, 1, 0);
-      if (indeces.length > 0) {
-        console.log(indeces);
-        for (let i = 0; i < indeces.length; i++) {
-          // this.pointCloud.geometry.attributes.removed.array[indeces[i]] = 1.0;
-          // this.pointCloud.geometry.attributes.removed.needsUpdate = true;
-
-          this.pointCloud.setColorAt(indeces[i], color);
-          this.pointCloud.instanceColor.needsUpdate = true;
-
+      {
+        const instances = selectionBox.instances;
+        const indeces = Object.values(instances)[0];
+        const color = new THREE.Color();
+        color.setRGB(1, 1, 0);
+        if (indeces.length > 0) {
+          console.log(indeces);
+          for (let i = 0; i < indeces.length; i++) {
+            this.pointCloud.setColorAt(indeces[i], color);
+            this.pointCloud.instanceColor.needsUpdate = true;
+          }
         }
-
-
       }
-
       selectionBox.instances = {};
-
     }
 
     // Selectionを有効にするボタン
@@ -425,9 +427,11 @@ export class Main {
       selectionBox.enabled = true;
       selectionHelper.enabled = true;
 
-      document.addEventListener('pointerdown', onPointerDown);
-      document.addEventListener('pointermove', onPointerMove);
-      document.addEventListener('pointerup', onPointerUp);
+      // マウスイベントを追加
+      this.renderer.domElement.addEventListener('pointerdown', onPointerDown);
+      this.renderer.domElement.addEventListener('pointermove', onPointerMove);
+      this.renderer.domElement.addEventListener('pointerup', onPointerUp);
+
       // OrbitControlsを無効にする
       this.controller.enabled = false;
     });
@@ -438,81 +442,15 @@ export class Main {
       selectionBox.enabled = false;
       selectionHelper.enabled = false;
 
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('pointermove', onPointerMove);
-      document.removeEventListener('pointerup', onPointerUp);
+      // マウスイベントを削除
+      this.renderer.domElement.removeEventListener('pointerdown', onPointerDown);
+      this.renderer.domElement.removeEventListener('pointermove', onPointerMove);
+      this.renderer.domElement.removeEventListener('pointerup', onPointerUp);
+
       // OrbitControlsを有効にする
       this.controller.enabled = true;
     });
 
-
   }
-
-
-  initSelection() {
-    const raycaster = new THREE.Raycaster();
-
-    // レイが交差する対象
-    let intersects = [];
-
-    // マウス位置
-    const mousePosition = new THREE.Vector2()
-
-    const onMouseMove = (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-
-      // DOM要素(canvas)を取得する
-      // これはeventから取得してもよいし、paramsで渡されたものを使ってもよい
-      // const element = this.domElement;
-      const element = event.currentTarget;
-
-      // その要素の位置を取得
-      const clientRect = element.getBoundingClientRect();
-
-      // canvas要素の左上を起点とするマウス座標
-      const x = event.clientX - clientRect.x;
-      const y = event.clientY - clientRect.y;
-
-      // canvas要素の幅、高さ (paddingが含まれるのでCSSで0にしておくこと)
-      const w = element.clientWidth;
-      const h = element.clientHeight;
-
-      // マウス座標を(-1, 1)の範囲に変換
-      mousePosition.x = +(x / w) * 2 - 1;
-      mousePosition.y = -(y / h) * 2 + 1;
-
-      // マウス座標に向かってレイを飛ばす
-      raycaster.setFromCamera(mousePosition, this.camera);
-      intersects = raycaster.intersectObject(this.pointCloud);
-      if (intersects.length > 0) {
-        console.log(intersects[0]);
-        const instancedMesh = intersects[0].object;
-
-        const instanceId = intersects[0].instanceId;
-        // console.log(this.pointCloud.geometry.attributes.instancePosition.array[instanceId]);
-
-        instancedMesh.setColorAt(instanceId, new THREE.Color().setHex(Math.random() * 0xffffff));
-        instancedMesh.instanceColor.needsUpdate = true;
-
-      }
-
-    };
-
-    this.renderer.domElement.addEventListener("mousemove", (event) => { onMouseMove(event); });
-
-    const colorPoint = (index) => {
-      this.pointCloud.geometry.attributes.color.setXYZ(index, 0, 1, 0);
-      this.pointCloud.geometry.attributes.color.needsUpdate = true;
-    };
-
-
-    const onPointerUp = (event) => {
-      // OrbitControlsを有効にする
-      // this.controller.enabled = true;
-    };
-
-  }
-
 
 }

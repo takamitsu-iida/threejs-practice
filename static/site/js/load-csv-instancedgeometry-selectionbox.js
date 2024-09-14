@@ -77,6 +77,9 @@ export class Main {
     // Selectionを初期化
     this.initSelectionBox();
 
+    // ダウンロードボタンを初期化
+    this.initDownloadButton();
+
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
   }
@@ -91,7 +94,13 @@ export class Main {
         throw new Error(`HTTP status: ${response.status}`);
       }
 
-      // 瞬時にfetchできても0.5秒はローディング画面を表示する
+      // テキストデータを取得
+      const text = await response.text();
+
+      // CSVデータをパース
+      this.params.csvData = this.parseCsv(text);
+
+      // 瞬時にfetchできても0.5秒間はローディング画面を表示する
       const interval = setInterval(() => {
         loadingContainer.classList.add('fadeout');
         clearInterval(interval);
@@ -101,12 +110,6 @@ export class Main {
       loadingContainer.addEventListener('transitionend', (event) => {
         event.target.remove();
       });
-
-      // テキストデータを取得
-      const text = await response.text();
-
-      // CSVデータをパース
-      this.params.csvData = this.parseCsv(text);
 
     } catch (error) {
       const errorMessage = `Error while loading CSV: ${error}`;
@@ -120,12 +123,12 @@ export class Main {
   }
 
 
-  // CSVデータをパースする関数
+  // CSV形式のテキストをパース
   parseCsv(text) {
-    const lines = text.split('\n');
-    const headers = lines[0].split(',');
     const data = [];
 
+    const lines = text.split('\n');
+    const headers = lines[0].split(',');
     for (let i = 1; i < lines.length; i++) {
       const row = lines[i].split(',');
       if (row.length === headers.length) {
@@ -146,7 +149,7 @@ export class Main {
 
     // |       |             lat |             lon |        depth |
     // |:------|----------------:|----------------:|-------------:|
-    // | mean  |     35.1641     |    139.607      |     17.0863  |
+    // | mean  |     35.1641     |    139.608      |     16.4776  |
 
     // 小数点以下を消すなら、このスケールになるんだけど、とんでもなくでかい数字になるので
     // const scale = 100000000000000;
@@ -154,9 +157,12 @@ export class Main {
     // このくらいがちょうど良さそう
     const scale = 10000;
 
-    rowData.lat = -1 * (parseFloat(rowData.lat) - 35.1641) * scale;
-    rowData.lon = (parseFloat(rowData.lon) - 139.607) * scale;
-    rowData.depth = -1 * parseFloat(rowData.depth);
+    const latMean = 35.1641;
+    const lonMean = 139.608;
+
+    rowData.nLat = -1 * (parseFloat(rowData.lat) - latMean) * scale;
+    rowData.nLon = (parseFloat(rowData.lon) - lonMean) * scale;
+    rowData.nDepth = -1 * parseFloat(rowData.depth);
 
   }
 
@@ -285,15 +291,21 @@ export class Main {
 
     // データの入れ物
     const positionArray = new Float32Array(dataList.length * 3);
+    const csvArray = new Float32Array(dataList.length * 3);
     const colorArray = new Float32Array(dataList.length * 3);
     const removedArray = new Float32Array(dataList.length);
 
     dataList.forEach((obj, index) => {
 
       // 位置情報
-      positionArray[index * 3 + 0] = obj.lon;    // 経度
-      positionArray[index * 3 + 1] = obj.depth;  // 水深
-      positionArray[index * 3 + 2] = obj.lat;    // 緯度
+      positionArray[index * 3 + 0] = obj.nLon;    // 経度
+      positionArray[index * 3 + 1] = obj.nDepth;  // 水深
+      positionArray[index * 3 + 2] = obj.nLat;    // 緯度
+
+      // 元データ
+      csvArray[index * 3 + 0] = obj.lon;
+      csvArray[index * 3 + 1] = obj.depth;
+      csvArray[index * 3 + 2] = obj.lat;
 
       // 色
       colorArray[index * 3 + 0] = 0.6;
@@ -310,8 +322,10 @@ export class Main {
     const geometry = new THREE.InstancedBufferGeometry();
 
     // 元になるジオメトリを一つ作成
-    // Boxが高速、Icosahedronは重くて使えない
-    const originGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    // Boxが最も高速だけど、粗く見える
+    // Sphereもセグメント数を減らすと高速になる
+    // const originGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    const originGeometry = new THREE.SphereGeometry(0.1, 6, 6);
 
     // シェーダーで必要になるパラメータを追加しておく
     geometry.setAttribute("position", originGeometry.attributes.position.clone());
@@ -325,6 +339,7 @@ export class Main {
     geometry.setAttribute("instancePosition", new THREE.InstancedBufferAttribute(positionArray, 3));
     geometry.setAttribute("instanceColor", new THREE.InstancedBufferAttribute(colorArray, 3));
     geometry.setAttribute("removed", new THREE.InstancedBufferAttribute(removedArray, 1));
+    geometry.setAttribute("csv", new THREE.InstancedBufferAttribute(csvArray, 3));
 
     const vertex = /* glsl */ `
       attribute vec3 instancePosition;
@@ -380,64 +395,12 @@ export class Main {
 
     this.scene.add(this.pointCloud);
 
+    console.log(this.pointCloud);
+
     // アトリビュートの更新を通知
     // geometry.attributes.instancePosition.needsUpdate = true;
 
   }
-
-
-  initSelection() {
-    const raycaster = new THREE.Raycaster();
-
-    // レイが交差する対象
-    let intersects = [];
-
-    // マウス位置
-    const mousePosition = new THREE.Vector2()
-
-    const onMouseMove = (event) => {
-
-      // DOM要素(canvas)を取得する
-      // これはeventから取得してもよいし、paramsで渡されたものを使ってもよい
-      // const element = this.domElement;
-      const element = event.currentTarget;
-
-      // その要素の位置を取得
-      const clientRect = element.getBoundingClientRect();
-
-      // canvas要素の左上を起点とするマウス座標
-      const x = event.clientX - clientRect.x;
-      const y = event.clientY - clientRect.y;
-
-      // canvas要素の幅、高さ (paddingが含まれるのでCSSで0にしておくこと)
-      const w = element.clientWidth;
-      const h = element.clientHeight;
-
-      // マウス座標を(-1, 1)の範囲に変換
-      mousePosition.x = +(x / w) * 2 - 1;
-      mousePosition.y = -(y / h) * 2 + 1;
-
-      // マウス座標に向かってレイを飛ばす
-      raycaster.setFromCamera(mousePosition, this.camera);
-      intersects = raycaster.intersectObject(this.pointCloud);
-
-
-      if (intersects.length > 0) {
-        console.log(intersects[0]);
-        const instancedMesh = intersects[0].object;
-
-        const instanceId = intersects[0].instanceId;
-        // console.log(this.pointCloud.geometry.attributes.instancePosition.array[instanceId]);
-
-      }
-
-    };
-
-    this.renderer.domElement.addEventListener("mousemove", onMouseMove);
-
-  }
-
-
 
 
   initSelectionBox() {
@@ -450,12 +413,10 @@ export class Main {
 
     const onPointerDown = (event) => {
       const element = event.currentTarget;
-      const w = element.clientWidth;
-      const h = element.clientHeight;
 
       selectionBox.startPoint.set(
-        (event.clientX / w) * 2 - 1,
-        -(event.clientY / h) * 2 + 1,
+        (event.clientX / element.clientWidth) * 2 - 1,
+        -(event.clientY / element.clientHeight) * 2 + 1,
         0.5
       );
     };
@@ -463,12 +424,10 @@ export class Main {
     const onPointerMove = (event) => {
       if (selectionHelper.isDown) {
         const element = event.currentTarget;
-        const w = element.clientWidth;
-        const h = element.clientHeight;
 
         selectionBox.endPoint.set(
-          (event.clientX / w) * 2 - 1,
-          -(event.clientY / h) * 2 + 1,
+          (event.clientX / element.clientWidth) * 2 - 1,
+          -(event.clientY / element.clientHeight) * 2 + 1,
           0.5
         );
       }
@@ -476,41 +435,38 @@ export class Main {
 
     const onPointerUp = (event) => {
       const element = event.currentTarget;
-      const w = element.clientWidth;
-      const h = element.clientHeight;
 
       selectionBox.endPoint.set(
-        (event.clientX / w) * 2 - 1,
-        -(event.clientY / h) * 2 + 1,
+        (event.clientX / element.clientWidth) * 2 - 1,
+        -(event.clientY / element.clientHeight) * 2 + 1,
         0.5
       );
 
       selectionBox.select();
+      {
+        const instances = selectionBox.instances;
+        const indeces = Object.values(instances)[0];
 
-      const instances = selectionBox.instances;
-      const indeces = Object.values(instances)[0];
-
-      if (indeces.length > 0) {
-        console.log(indeces);
-        for (let i = 0; i < indeces.length; i++) {
-          const index = indeces[i];
-          // console.log(index);
-          this.pointCloud.geometry.attributes.removed.array[index] = 1.0;
-          this.pointCloud.geometry.attributes.removed.needsUpdate = true;
-
+        if (indeces.length > 0) {
+          console.log(indeces);
+          for (let i = 0; i < indeces.length; i++) {
+            const index = indeces[i];
+            this.pointCloud.geometry.attributes.removed.array[index] = 1.0;
+            this.pointCloud.geometry.attributes.removed.needsUpdate = true;
+          }
         }
 
       }
-
       selectionBox.instances = {};
-
-      console.log(this.pointCloud);
 
     }
 
     // Selectionを有効にするボタン
     const enableButton = document.getElementById('enableSelectionBox');
-    enableButton.addEventListener('click', () => {
+    enableButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
       selectionBox.enabled = true;
       selectionHelper.enabled = true;
 
@@ -525,7 +481,10 @@ export class Main {
 
     // Selectionを無効にするボタンを追加
     const disableButton = document.getElementById('disableSelectionBox');
-    disableButton.addEventListener('click', () => {
+    disableButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
       selectionBox.enabled = false;
       selectionHelper.enabled = false;
 
@@ -538,7 +497,60 @@ export class Main {
       this.controller.enabled = true;
     });
 
-
   }
+
+  initDownloadButton() {
+    const downloadButton = document.getElementById('downloadButton');
+    downloadButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      // ダウンロードするデータを作成
+      const header = "lat,lon,depth";
+      let text = header + "\n";
+      for (let i = 0; i < this.pointCloud.geometry.attributes.removed.array.length; i++) {
+        if (this.pointCloud.geometry.attributes.removed.array[i] > 0.0) {
+          continue;
+        }
+        const lon = this.pointCloud.geometry.attributes.csv.array[i * 3 + 0];
+        const depth = this.pointCloud.geometry.attributes.csv.array[i * 3 + 1];
+        const lat = this.pointCloud.geometry.attributes.csv.array[i * 3 + 2];
+
+        text += `${lat},${lon},${depth}\n`;
+      }
+
+      // ダウンロードを実行
+      this.textDownload(text, "depth_map_data_edited.csv");
+    });
+  }
+
+  textDownload = (text, fileName, mimeType = 'text/plain', withBOM = false) => {
+    let data = [];
+
+    // BOM付きにしたい場合
+    if (withBOM) {
+      data.push(new Uint8Array([0xef, 0xbb, 0xbf]));
+    }
+
+    data.push(text);
+
+    const blob = new Blob(data, { type: mimeType });
+
+    // a要素の生成
+    const anchorElem = document.body.appendChild(document.createElement('a'));
+    anchorElem.setAttribute('href', URL.createObjectURL(blob));
+    anchorElem.setAttribute('target', '_blank');
+    anchorElem.setAttribute('download', fileName);
+    anchorElem.style.visibility = 'hidden';
+
+    // イベント実行
+    anchorElem.dispatchEvent(new MouseEvent('click', {
+      view: window,
+      bubbles: false,
+      cancelable: false
+    }));
+
+    document.body.removeChild(anchorElem);
+  };
 
 }

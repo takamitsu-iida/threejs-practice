@@ -84,6 +84,12 @@ export class Main {
         throw new Error(`HTTP status: ${response.status}`);
       }
 
+      // テキストデータを取得
+      const text = await response.text();
+
+      // CSVデータをパース
+      this.params.csvData = this.parseCsv(text);
+
       // 瞬時にfetchできても0.5秒はローディング画面を表示する
       const interval = setInterval(() => {
         loadingContainer.classList.add('fadeout');
@@ -94,12 +100,6 @@ export class Main {
       loadingContainer.addEventListener('transitionend', (event) => {
         event.target.remove();
       });
-
-      // テキストデータを取得
-      const text = await response.text();
-
-      // CSVデータをパース
-      this.params.csvData = this.parseCsv(text);
 
     } catch (error) {
       const errorMessage = `Error while loading CSV: ${error}`;
@@ -139,7 +139,7 @@ export class Main {
 
     // |       |             lat |             lon |        depth |
     // |:------|----------------:|----------------:|-------------:|
-    // | mean  |     35.1641     |    139.607      |     17.0863  |
+    // | mean  |     35.1641     |    139.608      |     16.4776  |
 
     // 小数点以下を消すなら、このスケールになるんだけど、とんでもなくでかい数字になるので
     // const scale = 100000000000000;
@@ -147,8 +147,11 @@ export class Main {
     // このくらいがちょうど良さそう
     const scale = 10000;
 
-    rowData.lat = -1 * (parseFloat(rowData.lat) - 35.1641) * scale;
-    rowData.lon = (parseFloat(rowData.lon) - 139.607) * scale;
+    const latMean = 35.1641;
+    const lonMean = 139.608;
+
+    rowData.lat = -1 * (parseFloat(rowData.lat) - latMean) * scale;
+    rowData.lon = (parseFloat(rowData.lon) - lonMean) * scale;
     rowData.depth = -1 * parseFloat(rowData.depth);
 
   }
@@ -299,9 +302,15 @@ export class Main {
     // GPUに対して同じ図形を描画せよ、と指示することで高速化できる
     const geometry = new THREE.InstancedBufferGeometry();
 
-    // 元になるジオメトリを一つ作成
-    // Boxが高速、Icosahedronは重くて使えない
-    const originGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    //
+    // 元になるジオメトリを一つ作成して複写して使う場合
+    //
+
+    // Boxが最も高速だけど、粗く見える
+    // Sphereもセグメント数を減らすと高速になる
+    // Icosahedronは重くてまったく使えない
+    // const originGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    const originGeometry = new THREE.SphereGeometry(0.1, 6, 6);
     // const originGeometry = new THREE.IcosahedronGeometry(0.1, 3);
 
     // シェーダーで必要になるパラメータを追加しておく
@@ -311,6 +320,62 @@ export class Main {
     if (originGeometry.index) {
       geometry.setIndex(originGeometry.index.clone());
     }
+
+
+    //
+    // 平面のジオメトリを作る場合はこうする。
+    // ただし、正面からみたときしか使えない
+    //
+
+    /*
+    //  position
+    //  (-0.5, 0.5)    (0.5, 0.5)
+    //       +------------+
+    //       |          / |
+    //       |       /    |
+    //       |    /       |
+    //       | /          |
+    //       +------------+
+    //   (-0.5, -0.5)    (0.5, -0.5)
+
+    const positions = new THREE.BufferAttribute(new Float32Array(4 * 3), 3);
+
+    positions.setXYZ(0, -0.5, 0.5, 0.0);  // 左上、平面なのでZ座標は0.0にする
+    positions.setXYZ(1, 0.5, 0.5, 0.0);  // 右上
+    positions.setXYZ(2, -0.5, -0.5, 0.0);  // 左下
+    positions.setXYZ(3, 0.5, -0.5, 0.0);  // 右下
+    geometry.setAttribute('position', positions);
+
+    //  uv
+    //  (0.0, 0.0)    (1.0, 0.0)
+    //       +------------+
+    //       |          / |
+    //       |       /    |
+    //       |    /       |
+    //       | /          |
+    //       +------------+
+    //  (0.0, 1.0)    (1.0, 1.0)
+
+    const uvs = new THREE.BufferAttribute(new Float32Array(4 * 2), 2);
+    uvs.setXYZ(0, 0.0, 0.0);
+    uvs.setXYZ(1, 1.0, 0.0);
+    uvs.setXYZ(2, 0.0, 1.0);
+    uvs.setXYZ(3, 1.0, 1.0);
+    geometry.setAttribute('uv', uvs);
+
+    // index
+    //       0            1
+    //       +------------+
+    //       |          / |
+    //       |       /    |
+    //       |    /       |
+    //       | /          |
+    //       +------------+
+    //       2            3
+
+    // 反時計回りに三角形を２つ指定 (0, 2, 1)と(2, 3, 1)
+    geometry.setIndex(new THREE.BufferAttribute(new Uint16Array([ 0, 2, 1, 2, 3, 1 ]), 1));
+    */
 
     // 個々に設定するアトリビュートを追加
     geometry.setAttribute("instancePosition", new THREE.InstancedBufferAttribute(positionArray, 3));

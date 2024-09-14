@@ -84,6 +84,12 @@ export class Main {
         throw new Error(`HTTP status: ${response.status}`);
       }
 
+      // テキストデータを取得
+      const text = await response.text();
+
+      // CSVデータをパース
+      this.params.csvData = this.parseCsv(text);
+
       // 瞬時にfetchできても0.5秒はローディング画面を表示する
       const interval = setInterval(() => {
         loadingContainer.classList.add('fadeout');
@@ -94,12 +100,6 @@ export class Main {
       loadingContainer.addEventListener('transitionend', (event) => {
         event.target.remove();
       });
-
-      // テキストデータを取得
-      const text = await response.text();
-
-      // CSVデータをパース
-      this.params.csvData = this.parseCsv(text);
 
     } catch (error) {
       const errorMessage = `Error while loading CSV: ${error}`;
@@ -139,7 +139,7 @@ export class Main {
 
     // |       |             lat |             lon |        depth |
     // |:------|----------------:|----------------:|-------------:|
-    // | mean  |     35.1641     |    139.607      |     17.0863  |
+    // | mean  |     35.1641     |    139.608      |     16.4776  |
 
     // 小数点以下を消すなら、このスケールになるんだけど、とんでもなくでかい数字になるので
     // const scale = 100000000000000;
@@ -147,8 +147,11 @@ export class Main {
     // このくらいがちょうど良さそう
     const scale = 10000;
 
-    rowData.lat = -1 * (parseFloat(rowData.lat) - 35.1641) * scale;
-    rowData.lon = (parseFloat(rowData.lon) - 139.607) * scale;
+    const latMean = 35.1641;
+    const lonMean = 139.608;
+
+    rowData.lat = -1 * (parseFloat(rowData.lat) - latMean) * scale;
+    rowData.lon = (parseFloat(rowData.lon) - lonMean) * scale;
     rowData.depth = -1 * parseFloat(rowData.depth);
 
   }

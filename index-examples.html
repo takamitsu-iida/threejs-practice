@@ -612,6 +612,78 @@
 
 
 
+      <h2>CSVデータをロードして点群を表示</h2>
+
+      <p>魚群探知機から抽出した水深のCSVデータをロードして点群として表示する例。</p>
+      <p>CSVの転送に時間がかかるので、その間はローディング画面を表示。</p>
+      <p>単に表示するだけならパーティクルと同じくnew THREE.Points()を使うと簡単にできる。</p>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-load-csv.html">
+          <div>Live Demo</div><br>
+          <div><img src="./asset/index-load-csv.html.png" /></div>
+        </a>
+      </p>
+
+      <p>
+        HTML <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-csv.html">index-load-csv.html</a>
+      </p>
+      <p>
+        JavaScript <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-csv.js">load-csv.js</a>
+      </p>
+
+
+
+      <h2>InstancedMesh with SelectionBox</h2>
+
+      <p>メッシュを一つ作成して、GPUに同じ物を複数作れ、と指示するのがTHREE.InstancedMeshで、これを使って点群を表示することもできる。</p>
+      <p>SelectionBoxを使うと、GPU側で作成した個々のメッシュを選択できる。</p>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-load-csv-instancedmesh-selectionbox.html">
+          <div>Live Demo</div><br>
+          <div><img src="./asset/index-load-csv-instancedmesh-selectionbox.html.png" /></div>
+        </a>
+      </p>
+
+      <p>
+        HTML <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-csv-instancedmesh-selectionbox.html">index-load-csv-instancedmesh-selectionbox.html</a>
+      </p>
+      <p>
+        JavaScript <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-csv-instancedmesh-selectionbox.js">load-csv-instancedmesh-selectionbox.js</a>
+      </p>
+
+
+
+      <h2>InstancedBufferGeometry with SelectionBox</h2>
+
+      <p>ジオメトリを一つ作成して、GPUに同じものを複数作れ、と指示するのがTHREE.InstancedBufferGeometryで、これを使うと任意のアトリビュートを持たせることができる。</p>
+      <p>ただし、マテリアルにShaderMaterialを使って自分でシェーダーを書かなければならない。</p>
+      <p>InstancedBufferGeometryだけではSelectionBoxで点群を選択できないので、InstancedMeshを組み合わせてメッシュ化する。</p>
+      <p>点群のいらない部分、異常値っぽい部分を削除して、新たなCSVファイルとしてダウンロードできるようにしたのがこれ。</p>
+      <p>使いづらいけど、そんなに利用するものでもないので良しとする。</p>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-load-csv-instancedgeometry-selectionbox.html">
+          <div>Live Demo</div><br>
+          <div><img src="./asset/index-load-csv-instancedgeometry-selectionbox.html.png" /></div>
+        </a>
+      </p>
+
+      <p>
+        HTML <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-csv-instancedgeometry-selectionbox.html">index-load-csv-instancedgeometry-selectionbox.html</a>
+      </p>
+      <p>
+        JavaScript <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-csv-instancedgeometry-selectionbox.js">load-csv-instancedgeometry-selectionbox.js</a>
+      </p>
+
+
     </div>
 
   </div>
