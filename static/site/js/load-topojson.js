@@ -147,7 +147,7 @@ export class Main {
       1,
       1000
     );
-    this.camera.position.set(139, 35, 100);
+    this.camera.position.set(0, 10, 0);
 
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -170,6 +170,14 @@ export class Main {
     //
     const axesHelper = new THREE.AxesHelper(10000);
     this.scene.add(axesHelper);
+
+    // 環境光
+    this.scene.add(new THREE.AmbientLight(0xffffff, 3));
+
+    // ライトの追加
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(0, 1, 1).normalize();
+    this.scene.add(light);
 
   }
 
@@ -279,19 +287,37 @@ export class Main {
 
   createShapeFromTopojson(jsonData) {
 
-    const shape = new THREE.Shape();
+    // スケーリングファクターを設定
+    const scaleFactor = 100;
 
-    const features = topojson.feature(jsonData, jsonData.objects[this.params.objectName]);
+    // Shapeを格納する配列
+    const shapes = [];
+
+    const topoData = topojson.feature(jsonData, jsonData.objects[this.params.objectName]);
+    const features = topoData.features;
 
     // topojsonのFeatureCollectionからFeatureを一つずつ取り出す
-    features.features.forEach(feature => {
+    features.forEach(feature => {
+      // console.log(feature);
+
+      // Shapeを作成
+      const shape = new THREE.Shape();
 
       // GeometryがLineStringの場合
       if (feature.geometry.type === 'LineString') {
         const coordinates = feature.geometry.coordinates;
-        shape.moveTo(coordinates[0][0], coordinates[0][1]); // パスを開始
+        // パスを開始
+        shape.moveTo(
+          coordinates[0][0] * scaleFactor,
+          coordinates[0][1] * scaleFactor
+        );
+
         for (let i = 1; i < coordinates.length; i++) {
-          shape.lineTo(coordinates[i][0], coordinates[i][1]); // 線分を追加
+          // 線分を追加
+          shape.lineTo(
+            coordinates[i][0] * scaleFactor,
+            coordinates[i][1] * scaleFactor
+          );
         }
       }
 
@@ -301,32 +327,43 @@ export class Main {
           feature.geometry.coordinates[0] :
           feature.geometry.coordinates.flat(2); // MultiPolygonの場合は全ての座標を1次元配列に
 
-        shape.moveTo(coordinates[0][0], coordinates[0][1]);
+        shape.moveTo(
+          coordinates[0][0] * scaleFactor,
+          coordinates[0][1] * scaleFactor
+        );
 
         for (let i = 1; i < coordinates.length; i++) {
-          shape.lineTo(coordinates[i][0], coordinates[i][1]);
+          shape.lineTo(
+            coordinates[i][0] * scaleFactor,
+            coordinates[i][1] * scaleFactor
+          );
         }
-
-        shape.closePath();
       }
+
+      shapes.push(shape);
 
     });
 
-    return shape;
+    return shapes;
   }
 
 
   createMeshFromTopojson(jsonData) {
-    // Shapeを作成
-    const shape = this.createShapeFromTopojson(jsonData);
+    // ShapeをFeatureの数だけ作成
+    const shapes = this.createShapeFromTopojson(jsonData);
 
-    console.log(shape);
-
-    // ShapeからExtrudeGeometryを作成
-    const geometry = new THREE.ExtrudeGeometry(shape, {
-      depth: 10,
-      bevelEnabled: false
+    // Shapeの配列からExtrudeGeometryを作成
+    const geometry = new THREE.ExtrudeGeometry(shapes, {
+      depth: 0.01,
+      bevelEnabled: false,
     });
+
+    // 90度回転
+    geometry.rotateX(- Math.PI / 2);
+
+    // 原点に寄せる
+    geometry.center();
+
     const material = new THREE.MeshStandardMaterial({
       color: 0x00ff00,
       side: THREE.DoubleSide
@@ -335,92 +372,6 @@ export class Main {
 
     // シーンに追加
     this.scene.add(mesh);
-
-    console.log(mesh);
   }
-
-
-}
-
-
-
-
-
-
-class Country {
-
-  geoCoords;
-  properties;
-  lineColor;
-  shapeColor;
-
-  constructor(geoCoords, properties, lineColor = 0xff0000, shapeColor = 0x00ff00) {
-    this.geoCoords = geoCoords;
-    this.properties = properties;
-    this.lineColor = lineColor;
-    this.shapeColor = shapeColor;
-  }
-
-
-  createShape() {
-    let vecs2 = [];
-
-    const shapearray = [];
-
-    for (let P of this.geoCoords.coordinates) {
-      if (this.geoCoords.type === "MultiPolygon") {
-        P = P[0];
-      }
-
-      let p0 = new THREE.Vector2(P[0][0], P[0][1]);
-      for (let i = 1; i < P.length; ++i) {
-        let p1 = new THREE.Vector2(P[i][0], P[i][1]);
-        vecs2.push(p0, p1);
-        p0 = p1;
-      }
-
-      shapearray.push(new THREE.Shape(vecs2));
-      vecs2 = [];
-    }
-
-    const material = new THREE.MeshBasicMaterial({
-      color: this.shapeColor,
-      side: THREE.DoubleSide,
-    });
-
-    const geometry = new THREE.ShapeGeometry(shapearray);
-    const mesh = new THREE.Mesh(geometry, material);
-
-    mesh.userData = this;
-
-    return mesh;
-  }
-
-
-  createLine() {
-    const geometry = new THREE.BufferGeometry();
-
-    for (let P of this.geoCoords.coordinates) {
-      if (this.geoCoords.type === "MultiPolygon") {
-        P = P[0];
-      }
-
-      let p0 = new THREE.Vector3(P[0][0], P[0][1], 0);
-
-      for (let i = 1; i < P.length; ++i) {
-        const p1 = new THREE.Vector3(P[i][0], P[i][1], 0);
-        geometry.vertices.push(p0, p1);
-        p0 = p1;
-      }
-    }
-
-    const material = new THREE.LineBasicMaterial({ color: this.lineColor });
-    const lineSegments = new THREE.LineSegments(geometry, material);
-
-    lineSegments.userData = this;
-
-    return lineSegments;
-  }
-
 
 }
