@@ -78,10 +78,11 @@ export class Main {
     // stats.jsを初期化
     this.initStatsjs();
 
-    // Topojsonをパース
-    // this.parseTopojson();
+    // topojsonデータからシェイプを作成
+    const shapes = this.createShapesFromTopojson(this.params.jsonData, this.params.objectName);
 
-    this.createMeshFromTopojson(this.params.jsonData);
+    // シェイプの配列からメッシュを作成
+    this.createMeshFromShapes(shapes);
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
@@ -258,7 +259,7 @@ export class Main {
   }
 
 
-  createShapesFromTopojson(jsonData) {
+  createShapesFromTopojson(jsonData, objectName) {
 
     // スケーリングファクターを設定
     const scaleFactor = 100;
@@ -266,7 +267,7 @@ export class Main {
     // Shapeを格納する配列
     const shapes = [];
 
-    const topoData = topojson.feature(jsonData, jsonData.objects[this.params.objectName]);
+    const topoData = topojson.feature(jsonData, jsonData.objects[objectName]);
     const features = topoData.features;
 
     // topojsonのFeatureCollectionからFeatureを一つずつ取り出す
@@ -321,21 +322,28 @@ export class Main {
   }
 
 
-  createMeshFromTopojson(jsonData) {
-    // ShapeをFeatureの数だけ作成
-    const shapes = this.createShapesFromTopojson(jsonData);
+  createMeshFromShapes(shapes) {
+
+    // ExtrudeGeometryに渡すdepthパラメータ（厚み）
+    const depth = 0.1;
 
     // Shapeの配列からExtrudeGeometryを作成
     const geometry = new THREE.ExtrudeGeometry(shapes, {
-      depth: 0.01,
+      depth: depth,
       bevelEnabled: false,
     });
+
+    geometry.computeBoundingBox();
+    const boundingBox = geometry.boundingBox;
+    console.log(boundingBox);
 
     // ジオメトリを90度回転
     geometry.rotateX(- Math.PI / 2);
 
     // 原点に寄せる
     geometry.center();
+    // geometry.translate(boundingBox.max.x, 0, 0);
+
 
     const material = new THREE.MeshStandardMaterial({
       color: 0x00ff00,
@@ -344,6 +352,9 @@ export class Main {
 
     // メッシュ化
     const mesh = new THREE.Mesh(geometry, material);
+
+    // メッシュをY軸方向に移動
+    mesh.position.y += depth / 2;
 
     // シーンに追加
     this.scene.add(mesh);
