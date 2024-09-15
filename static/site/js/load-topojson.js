@@ -258,34 +258,7 @@ export class Main {
   }
 
 
-  // Topojsonをパースする関数
-  _parseTopojson() {
-    const jsonData = this.params.jsonData;
-
-    const features = topojson.feature(jsonData, jsonData.objects[this.params.objectName]);
-
-    console.log(features);
-
-    const lineObjs = [];
-
-    features.features.forEach((feature) => {
-
-      const country = new Country(feature.geometry, feature.properties);
-
-      const shape = country.createShape();
-      this.scene.add(shape);
-      // console.log(shape);
-
-      // let line = country.createLine();
-      // lineObjs.push(line);
-      // this.scene.add(line);
-
-    });
-
-  }
-
-
-  createShapeFromTopojson(jsonData) {
+  createShapesFromTopojson(jsonData) {
 
     // スケーリングファクターを設定
     const scaleFactor = 100;
@@ -350,7 +323,7 @@ export class Main {
 
   createMeshFromTopojson(jsonData) {
     // ShapeをFeatureの数だけ作成
-    const shapes = this.createShapeFromTopojson(jsonData);
+    const shapes = this.createShapesFromTopojson(jsonData);
 
     // Shapeの配列からExtrudeGeometryを作成
     const geometry = new THREE.ExtrudeGeometry(shapes, {
@@ -358,7 +331,7 @@ export class Main {
       bevelEnabled: false,
     });
 
-    // 90度回転
+    // ジオメトリを90度回転
     geometry.rotateX(- Math.PI / 2);
 
     // 原点に寄せる
@@ -368,6 +341,8 @@ export class Main {
       color: 0x00ff00,
       side: THREE.DoubleSide
     });
+
+    // メッシュ化
     const mesh = new THREE.Mesh(geometry, material);
 
     // シーンに追加
