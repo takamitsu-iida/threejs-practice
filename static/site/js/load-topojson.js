@@ -30,8 +30,6 @@ export class Main {
     interval: 1 / 30,  // = 30fps
   }
 
-
-
   params = {
     jsonData: null,
 
