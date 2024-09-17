@@ -372,11 +372,12 @@ export class VertexTexture {
       repeat: { value: repeat },
     };
 
-    this.gpuRenderer.setVariableDependencies(this.computationVariable, [
-      this.computationVariable,
-    ]);
+    this.gpuRenderer.setVariableDependencies(this.computationVariable, [this.computationVariable]);
 
-    this.gpuRenderer.init();
+    const error = this.gpuRenderer.init();
+    if (error !== null) {
+      console.error(error);
+    }
   }
 
   getTexture() {
