@@ -134,7 +134,7 @@ export class Main {
     this.sizes.height = this.container.clientHeight;
 
     // resizeイベントのハンドラを登録
-    window.addEventListener("resize", () => { this.onWindowResize(); }, false);
+    window.addEventListener("resize", this.onWindowResize, false);
 
     // シーン
     this.scene = new THREE.Scene();
@@ -245,7 +245,7 @@ export class Main {
   }
 
 
-  onWindowResize() {
+  onWindowResize = (event) => {
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
 
@@ -254,7 +254,7 @@ export class Main {
 
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(this.sizes.width, this.sizes.height);
-  }
+  };
 
 
   createShapesFromTopojson(jsonData, objectName) {

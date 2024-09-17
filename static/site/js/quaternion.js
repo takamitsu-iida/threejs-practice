@@ -183,7 +183,7 @@ export class Main {
     this.quaternionLocal.setFromAxisAngle(new THREE.Vector3(0, 1, 0).normalize(), this.omega);
 
     // resizeイベントのハンドラを登録
-    window.addEventListener("resize", () => { this.onWindowResize(); }, false);
+    window.addEventListener("resize", this.onWindowResize, false);
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
@@ -224,7 +224,7 @@ export class Main {
   }
 
 
-  onWindowResize() {
+  onWindowResize = (event) => {
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
 
@@ -233,7 +233,7 @@ export class Main {
 
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(this.sizes.width, this.sizes.height);
-  }
+  };
 
 
 }

@@ -160,7 +160,7 @@ export class Main {
     this.sizes.height = this.container.clientHeight;
 
     // リサイズイベント
-    window.addEventListener("resize", () => { this.onWindowResize(); }, false);
+    window.addEventListener("resize", this.onWindowResize, false);
 
     // シーン
     this.scene = new THREE.Scene();
@@ -384,7 +384,7 @@ export class Main {
   }
 
 
-  onWindowResize() {
+  onWindowResize = (event) => {
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
 
@@ -395,6 +395,6 @@ export class Main {
 
     // 再描画
     this.renderer.render(this.scene, this.camera);
-  }
+  };
 
 }
