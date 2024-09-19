@@ -259,7 +259,7 @@ export class Main {
   `;
 
 
-  // pgpguに必要なオブジェクト
+  // gpgpuに必要なオブジェクト
   gpuCompute;
   velocityVariable;
   positionVariable;
