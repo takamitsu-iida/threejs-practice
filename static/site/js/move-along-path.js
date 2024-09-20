@@ -184,9 +184,6 @@ export class Main {
     this.radians = Math.acos(this.up.dot(tangent));
     this.arrow.quaternion.setFromAxisAngle(this.axis, this.radians);
 
-    // 進行方向に合わせて回転
-    // this.arrow.rotateOnAxis(new THREE.Vector3(0, 1, 0), Math.PI / 2);
-
     this.fraction += 0.001;
     if (this.fraction > 1) {
       this.fraction = 0;
