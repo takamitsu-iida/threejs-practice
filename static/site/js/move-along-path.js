@@ -266,6 +266,7 @@ export class Main {
 
     const numPoints = 10;
 
+    // pathはcurvesの配列で構成されているので、それら曲線を展開してそれぞれから点を取得、一つの配列に格納する
     const points = path.curves.reduce((accumulator, currentValue) => {
       return [...accumulator, ...currentValue.getPoints(numPoints)];
     }, []);
