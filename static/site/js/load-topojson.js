@@ -1,9 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/controls/OrbitControls.js";
 
-// lil-gui
-import { GUI } from "three/libs/lil-gui.module.min.js";
-
 // stats.js
 import Stats from "three/libs/stats.module.js";
 
@@ -30,23 +27,38 @@ export class Main {
     interval: 1 / 30,  // = 30fps
   }
 
+
+  // topojsonの構造は以下のようになっている
+  // 重要な情報はparamsに保存しておく
+  /*
+  {
+    "type": "Topology",
+    "objects": {
+      "miura": {}
+    },
+    "transform": {
+      "translate": [139.602282, 35.128496]
+    }
+  */
+
   params = {
     jsonData: null,
 
-    /*
-    structure of topojson data
-    {
-      "type": "Topology",
-      "objects": {
-        "miura": {
-    */
+    // 三浦市のデータのパス
     path: "./static/data/aburatsubo.json",
+
+    // 三浦市のデータのobjectName
     objectName: "miura",
+
+    // 世界地図のデータのパス
     // path: "./static/data/world_map_web_merc.json",
+
+    // 世界地図のデータのobjectName
     // objectName: "world_map",
 
-    autoRotate: false,
-    autoRotateSpeed: 1.0,
+    // translate
+    translate: [0.0, 0.0],
+
   }
 
 
@@ -69,9 +81,6 @@ export class Main {
 
     // scene, camera, renderer, controllerを初期化
     this.initThreejs();
-
-    // lil-guiを初期化
-    this.initGui();
 
     // stats.jsを初期化
     this.initStatsjs();
@@ -98,6 +107,20 @@ export class Main {
 
       // JSONデータを取得
       const jsonData = await response.json();
+
+      if (jsonData.hasOwnProperty('transform')) {
+        this.params.translate = jsonData.transform.translate;
+      } else {
+        new Error('No transform property in jsonData');
+      }
+
+      if (!jsonData.hasOwnProperty('objects')) {
+        new Error('No objects property in jsonData');
+      }
+
+      if (!jsonData.objects.hasOwnProperty(this.params.objectName)) {
+        new Error(`No ${this.params.objectName} property in objects`);
+      }
 
       // jsonデータを保存
       this.params.jsonData = jsonData;
@@ -146,7 +169,7 @@ export class Main {
       1,
       1000
     );
-    this.camera.position.set(0, 10, 0);
+    this.camera.position.set(0, 0, 100);
 
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -156,8 +179,6 @@ export class Main {
 
     // コントローラ
     this.controller = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controller.autoRotate = this.params.autoRotate;
-    this.controller.autoRotateSpeed = this.params.autoRotateSpeed;
 
     // 軸を表示
     //
@@ -177,31 +198,6 @@ export class Main {
     const light = new THREE.DirectionalLight(0xffffff, 1);
     light.position.set(0, 1, 1).normalize();
     this.scene.add(light);
-
-  }
-
-  initGui() {
-    const guiContainer = document.getElementById("guiContainer");
-    const gui = new GUI({
-      container: guiContainer,
-    });
-
-    gui
-      .add(this.params, "autoRotate")
-      .name("rotation")
-      .onChange((value) => {
-        this.controller.autoRotate = value;
-      });
-
-    gui
-      .add(this.params, "autoRotateSpeed")
-      .name("autoRotateSpeed")
-      .min(1.0)
-      .max(10.0)
-      .step(0.1)
-      .onChange((value) => {
-        this.controller.autoRotateSpeed = value;
-      });
 
   }
 
@@ -259,9 +255,6 @@ export class Main {
 
   createShapesFromTopojson(jsonData, objectName) {
 
-    // スケーリングファクターを設定
-    const scaleFactor = 100;
-
     // Shapeを格納する配列
     const shapes = [];
 
@@ -280,15 +273,15 @@ export class Main {
         const coordinates = feature.geometry.coordinates;
         // パスを開始
         shape.moveTo(
-          coordinates[0][0] * scaleFactor,
-          coordinates[0][1] * scaleFactor
+          coordinates[0][0],
+          coordinates[0][1]
         );
 
         for (let i = 1; i < coordinates.length; i++) {
           // 線分を追加
           shape.lineTo(
-            coordinates[i][0] * scaleFactor,
-            coordinates[i][1] * scaleFactor
+            coordinates[i][0],
+            coordinates[i][1]
           );
         }
       }
@@ -300,14 +293,14 @@ export class Main {
           feature.geometry.coordinates.flat(2); // MultiPolygonの場合は全ての座標を1次元配列に
 
         shape.moveTo(
-          coordinates[0][0] * scaleFactor,
-          coordinates[0][1] * scaleFactor
+          coordinates[0][0],
+          coordinates[0][1]
         );
 
         for (let i = 1; i < coordinates.length; i++) {
           shape.lineTo(
-            coordinates[i][0] * scaleFactor,
-            coordinates[i][1] * scaleFactor
+            coordinates[i][0],
+            coordinates[i][1]
           );
         }
       }
@@ -331,18 +324,29 @@ export class Main {
       bevelEnabled: false,
     });
 
+    // 原点に寄せる
+    // geometry.center();
+
+    // 移動して原点に寄せる
+    // 中心を原点に寄せるためには、もう少し左、もう少し下に移動する必要がある
+    geometry.translate(-this.params.translate[0], -this.params.translate[1], 0);
+
+    // BoundingBoxを計算して中心を調べる
     geometry.computeBoundingBox();
     const boundingBox = geometry.boundingBox;
     console.log(boundingBox);
 
-    // ジオメトリを90度回転
-    geometry.rotateX(- Math.PI / 2);
+    // BoundingBoxの中心を原点に寄せる
+    geometry.translate(
+      -0.5 * (boundingBox.max.x - boundingBox.min.x),
+      -0.5 * (boundingBox.max.y - boundingBox.min.y),
+      0
+    );
 
-    // 原点に寄せる
-    geometry.center();
-    // geometry.translate(boundingBox.max.x, 0, 0);
+    // 拡大する
+    geometry.scale(1000, 1000, 1);
 
-
+    // マテリアル、ここでは適当にMeshStandardMaterialを使う
     const material = new THREE.MeshStandardMaterial({
       color: 0x00ff00,
       side: THREE.DoubleSide
@@ -350,9 +354,6 @@ export class Main {
 
     // メッシュ化
     const mesh = new THREE.Mesh(geometry, material);
-
-    // メッシュをY軸方向に移動
-    mesh.position.y += depth / 2;
 
     // シーンに追加
     this.scene.add(mesh);
