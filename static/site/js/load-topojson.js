@@ -50,15 +50,8 @@ export class Main {
     // 三浦市のデータのobjectName
     objectName: "miura",
 
-    // 世界地図のデータのパス
-    // path: "./static/data/world_map_web_merc.json",
-
-    // 世界地図のデータのobjectName
-    // objectName: "world_map",
-
     // translate
     translate: [0.0, 0.0],
-
   }
 
 
