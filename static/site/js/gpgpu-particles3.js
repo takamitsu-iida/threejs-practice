@@ -225,6 +225,9 @@ export class Main {
     //
 
     // width = particleLen,  height = particleNum として初期化する
+    // パーティクルの数だけ、ピクセルが存在することになる
+    // ここでいうパーティクルは、後ほど作るメッシュの頂点のこと
+
     //
     //                           length
     //        +--+--+--+--+--+--+--+
@@ -235,8 +238,11 @@ export class Main {
     // num 2  |  |  |  |  |  |  |  |
     //        +--+--+--+--+--+--+--+
 
-    // GPUComputationRenderer(width, height, renderer);
-    this.computeRenderer = new GPUComputationRenderer(this.params.particleLen, this.params.particleNum, this.renderer);
+    this.computeRenderer = new GPUComputationRenderer(
+      this.params.particleLen,  // widthはパーティクルの尻尾の長さ
+      this.params.particleNum,  // heightは線のように移動するパーティクルの本数
+      this.renderer             // renderer
+    );
 
     //
     // computeRenderer.createTexture();
@@ -244,13 +250,6 @@ export class Main {
 
     // 位置用のテクスチャを作成して、
     let initialPositionTexture = this.computeRenderer.createTexture();
-
-    // console.log(initialPositionTexture);
-    // DataTextureクラスのインスタンスであることが分かる
-    // この中にiamgeオブジェクトが入っている
-    // width = 20, height = 1の場合
-    // image: {data: Float32Array(80), width: 20, height: 1}
-    // という形になる
 
     // 値を初期化する
     // ランダムな場所にパーティクルを配置する
@@ -278,11 +277,20 @@ export class Main {
       }
     }
 
+    // console.log(initialPositionTexture);
+    // これを出力すると、
+    // initialPositionTextureはDataTextureクラスのインスタンスであることが分かる
+    // 中にiamgeオブジェクトが入っていて、
+    // width = 20, height = 1の場合
+    // image: {data: Float32Array(80), width: 20, height: 1}
+    // という形になる
+
+
     // 速度用のテクスチャを作成して、
     let initialVelocityTexture = this.computeRenderer.createTexture();
 
     // console.log(initialVelocityTexture);
-    // テクスチャをいくつ作成しても、同じ大きさで作られる
+    // テクスチャをいくつ作成しても、同じ大きさで作られることが分かる
 
     // 初期速度0で初期化する
     // 速度の計算は先頭ピクセルだけなので全ピクセルを初期化しなくてもいいけど念の為ゼロ埋め
@@ -299,11 +307,11 @@ export class Main {
     // 最新のテクスチャは毎回 getCurrentRenderTarget() で取り出す必要がある
 
     //
-    // 変数に紐づけられたシェーダー
+    // 変数に紐づけるシェーダー
     //
     const positionShader = /* glsl */`
 
-        // 一番左のピクセルだけ計算して、残りはフレームごとにずらしていく
+        // 一番左のピクセルだけ計算して、残りはフレームごとにずらしてコピーする
         //  +--+--+--+--+--+--+--+
         //  |＊|  |  |  |  |  |  |
         //  +--+--+--+--+--+--+--+
@@ -316,8 +324,8 @@ export class Main {
 
         if (gl_FragCoord.x < 1.0) {
 
-          // gl_FragCoordはピクセルの座標を表す
-          // X座標が1.0未満、ということは一番左のピクセルだけ計算するということ
+          // gl_FragCoordは画面上のピクセルの座標を表す
+          // X座標が1.0未満、ということは画面の一番左のピクセルだけ計算するということ
 
           // UV座標を計算して、
           uv = gl_FragCoord.xy / resolution.xy;
@@ -482,13 +490,15 @@ export class Main {
         vertices[index * 3 + 1] = 0;  // Y座標
         vertices[index * 3 + 2] = 0;  // Z座標
 
-        // ここ超重要！
+        // ★★★ ここ超重要！ ★★★
 
         // index番目の頂点に対応するUV座標を設定する
-        // これを設定することで、テクスチャに格納されている位置情報、速度情報を
+
+        // UV座標を設定することで、
+        // GPUComputationRendererで作成した計算用テクスチャの情報を
         // 自分自身のUV座標で取り出すことができる
 
-        // 一番右、一番上が1.0になるようにUV座標を設定する
+        // 左下が原点なので(0, 0)、右上が(1, 1)になるようにUV座標を設定する
         // 座標は0始まりなので、i / (particleLen - 1) としないと、一番右が1.0にならない
 
         // index = 0 のとき、i = 0, j = 0 なので、uv[0] = 0, uv[1] = 0 になる
@@ -497,6 +507,9 @@ export class Main {
 
         uv[index * 2 + 0] = j / (this.params.particleLen -1);
         uv[index * 2 + 1] = i / (this.params.particleNum -1);
+
+
+        // indexを作成してポリゴンを構成する
 
         // 三角形のポリゴンは、先頭の頂点とそれに続く尻尾で構成しなければならない
         // つまり行をまたいでポリゴンを作るとおかしなことになるので、一つの行で完結させる必要がある
@@ -507,10 +520,10 @@ export class Main {
         // 頂点2 同じ行内の次の頂点を指定したいが、右に振り切れないように配慮する
         indices[index * 3 + 1] = Math.min(index + 1, i * this.params.particleLen + this.params.particleLen - 1);
 
-        // 頂点3 同じ行内のさらに次の頂点を指定したいが、右に振り切れないように配慮する
-        indices[index * 3 + 2] = Math.min(index + 2, i * this.params.particleLen + this.params.particleLen - 1);
+        // 頂点3 これは頂点2と同じものを指定する。三角形のポリゴンにならないが、描画したいのは線なので問題ない
+        indices[index * 3 + 2] = Math.min(index + 1, i * this.params.particleLen + this.params.particleLen - 1);
 
-        // 結果的に尻尾の最後の方はうまく表示されてないと思うが、見えないので気にしない（すぐに消えるので）
+        // 結果的に尻尾の最後の方はうまく表示されてないと思うが、すぐに消えて見えなくなるので気にしない
 
       }
     }
