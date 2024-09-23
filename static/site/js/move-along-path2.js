@@ -34,6 +34,17 @@ export class Main {
     meanLon: 0.0,
 
     numPoints: 2000,
+
+    // ボートの位置
+    fraction: 0.0,
+
+    // ボートの位置のvec3配列
+    boatCurvePoints: null,
+
+    // 深度の位置のvec3配列
+    depthCurvePoints: null,
+
+
   }
 
 
@@ -253,22 +264,26 @@ export class Main {
     });
     // console.log(points);
 
-    const boatPoints = csvData.map((data) => {
-      const {lat, lon} = data;
-      return new THREE.Vector3(lon, 0, -lat);
-    });
-
     const depthCurve = new THREE.CatmullRomCurve3(depthPoints);
     const depthCurvePoints = depthCurve.getPoints(this.params.numPoints);
+
+    // 外からアクセスできるように保存しておく
+    this.params.depthCurvePoints = depthCurvePoints;
+
+    // 水深用のジオメトリ
     const depthGeometry = new THREE.BufferGeometry().setFromPoints(depthCurvePoints);
 
     const boatCurvePoints = depthCurvePoints.map((point) => {
       return new THREE.Vector3(point.x, 0, point.z);
     });
 
+    // 外からアクセスできるように保存しておく
+    this.params.boatCurvePoints = boatCurvePoints;
+
+    // ボート用のジオメトリ
     const boatGeometry = new THREE.BufferGeometry().setFromPoints(boatCurvePoints);
 
-    // 原点に寄せるためにジオメトリを移動、拡大する
+    // 原点に寄せて表示するためにジオメトリを移動、拡大する
     depthGeometry.translate(-this.params.meanLon, 0, this.params.meanLat);
     depthGeometry.scale(10000, 1, 10000);
 
@@ -286,5 +301,12 @@ export class Main {
     this.scene.add(depthLine);
     this.scene.add(boatLine);
   }
+
+
+
+  updatePosition() {
+
+  }
+
 
 }
