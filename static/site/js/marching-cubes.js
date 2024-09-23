@@ -724,7 +724,7 @@ class MarchingCubes {
 
     // Float32Arrayは固定長で確保しないといけないので、
     // すべてのボクセルの全ての辺の上に頂点を作る前提でバッファを用意するが、実際にはその一部しか使わない
-    // Terraiと違って +1 する必要はない
+    // Terrainと違って +1 する必要はない
     this.vertices = new Float32Array((this.xMax + 0) * (this.yMax + 0) * (this.zMax + 0) * 12 * 3);
 
     console.log(`Length of vertices = ${this.vertices.length}`);
@@ -776,7 +776,7 @@ class MarchingCubes {
           let edgeIndex = edgeTable[cubeIndex];
 
           // 交点がなければなにもしない
-          if (edgeIndex == 0) {
+          if (edgeIndex === 0) {
             continue;
           }
 
