@@ -133,7 +133,6 @@ export class Main {
       // オブジェクトの更新
       this.updateArrow();
 
-
       // 再描画
       this.renderer.render(this.scene, this.camera);
     }
@@ -223,6 +222,7 @@ export class Main {
 
   createCurvePath() {
     const path = new THREE.CurvePath();
+
     let bezierLine;
 
     bezierLine = new THREE.CubicBezierCurve3(
