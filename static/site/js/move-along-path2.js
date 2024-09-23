@@ -254,19 +254,24 @@ export class Main {
     // console.log(points);
 
     const boatPoints = csvData.map((data) => {
-      const {lat, lon, depth} = data;
+      const {lat, lon} = data;
       return new THREE.Vector3(lon, 0, -lat);
     });
 
     const depthCurve = new THREE.CatmullRomCurve3(depthPoints);
-    const boatCurve = new THREE.CatmullRomCurve3(boatPoints);
+    const depthCurvePoints = depthCurve.getPoints(this.params.numPoints);
+    const depthGeometry = new THREE.BufferGeometry().setFromPoints(depthCurvePoints);
 
-    const depthGeometry = new THREE.BufferGeometry().setFromPoints(depthCurve.getPoints(this.params.numPoints));
-    const boatGeometry = new THREE.BufferGeometry().setFromPoints(boatCurve.getPoints(this.params.numPoints));
+    const boatCurvePoints = depthCurvePoints.map((point) => {
+      return new THREE.Vector3(point.x, 0, point.z);
+    });
+
+    const boatGeometry = new THREE.BufferGeometry().setFromPoints(boatCurvePoints);
 
     // 原点に寄せるためにジオメトリを移動、拡大する
     depthGeometry.translate(-this.params.meanLon, 0, this.params.meanLat);
     depthGeometry.scale(10000, 1, 10000);
+
     boatGeometry.translate(-this.params.meanLon, 0, this.params.meanLat);
     boatGeometry.scale(10000, 1, 10000);
 
