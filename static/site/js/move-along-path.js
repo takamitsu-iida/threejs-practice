@@ -37,7 +37,7 @@ export class Main {
   }
 
 
-  constructor(params) {
+  constructor(params={}) {
     this.params = Object.assign(this.params, params);
 
     // scene, camera, rendererを初期化

@@ -88,7 +88,8 @@ export class Main {
   // perlin noise
   perlin = new ImprovedNoise();
 
-  constructor() {
+  constructor(params={}) {
+    this.params = Object.assign(this.params, params);
 
     // init scene, camera, renderer
     this.initThreejs();

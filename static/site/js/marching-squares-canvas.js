@@ -163,9 +163,7 @@ export class Main {
   // グリッドは `${rowIndex}${colIndex}` をキーとしたオブジェクト
   grid = {};
 
-  constructor(params) {
-
-    params = params || {};
+  constructor(params={}) {
     this.params = Object.assign(this.params, params);
 
     // scene, camera, renderer, controllerを初期化

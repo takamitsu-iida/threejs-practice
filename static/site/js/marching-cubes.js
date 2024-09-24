@@ -1135,9 +1135,7 @@ export class Main {
     isoLevel: 0,
   }
 
-  constructor(params) {
-
-    params = params || {};
+  constructor(params={}) {
     this.params = Object.assign(this.params, params);
 
     // scene, camera, renderer, controllerを初期化

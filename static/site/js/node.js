@@ -278,7 +278,8 @@ export class Main {
   // 作成したノードを格納するリスト
   nodes = [];
 
-  constructor() {
+  constructor(params={}) {
+    this.params = Object.assign(this.params, params);
 
     // テクスチャ画像を読み込む間、ローディング画面を表示する
     this.initTexture();

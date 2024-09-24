@@ -39,12 +39,10 @@ export class Main {
   params = {
     WIDTH: 500,
     PARTICLES: 500 * 500,
-
-
-
   }
 
-  constructor(params) {
+
+  constructor(params={}) {
     this.params = Object.assign(this.params, params);
 
     // scene, camera, renderer, controllerを初期化

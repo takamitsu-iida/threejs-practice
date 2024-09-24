@@ -28,7 +28,8 @@ export class Main {
     autoRotateSpeed: 2.0,
   }
 
-  constructor() {
+  constructor(params={}) {
+    this.params = Object.assign(this.params, params);
 
     // コンテナ
     this.container = document.getElementById("threejsContainer");

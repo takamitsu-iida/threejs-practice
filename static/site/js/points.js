@@ -55,10 +55,8 @@ export class Main {
   axisZ = new THREE.Vector3(0, 0, 1);
   axisXYZ = new THREE.Vector3(1, 1, 1).normalize();
 
-  constructor(params) {
-    params = params || {}
-    this.params.pointNum = 'pointNum' in params ? params.pointNum : this.params.pointNum;
-    this.params.pointSize = 'pointSize' in params ? params.pointSize : this.params.pointSize;
+  constructor(params={}) {
+    this.params = Object.assign(this.params, params);
 
     // コンテナ
     this.container = document.getElementById("threejsContainer");

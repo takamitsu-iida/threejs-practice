@@ -50,7 +50,8 @@ export class Main {
   terrainMesh;
 
 
-  constructor() {
+  constructor(params={}) {
+    this.params = Object.assign(this.params, params);
 
     // init scene, camera, renderer
     this.initThreejs();

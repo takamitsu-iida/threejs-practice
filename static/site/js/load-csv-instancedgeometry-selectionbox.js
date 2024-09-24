@@ -44,7 +44,7 @@ export class Main {
 
   pointCloud;
 
-  constructor(params) {
+  constructor(params={}) {
     this.params = Object.assign(this.params, params);
     this.init();
   }

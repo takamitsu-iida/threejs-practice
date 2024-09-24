@@ -44,8 +44,8 @@ export class ObjectSelection {
   // 光線を飛ばす対象レイヤ
   layers; // = [];
 
-  constructor(params) {
-    this.params = params || {};
+  constructor(params={}) {
+    this.params = Object.assign(this.params, params);
 
     // マウスカーソルが上に乗ったときのコールバック関数
     this.callbackMouseover = this.params.hasOwnProperty("mouseover") ? this.params.mouseover : null;
@@ -194,8 +194,8 @@ export class CanvasLabel {
   labelText;
   labelLayer;
 
-  constructor(params) {
-    this.params = params || {}
+  constructor(params={}) {
+    this.params = Object.assign(this.params, params);
 
     this.labelName = this.params.hasOwnProperty("labelName") ? this.params.labelName : "";
     this.labelText = this.params.hasOwnProperty("labelText") ? this.params.labelText : "";
@@ -447,10 +447,11 @@ export class FiveStageClosGraph {
   // Graphクラスのインスタンス、最後にこれを返す
   graph;
 
-  constructor(options) {
-    this.options = options || {};
-    this.clusters = options.hasOwnProperty("clusters") ? options.clusters : [];
-    this.layout = options.hasOwnProperty("layout") ? options.layout : "circular";
+  constructor(options={}) {
+    this.options = Object.assign(this.options, options);
+
+    this.clusters = this.options.hasOwnProperty("clusters") ? this.options.clusters : [];
+    this.layout = this.options.hasOwnProperty("layout") ? this.options.layout : "circular";
 
     // 空のGraphインスタンスを作成
     this.graph = new Graph();

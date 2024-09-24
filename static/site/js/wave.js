@@ -11,9 +11,6 @@ import { fragment } from "./waveFragmentShader.glsl.js";
 
 export class Main {
 
-  params;
-  isHomepage;
-
   container;
 
   sizes = {
@@ -26,18 +23,20 @@ export class Main {
   renderer;
   controller;
 
+  params = {
+    isHomepage: false,
+  };
+
+  material;
+
   renderParams = {
     clock: new THREE.Clock(),
     delta: 0,
     interval: 1 / 30,  // = 30fps
   }
 
-  material;
-
-  constructor(params) {
-
-    this.params = params || {};
-    this.isHomepage = ("homepage" in this.params) ? this.params.homepage : false;
+  constructor(params={}) {
+    this.params = Object.assign(this.params, params);
 
     // コンテナ
     this.container = document.getElementById("threejsContainer");
@@ -70,7 +69,7 @@ export class Main {
     this.scene.add(new THREE.AmbientLight(0x404040, 0.25));
 
     // コントローラ
-    if (this.isHomepage === false) {
+    if (this.params.isHomepage === false) {
       this.controller = new OrbitControls(this.camera, this.renderer.domElement);
       this.controller.enableDamping = true;
     }
@@ -196,7 +195,7 @@ export class Main {
       .step(0.001)
       .name("uSmallWaveSpeed");
 
-    if (this.isHomepage) {
+    if (this.params.isHomepage) {
       gui.show(false);
     }
 
@@ -239,7 +238,7 @@ export class Main {
       this.camera.lookAt(Math.sin(elapsedTime)*0.2, Math.cos(elapsedTime)*0.2, Math.sin(elapsedTime)*0.2);
 
       // カメラコントローラーの更新
-      if (this.isHomepage === false) {
+      if (this.params.isHomepage === false) {
         this.controller.update();
       }
 

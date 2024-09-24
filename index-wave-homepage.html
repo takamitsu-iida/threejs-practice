@@ -130,7 +130,7 @@
 
   window.addEventListener("load", () => {
     if (WebGL.isWebGL2Available()) {
-      new Main({ homepage: true });
+      new Main({ isHomepage: true });
     } else {
       document.getElementById("threejsContainer").appendChild(WebGL.getWebGLErrorMessage());
     }
