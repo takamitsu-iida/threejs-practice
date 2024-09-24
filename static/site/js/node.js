@@ -305,7 +305,7 @@ export class Main {
   }
 
 
-  initTexture() {
+  initTexture = () => {
     const loadingContainer = document.getElementById('loadingContainer');
     const loadingManager = new THREE.LoadingManager(() => {
 
@@ -325,7 +325,7 @@ export class Main {
   }
 
 
-  initThreejs() {
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
@@ -377,7 +377,7 @@ export class Main {
   }
 
 
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -422,7 +422,6 @@ export class Main {
         });
       });
   }
-
 
 
   render = () => {
@@ -579,6 +578,5 @@ export class Main {
     }
 
   }
-
 
 }

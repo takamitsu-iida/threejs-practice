@@ -28,6 +28,7 @@ export class Main {
   // 地面を表現するメッシュ化されたオブジェクト
   ground;
 
+
   constructor() {
 
     this.initThreejs();
@@ -37,6 +38,7 @@ export class Main {
     this.createGround();
 
     this.render();
+
   }
 
 
@@ -95,7 +97,7 @@ export class Main {
   }
 
 
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -110,7 +112,7 @@ export class Main {
   }
 
 
-  updatePosition() {
+  updatePosition = () => {
     // 経過時間を取得
     const elapsedTime = this.renderParams.clock.getElapsedTime();
 

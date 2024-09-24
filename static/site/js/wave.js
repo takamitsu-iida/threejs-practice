@@ -27,13 +27,13 @@ export class Main {
     isHomepage: false,
   };
 
-  material;
-
   renderParams = {
     clock: new THREE.Clock(),
     delta: 0,
     interval: 1 / 30,  // = 30fps
   }
+
+  material;
 
   constructor(params={}) {
     this.params = Object.assign(this.params, params);
@@ -44,6 +44,9 @@ export class Main {
     // コンテナのサイズ
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
+
+    // resizeイベントのハンドラを登録
+    window.addEventListener("resize", this.onWindowResize, false);
 
     // シーン
     this.scene = new THREE.Scene();
@@ -206,9 +209,6 @@ export class Main {
     mesh.rotation.x = -1 * Math.PI / 2;
 
     this.scene.add(mesh);
-
-    // resizeイベントのハンドラを登録
-    window.addEventListener("resize", this.onWindowResize, false);
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();

@@ -103,7 +103,7 @@ export class Main {
   }
 
 
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");

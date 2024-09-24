@@ -9,6 +9,7 @@ import { GUI } from "three/libs/lil-gui.module.min.js";
 import { vertex } from "./flagVertexShader.glsl.js";
 import { fragment } from "./flagFragmentShader.glsl.js";
 
+
 export class Main {
 
   container;

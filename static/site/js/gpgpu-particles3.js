@@ -66,6 +66,7 @@ export class Main {
   }
 
   constructor(params={}) {
+
     this.params = Object.assign(this.params, params);
 
     // scene, camera, rendererを初期化
@@ -79,10 +80,11 @@ export class Main {
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
+
   }
 
 
-  initThreejs() {
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
@@ -127,7 +129,7 @@ export class Main {
   }
 
 
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -218,7 +220,7 @@ export class Main {
 
 
   // パーティクルの初期化
-  initParticles() {
+  initParticles = () => {
 
     //
     // GPUComputationRendererを初期化
@@ -586,7 +588,7 @@ export class Main {
   }
 
 
-  updateParticles() {
+  updateParticles = () => {
 
     // 時刻情報を渡して
     this.computeParams.velocity.uniforms.time.value = this.renderParams.time;

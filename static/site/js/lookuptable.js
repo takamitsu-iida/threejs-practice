@@ -53,6 +53,7 @@ export class Main {
 
 
   constructor(params={}) {
+
     this.params = Object.assign(this.params, params);
 
     this.initThreejs();
@@ -65,21 +66,21 @@ export class Main {
 
     this.initStatsjs();
 
-    // リサイズイベントを登録
-    window.addEventListener("resize", this.onWindowResize, false);
-
-    // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
+
   }
 
 
-  initThreejs() {
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
     // コンテナのサイズ
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
+
+    // リサイズイベントを登録
+    window.addEventListener("resize", this.onWindowResize, false);
 
     // シーン
     this.scene = new THREE.Scene();
@@ -119,7 +120,8 @@ export class Main {
   }
 
 
-  initUiScene() {
+  initUiScene = () => {
+
     // 色の凡例を表示するシーンとカメラ
     this.uiScene = new THREE.Scene();
 
@@ -143,7 +145,7 @@ export class Main {
   }
 
 
-  initGround() {
+  initGround = () => {
 
     // 平面
     const geometry = new THREE.PlaneGeometry(400, 400, 32, 32);
@@ -234,7 +236,7 @@ export class Main {
   }
 
 
-  initGui() {
+  initGui = () => {
     const guiContainer = document.getElementById("guiContainer");
     const gui = new GUI({
       container: guiContainer,
@@ -249,7 +251,7 @@ export class Main {
   }
 
 
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -264,7 +266,7 @@ export class Main {
   }
 
 
-  changeColorMap() {
+  changeColorMap = () => {
     this.lut.setColorMap(this.params.colorMap);
     this.lut.setMax(this.params.maxY * 2);
     this.lut.setMin(this.params.minY * 2);

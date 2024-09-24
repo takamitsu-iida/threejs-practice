@@ -1136,6 +1136,7 @@ export class Main {
   }
 
   constructor(params={}) {
+
     this.params = Object.assign(this.params, params);
 
     // scene, camera, renderer, controllerを初期化
@@ -1159,21 +1160,21 @@ export class Main {
     // シーンに追加
     this.scene.add(mesh);
 
-    // リサイズイベントを登録
-    window.addEventListener("resize", this.onWindowResize, false);
-
-    // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
+
   }
 
 
-  initThreejs() {
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
     // コンテナのサイズ
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
+
+    // リサイズイベントを登録
+    window.addEventListener("resize", this.onWindowResize, false);
 
     // シーン
     this.scene = new THREE.Scene();
@@ -1246,7 +1247,7 @@ export class Main {
   }
 
 
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");

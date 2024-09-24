@@ -63,10 +63,10 @@ export class ObjectSelection {
     this.mousePosition = new THREE.Vector2()
 
     // mousemoveイベントを登録
-    this.domElement.addEventListener('mousemove', (event) => { this.onMouseMove(event); }, false);
+    this.domElement.addEventListener('mousemove', this.onMouseMove, false);
 
     // clickイベントを登録
-    this.domElement.addEventListener('click', (event) => { this.onMouseClick(event); }, false);
+    this.domElement.addEventListener('click', this.onMouseClick, false);
 
     // レイキャスターを作成
     this.raycaster = new THREE.Raycaster();
@@ -78,7 +78,7 @@ export class ObjectSelection {
 
   }
 
-  onMouseMove(event) {
+  onMouseMove = (event) => {
     event.preventDefault();
     event.stopPropagation();
 
@@ -104,7 +104,7 @@ export class ObjectSelection {
   }
 
 
-  onMouseClick(event) {
+  onMouseClick = (event) => {
     event.preventDefault();
     event.stopPropagation();
 
@@ -117,7 +117,7 @@ export class ObjectSelection {
 
 
   // animate()の中でこのrender()関数を呼ぶこと
-  render(scene, camera) {
+  render = (scene, camera) => {
 
     // カメラからマウス座標に向かって光線を飛ばす
     this.raycaster.setFromCamera(this.mousePosition, camera);
@@ -207,7 +207,7 @@ export class CanvasLabel {
   }
 
 
-  create() {
+  create = () => {
 
     const canvas = document.createElement("canvas");
 
@@ -293,7 +293,7 @@ export class Graph {
     });
   }
 
-  addNode(node) {
+  addNode = (node) => {
     if ("data" in node === false || "id" in node.data === false) {
       throw new Error("node.data.id is required");
     }
@@ -303,7 +303,7 @@ export class Graph {
     this.nodes.push(node);
   }
 
-  addEdge(edge) {
+  addEdge = (edge) => {
     if ("data" in edge === false || "id" in edge.data === false) {
       throw new Error("edge.data.id is required");
     }
@@ -314,19 +314,19 @@ export class Graph {
     this.edges.push(edge);
   }
 
-  getNodes() {
+  getNodes = () => {
     return this.nodes;
   }
 
-  getEdges() {
+  getEdges = () => {
     return this.edges;
   }
 
-  getElements() {
+  getElements = () => {
     return this.nodes.concat(this.edges);
   }
 
-  getElementById(id) {
+  getElementById = (id) => {
     {
       const found = this.nodes.find((node) => node.data.id === id);
       if (found) {
@@ -475,11 +475,13 @@ export class FiveStageClosGraph {
     this.setLayout(this.layout);
   }
 
-  getGraph() {
+
+  getGraph = () => {
     return this.graph;
   }
 
-  createNodeEdge() {
+
+  createNodeEdge = () => {
 
     // 各クラスタについて
     this.clusters.forEach((cluster, index) => {
@@ -609,8 +611,7 @@ export class FiveStageClosGraph {
   }
 
 
-
-  circularLayout(options) {
+  circularLayout = (options) => {
     options = options || {};
 
     let tier3Radius = 240;
@@ -693,7 +694,8 @@ export class FiveStageClosGraph {
     return this;
   }
 
-  sphereLayout(options) {
+
+  sphereLayout = (options) => {
     options = options || {};
 
     let tier3Radius = 320;
@@ -793,6 +795,7 @@ export class LAYERS {
   static REDUNDANT_0 = 2;
   static REDUNDANT_1 = 3;
 }
+
 
 // ノードとエッジの色定義
 export class NODE_COLORS {
@@ -983,7 +986,7 @@ class Node extends THREE.Group {
   }
 
 
-  updatePosition() {
+  updatePosition = () => {
     this.position.set(this.node.position.x, this.node.position.y, this.node.position.z);
   }
 
@@ -992,7 +995,7 @@ class Node extends THREE.Group {
   // 色で制御するとマウスオーバーの色制御と競合するのでopacityを制御する
   blinkOpacity = 0.4;
   blinkInterval;
-  blinkEffect() {
+  blinkEffect = () => {
     // 選択中なら、ブリンクエフェクトを開始
     if (this.isSelected) {
       this.blinkInterval = setInterval(() => {
@@ -1085,7 +1088,7 @@ class Edge extends THREE.Group {
   }
 
 
-  createGeometry(source, target) {
+  createGeometry = (source, target) => {
     if (source.data.tier === 1 || target.data.tier === 1) {
       return this.createCurveGeometry(source, target);
     }
@@ -1093,7 +1096,7 @@ class Edge extends THREE.Group {
   }
 
 
-  createLineGeometry(source, target) {
+  createLineGeometry = (source, target) => {
     const vertices = [];
 
     vertices.push(source.position.x);
@@ -1111,7 +1114,7 @@ class Edge extends THREE.Group {
   }
 
 
-  createCurveGeometry(source, target) {
+  createCurveGeometry = (source, target) => {
     const sourcePosition = new THREE.Vector3(source.position.x, source.position.y, source.position.z);
     const targetPosition = new THREE.Vector3(target.position.x, target.position.y, target.position.z);
     const middlePosition = new THREE.Vector3(
@@ -1135,7 +1138,7 @@ class Edge extends THREE.Group {
   }
 
 
-  updateGeometry() {
+  updateGeometry = () => {
     const geometry = this.createGeometry(this.source, this.target);
     this.line.geometry.dispose();
     this.line.geometry = geometry;
@@ -1146,8 +1149,16 @@ class Edge extends THREE.Group {
 
 export class Diagram {
 
-  // コンストラクタに渡された引数
-  options;
+  // デフォルト動作
+  // これらはコンストラクタに渡された引数で上書きされる
+  options = {
+    graph: [],
+    selection: true,
+    showLabels: true,
+    labelFontSize: "Medium",  // "Small", "Medium", "Large"
+    axesHelper: true,
+    autoRotate: false,
+  };
 
   // Graphクラスのインスタンス
   graph;
@@ -1194,8 +1205,8 @@ export class Diagram {
 
   // ラベル表示用のパラメータ
   labelParams = {
-    showLabels: true,
-    labelFontSize: "Medium"  // "Small", "Medium", "Large"
+    showLabels: undefined,
+    labelFontSize: undefined,
   }
 
   // グラフ表示用のパラメータ
@@ -1208,21 +1219,30 @@ export class Diagram {
 
   // OrbitControlのパラメータ
   orbitParams = {
-    autoRotate: false
+    autoRotate: undefined
   }
 
-  constructor(options) {
-    this.options = options || {};
 
-    // optionsに渡された値を保存
-    this.graph = this.options.hasOwnProperty("graph") ? this.options.graph : [];
-    this.selectionEnabled = this.options.hasOwnProperty("selection") ? this.options.selection : true;
-    this.labelParams.showLabels = this.options.hasOwnProperty("showLabels") ? this.options.showLabels : this.labelParams.showLabels;
-    this.labelParams.labelFontSize = this.options.hasOwnProperty("labelFontSize") ? this.options.labelFontSize : this.labelParams.labelFontSize;
-    this.axesHelperEnabled = this.options.hasOwnProperty("axesHelper") ? this.options.axesHelper : true;
-    this.orbitParams.autoRotate = this.options.hasOwnProperty("autoRotate") ? this.options.autoRotate : this.orbitParams.autoRotate;
+  constructor(options={}) {
+    this.options = Object.assign(this.options, options);
 
-    this.initRenderer();
+    // optionsで渡された値に更新
+    this.graph = this.options.graph;
+
+    // 選択可能にするか
+    this.selectionEnabled = this.options.selection;
+
+    // ラベル表示の設定
+    this.labelParams.showLabels = this.options.showLabels;
+    this.labelParams.labelFontSize = this.options.labelFontSize;
+
+    // 軸を表示するか
+    this.axesHelperEnabled = this.options.axesHelper;
+
+    // 自動でカメラを回転させるか
+    this.orbitParams.autoRotate = this.options.autoRotate;
+
+    this.initThreejs();
     this.initController();
     this.initStatsjs();
     this.initGui();
@@ -1235,10 +1255,8 @@ export class Diagram {
     this.render();
   }
 
-  //
-  // Three.js初期化処理
-  //
-  initRenderer() {
+
+  initThreejs = () => {
 
     // コンテナ要素を取得
     this.container = document.getElementById("threejsContainer");
@@ -1313,8 +1331,9 @@ export class Diagram {
 
   }
 
+
   // マウス操作のコントロールを初期化
-  initController() {
+  initController = () => {
     this.controller = new OrbitControls(this.camera, this.renderer.domElement);
     this.controller.enableDamping = true;
     this.controller.autoRotate = this.orbitParams.autoRotate;
@@ -1323,7 +1342,7 @@ export class Diagram {
 
 
   // stats.jsを初期化
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -1339,7 +1358,7 @@ export class Diagram {
 
 
   // lil-guiを初期化
-  initGui() {
+  initGui = () => {
     let container = document.getElementById("guiContainer");
     if (!container) {
       container = document.createElement("div");
@@ -1433,7 +1452,7 @@ export class Diagram {
 
 
   // ObjectSelectionを初期化
-  initObjectSelection() {
+  initObjectSelection = () => {
 
     this.objectSelection = new ObjectSelection({
       domElement: this.renderer.domElement,
@@ -1507,7 +1526,7 @@ export class Diagram {
   }
 
   // イベントハンドラを登録
-  initEventHandler() {
+  initEventHandler = () => {
     // テスト用
     // ボタンを押したらシーン上のグラフを全て削除
     {
@@ -1658,7 +1677,7 @@ export class Diagram {
   //
   // Graphクラスのインスタンスの情報をもとにノードとエッジをシーン上に作成する
   //
-  drawGraph() {
+  drawGraph = () => {
 
     // ノードを作成
     this.graph.getNodes().forEach((node) => {
@@ -1684,7 +1703,7 @@ export class Diagram {
   //
   // シーン上のノードとエッジを削除する
   //
-  removeGraph() {
+  removeGraph = () => {
 
     // シーン上のNodeオブジェクトを削除する
     this.graph.getNodes().forEach((node) => {

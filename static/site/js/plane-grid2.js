@@ -188,19 +188,19 @@ export class Main {
   // パーリンノイズ
   perlin = new ImprovedNoise();
 
-    // シェーダーに渡すグローバル変数
-    uniforms = {
+  // シェーダーに渡すグローバル変数
+  uniforms = {
 
-      // 等圧線をひくインターバル
-      uInterval: { value: 1.0 },
+    // 等圧線をひくインターバル
+    uInterval: { value: 1.0 },
 
-      // 等圧線の太さ
-      uThickness: { value: 1.0 },
+    // 等圧線の太さ
+    uThickness: { value: 1.0 },
 
-      uBoxMin: { value: new THREE.Vector3() },
-      uBoxMax: { value: new THREE.Vector3() }
+    uBoxMin: { value: new THREE.Vector3() },
+    uBoxMax: { value: new THREE.Vector3() }
 
-    };
+  };
 
 
   constructor() {
@@ -214,6 +214,7 @@ export class Main {
     this.createGround();
 
     this.render();
+
   }
 
 
@@ -270,7 +271,7 @@ export class Main {
   }
 
 
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -396,8 +397,8 @@ export class Main {
           varying vec3 vPosition;
           ${shader.vertexShader}
         `.replace(
-            `#include <fog_vertex>`,
-            `#include <fog_vertex>
+          `#include <fog_vertex>`,
+          `#include <fog_vertex>
               vPosition = transformed;
             `
         );

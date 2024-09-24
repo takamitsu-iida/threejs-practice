@@ -224,6 +224,7 @@ export class Main {
   // gridsは `${rowIndex},${colIndex}` をキーとしたオブジェクト
   grids = {};
 
+
   constructor(params={}) {
     this.params = Object.assign(this.params, params);
 
@@ -282,14 +283,14 @@ export class Main {
   }
 
 
-  calcPotential() {
+  calcPotential = () => {
     Object.values(this.grids).forEach((g) => {
       g.potential = this.field.calc(g.position);
     });
   }
 
 
-  drawBoundary() {
+  drawBoundary = () => {
     // 計算の都合上、グリッドの一番右、一番下は（隣がないので）等圧線が描画されない
     const w = (this.params.gridNums.x -1) * this.params.gridSize;
     const h = (this.params.gridNums.y -1) * this.params.gridSize;
@@ -313,14 +314,14 @@ export class Main {
   }
 
 
-  drawBall() {
+  drawBall = () => {
     this.field.balls.forEach((ball) => {
       this.scene.add(ball.mesh);
     });
   }
 
 
-  drawIsoline() {
+  drawIsoline = () => {
 
     // グリッドの行、列をたどりながら、線を描画していく
     for (let rowIndex = 0; rowIndex < this.params.gridNums.y - 1; rowIndex++) {
@@ -348,7 +349,7 @@ export class Main {
   }
 
 
-  ratio(gridA, gridB, threshold) {
+  ratio = (gridA, gridB, threshold) => {
     const a = threshold - gridA.potential;
     const b = gridB.potential - threshold;
 
@@ -356,7 +357,7 @@ export class Main {
   }
 
 
-  createMarchingSquareFunctions() {
+  createMarchingSquareFunctions = () => {
 
     const gridSize = this.params.gridSize;
 
@@ -679,13 +680,16 @@ export class Main {
   }
 
 
-  initThreejs() {
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
     // コンテナのサイズ
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
+
+    // リサイズイベントを登録
+    // window.addEventListener("resize", this.onWindowResize, false);
 
     // シーン
     this.scene = new THREE.Scene();
@@ -734,7 +738,7 @@ export class Main {
   }
 
 
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");

@@ -86,7 +86,7 @@ export class Main {
   }
 
 
-  initThreejs() {
+  initThreejs = () => {
 
     // コンテナ
     this.container = document.getElementById("threejsContainer");
@@ -136,7 +136,7 @@ export class Main {
   }
 
 
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -151,7 +151,7 @@ export class Main {
   }
 
 
-  initGui() {
+  initGui = () => {
     // lil-gui
     const gui = new GUI({ width: 300 });
     gui
@@ -203,10 +203,9 @@ export class Main {
   };
 
 
-  drawCurve(){
-    //
+  drawCurve = () => {
+
     // 点をもとにカーブを描く
-    //
 
     const pointVectors = []
     this.pointCoordinates.forEach(coords => {

@@ -61,7 +61,7 @@ export class Main {
   }
 
 
-  async init() {
+  init = async () => {
     // データを読み込む
     // その間、ローディング画面を表示する
     await this.loadCsv(this.params.path);
@@ -93,7 +93,7 @@ export class Main {
   }
 
 
-  async loadCsv(path) {
+  loadCsv = async (path) => {
     const loadingContainer = document.getElementById('loadingContainer');
 
     try {
@@ -134,7 +134,7 @@ export class Main {
 
 
   // CSVデータをパースする関数
-  parseCsv(text) {
+  parseCsv = (text) => {
     const headers = ['lat', 'lon', 'depth'];
 
     let sumLat = 0.0;
@@ -161,7 +161,7 @@ export class Main {
   }
 
 
-  initThreejs() {
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
@@ -207,7 +207,7 @@ export class Main {
   }
 
 
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -261,7 +261,7 @@ export class Main {
   };
 
 
-  initPath() {
+  initPath = () => {
     const csvData = this.params.csvData;
 
     // console.log(csvData);
@@ -351,7 +351,7 @@ export class Main {
   }
 
 
-  createArrow() {
+  createArrow = () => {
     // 円錐と円柱を作成して結合する
 
     // 円錐
@@ -382,7 +382,8 @@ export class Main {
     this.scene.add(this.arrow);
   }
 
-  createVerticalLine() {
+
+  createVerticalLine = () => {
     const geometry = new THREE.BufferGeometry();
 
     const vertices = new Float32Array([
@@ -406,10 +407,11 @@ export class Main {
 
 
 
+  // 60fpsで毎回作るのも嫌なので、先に作って使い回す
   UP = new THREE.Vector3(0, 1, 0);
   AXIS = new THREE.Vector3();
 
-  updatePosition() {
+  updatePosition = () => {
 
     // 配列のインデックスを計算
     const index = Math.floor(this.params.fraction * (this.params.numPoints - 1));
@@ -440,6 +442,5 @@ export class Main {
     }
 
   }
-
 
 }

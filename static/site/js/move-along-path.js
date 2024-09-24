@@ -46,14 +46,14 @@ export class Main {
     // stats.jsを初期化
     this.initStatsjs();
 
+    // 矢印オブジェクトを初期化
     this.initMoveAlongPath();
 
-    // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
   }
 
 
-  initThreejs() {
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
@@ -100,7 +100,7 @@ export class Main {
   }
 
 
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -113,6 +113,7 @@ export class Main {
     this.statsjs.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
     container.appendChild(this.statsjs.dom);
   }
+
 
   render = () => {
     // 再帰処理
@@ -153,14 +154,17 @@ export class Main {
   }
 
 
-  initMoveAlongPath() {
+  initMoveAlongPath = () => {
+
     this.arrow = this.createArrow();
+
     this.scene.add(this.arrow);
 
     this.curvePath = this.createCurvePath();
 
     const line = this.createLineFromPath(this.curvePath);
     this.scene.add(line);
+
   }
 
 
@@ -171,7 +175,7 @@ export class Main {
   axis = new THREE.Vector3();
   radians = 0;
 
-  updateArrow() {
+  updateArrow = () => {
 
     // 位置を更新
     const position = this.curvePath.getPointAt(this.fraction);
@@ -191,7 +195,7 @@ export class Main {
   }
 
 
-  createArrow() {
+  createArrow = () => {
     // 円錐と円柱を作成して結合する
 
     // 円錐
@@ -220,7 +224,7 @@ export class Main {
   }
 
 
-  createCurvePath() {
+  createCurvePath = () => {
     const path = new THREE.CurvePath();
 
     let bezierLine;
@@ -261,7 +265,7 @@ export class Main {
   }
 
 
-  createLineFromPath(path) {
+  createLineFromPath = (path) => {
     // const path = this.createPath();
 
     const numPoints = 10;

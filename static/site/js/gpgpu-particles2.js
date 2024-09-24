@@ -66,6 +66,7 @@ export class Main {
   gpuParticle;
 
   constructor(params={}) {
+
     this.params = Object.assign(this.params, params);
 
     // scene, camera, rendererを初期化
@@ -79,10 +80,11 @@ export class Main {
 
     // フレーム毎の処理
     this.render();
+
   }
 
 
-  initThreejs() {
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
@@ -120,7 +122,7 @@ export class Main {
   }
 
 
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -171,7 +173,7 @@ export class Main {
 
 
   // パーティクルの初期化
-  initParticles() {
+  initParticles = () => {
 
     // 画像ファイルを元にテクスチャを作成
     // この画像が各パーティクルにおける速度・方向を決めることになる
@@ -324,19 +326,19 @@ class GpuParticle {
 
   }
 
-  setVelocityTexture(texture) {
+  setVelocityTexture = (texture) => {
     this.vertexTexture.updateVelocityTexture(texture);
   }
 
-  setParticleSpeed(speed) {
+  setParticleSpeed = (speed) => {
     this.vertexTexture.updateParticleSpeed(speed);
   }
 
-  getParticleTexture() {
+  getParticleTexture = () => {
     return this.particleRenderer.getTexture();
   }
 
-  render() {
+  render = () => {
     // 計算して
     this.vertexTexture.compute();
 
@@ -534,23 +536,23 @@ export class VertexTexture {
 
   }
 
-  getTexture() {
+  getTexture = () => {
     return this.gpuRenderer.getCurrentRenderTarget(this.computationVariable).texture;
   }
 
-  updateVelocityTexture(texture) {
+  updateVelocityTexture = (texture) => {
     this.computationVariable.material.uniforms.velocityTexture.value = texture;
   }
 
-  updateParticleSpeed(speed) {
+  updateParticleSpeed = (speed) => {
     this.computationVariable.material.uniforms.particleSpeed.value = speed;
   }
 
-  updateDropFactor(dropFactor) {
+  updateDropFactor = (dropFactor) => {
     this.computationVariable.material.uniforms.dropFactor.value = dropFactor;
   }
 
-  compute() {
+  compute = () => {
     this.gpuRenderer.compute();
   }
 }
@@ -727,15 +729,15 @@ class ParticleRenderer {
     this.mixScene.add(this.mixMesh);
   }
 
-  updateVertexTexture(texture) {
+  updateVertexTexture = (texture) => {
     this.vertexTexture = texture;
   }
 
-  getTexture() {
+  getTexture = () => {
     return this.currRenderTarget.texture;
   }
 
-  render() {
+  render = () => {
     // update vertices
     this.singleMaterial.uniforms.posTexture.value = this.vertexTexture;
 

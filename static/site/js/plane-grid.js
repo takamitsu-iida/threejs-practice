@@ -366,7 +366,7 @@ export class Main {
   }
 
 
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -512,6 +512,5 @@ export class Main {
     let boxHelper = new THREE.Box3Helper(box);
     this.scene.add(boxHelper);
   }
-
 
 }

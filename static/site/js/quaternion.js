@@ -43,6 +43,7 @@ export class Main {
     this.createCubes();
 
     this.render();
+
   }
 
 
@@ -290,7 +291,5 @@ export class Main {
     // 掛け算することで回転を加える
     this.boxWorld.quaternion.multiply(this.quaternionWorld);
   }
-
-
 
 }

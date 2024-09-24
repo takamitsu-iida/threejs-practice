@@ -62,6 +62,7 @@ export class Main {
   axisXYZ = new THREE.Vector3(1, 1, 1).normalize();
 
   constructor(params={}) {
+
     this.params = Object.assign(this.params, params);
 
     this.initThreejs();
@@ -71,6 +72,7 @@ export class Main {
     this.createParticles();
 
     this.render();
+
   }
 
 

@@ -62,7 +62,7 @@ export class Main {
   }
 
 
-  initThreejs() {
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
@@ -111,7 +111,7 @@ export class Main {
   }
 
 
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -266,7 +266,7 @@ export class Main {
   particleUniforms;
   effectController;
 
-  initComputeRenderer() {
+  initComputeRenderer = () => {
     const WIDTH = this.params.WIDTH;
 
     // gpgpuオブジェクトのインスタンスを格納
@@ -300,7 +300,7 @@ export class Main {
 
 
   // テクスチャに初期情報を埋める関数
-  fillTextures(texturePosition, textureVelocity) {
+  fillTextures = (texturePosition, textureVelocity) => {
 
     // textureのイメージデータをいったん取り出す
     let posArray = texturePosition.image.data;
@@ -334,7 +334,7 @@ export class Main {
   }
 
 
-  initPosition() {
+  initPosition = () => {
 
     const WIDTH = this.params.WIDTH;
     const PARTICLES = this.params.PARTICLES;
@@ -397,7 +397,7 @@ export class Main {
 
   // カメラオブジェクトからシェーダーに渡したい情報を引っ張ってくる関数
   // カメラからパーティクルがどれだけ離れてるかを計算し、パーティクルの大きさを決定するため。
-  getCameraConstant() {
+  getCameraConstant = () => {
     const DEG2RAD = Math.PI / 180;
     // const RAD2DEG = 180 / Math.PI;
     return this.sizes.height / (Math.tan(DEG2RAD * 0.5 * this.camera.fov) / this.camera.zoom);

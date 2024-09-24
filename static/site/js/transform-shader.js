@@ -51,6 +51,7 @@ export class Main {
 
   }
 
+
   constructor() {
 
     // scene, camera, renderer, controllerを初期化
@@ -70,7 +71,7 @@ export class Main {
   }
 
 
-  initThreejs() {
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
@@ -121,7 +122,8 @@ export class Main {
 
   }
 
-  initGui() {
+
+  initGui = () => {
     const guiContainer = document.getElementById("guiContainer");
     const gui = new GUI({
       container: guiContainer,
@@ -194,7 +196,7 @@ export class Main {
   }
 
 
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -245,7 +247,7 @@ export class Main {
   };
 
 
-  initCube() {
+  initCube = () => {
 
     // 2x2x2の立方体のジオメトリを作成
     const geometry = new THREE.BoxGeometry(2, 2, 2);
@@ -262,7 +264,6 @@ export class Main {
     }
 
     geometry.setAttribute("color", new THREE.Float32BufferAttribute(colorBuffer, 3));
-
 
     // シェーダーマテリアルを作成
     const material = new THREE.ShaderMaterial({

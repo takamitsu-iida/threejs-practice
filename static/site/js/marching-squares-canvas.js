@@ -163,6 +163,7 @@ export class Main {
   // グリッドは `${rowIndex}${colIndex}` をキーとしたオブジェクト
   grid = {};
 
+
   constructor(params={}) {
     this.params = Object.assign(this.params, params);
 

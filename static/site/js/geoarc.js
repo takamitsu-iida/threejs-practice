@@ -299,6 +299,7 @@ export class Main {
     [-90, 0], // 南極
   ];
 
+
   constructor() {
 
     // コンテナ

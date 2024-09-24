@@ -106,21 +106,22 @@ export class Main {
     // XZ平面にグリッドを表示
     // this.gridMarker(this.terrainMesh);
 
-    // リサイズイベントを登録
-    window.addEventListener("resize", this.onWindowResize, false);
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
   }
 
 
-  initThreejs() {
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
     // コンテナのサイズ
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
+
+    // リサイズイベントを登録
+    window.addEventListener("resize", this.onWindowResize, false);
 
     // シーン
     this.scene = new THREE.Scene();
@@ -165,10 +166,10 @@ export class Main {
     //
     const axesHelper = new THREE.AxesHelper(10000);
     this.scene.add(axesHelper);
-
   }
 
-  initGui() {
+
+  initGui = () => {
     const guiContainer = document.getElementById("guiContainer");
     const gui = new GUI({
       container: guiContainer,
@@ -192,10 +193,10 @@ export class Main {
         this.scene.remove(this.terrainMesh);
         this.generateTerrain();
       });
-
   }
 
-  initStatsjs() {
+
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -208,6 +209,7 @@ export class Main {
     this.statsjs.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
     container.appendChild(this.statsjs.dom);
   }
+
 
   render = () => {
     // 再帰処理
@@ -243,7 +245,8 @@ export class Main {
     this.renderer.setSize(this.sizes.width, this.sizes.height);
   };
 
-  generateTerrain() {
+
+  generateTerrain = () => {
     const terrainSize = this.params.terrainSize;
     const pointsCount = this.params.pointsCount;
     const points3d = [];
@@ -309,7 +312,8 @@ export class Main {
     this.scene.add(this.terrainMesh);
   }
 
-  gridMarker(mesh) {
+
+  gridMarker = (mesh) => {
 
     // メッシュの境界を特定
     const boundingBox = new THREE.Box3().setFromObject(mesh);
@@ -369,6 +373,5 @@ export class Main {
     this.scene.add(markerPointCloud);
 
   }
-
 
 }

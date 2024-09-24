@@ -4,7 +4,6 @@ import { OrbitControls } from "three/controls/OrbitControls.js";
 
 export class Main {
 
-  // <DIV>
   container;
 
   // 初期化時にDIV要素(container)のサイズに変更する
@@ -25,6 +24,7 @@ export class Main {
   // マウス操作のコントローラ
   controller;
 
+
   constructor() {
 
     // コンテナ
@@ -33,6 +33,9 @@ export class Main {
     // コンテナ要素にあわせてサイズを初期化
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
+
+    // resizeイベントのハンドラを登録
+    window.addEventListener("resize", this.onWindowResize, false);
 
     // シーン
     this.scene = new THREE.Scene();
@@ -114,18 +117,6 @@ export class Main {
 
     this.scene.add(particles)
 
-    // resizeイベントのハンドラを登録
-    window.addEventListener("resize", () => {
-      this.sizes.width = this.container.clientWidth;
-      this.sizes.height = this.container.clientHeight;
-
-      this.camera.aspect = this.sizes.width / this.sizes.height;
-      this.camera.updateProjectionMatrix();
-
-      this.renderer.setSize(this.sizes.width, this.sizes.height);
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    });
-
     this.render();
   }
 
@@ -138,5 +129,17 @@ export class Main {
     this.renderer.render(this.scene, this.camera);
 
   }
+
+
+  onWindowResize = (event) => {
+    this.sizes.width = this.container.clientWidth;
+    this.sizes.height = this.container.clientHeight;
+
+    this.camera.aspect = this.sizes.width / this.sizes.height;
+    this.camera.updateProjectionMatrix();
+
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(this.sizes.width, this.sizes.height);
+  };
 
 }

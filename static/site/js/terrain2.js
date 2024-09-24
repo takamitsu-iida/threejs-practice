@@ -51,6 +51,7 @@ export class Main {
 
 
   constructor(params={}) {
+
     this.params = Object.assign(this.params, params);
 
     // init scene, camera, renderer
@@ -66,21 +67,20 @@ export class Main {
     this.terrainMesh = this.generateTerrain();
     this.scene.add(this.terrainMesh);
 
-    // リサイズイベントを登録
-    window.addEventListener("resize", this.onWindowResize, false);
-
-    // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
   }
 
 
-  initThreejs() {
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
     // コンテナのサイズ
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
+
+    // リサイズイベントを登録
+    window.addEventListener("resize", this.onWindowResize, false);
 
     // シーン
     this.scene = new THREE.Scene();
@@ -126,7 +126,8 @@ export class Main {
 
   }
 
-  initGui() {
+
+  initGui = () => {
     const guiContainer = document.getElementById("guiContainer");
     const gui = new GUI({
       container: guiContainer,
@@ -176,10 +177,10 @@ export class Main {
         this.updateTerrain();
       });
 
-
   }
 
-  initStatsjs() {
+
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -192,6 +193,7 @@ export class Main {
     this.statsjs.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
     container.appendChild(this.statsjs.dom);
   }
+
 
   render = () => {
     // 再帰処理
@@ -216,6 +218,7 @@ export class Main {
     this.renderParams.delta %= this.renderParams.interval;
   }
 
+
   onWindowResize = (event) => {
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
@@ -227,7 +230,8 @@ export class Main {
     this.renderer.setSize(this.sizes.width, this.sizes.height);
   };
 
-  generateTerrain() {
+
+  generateTerrain = () => {
 
     // 幅（X軸方向）
     const width = this.params.width;
@@ -347,7 +351,7 @@ export class Main {
 
 
 
-  updateTerrain() {
+  updateTerrain = () => {
     const width = this.params.width;
     const depth = this.params.depth;
 
@@ -389,6 +393,5 @@ export class Main {
     this.terrainMesh.geometry.attributes.position.needsUpdate = true;
     this.terrainMesh.geometry.attributes.color.needsUpdate = true;
   }
-
 
 }

@@ -46,7 +46,7 @@ export class Main {
   }
 
 
-  async init() {
+  init = async () => {
     // データを読み込む
     // その間、ローディング画面を表示する
     await this.loadCsv(this.params.path);
@@ -75,7 +75,7 @@ export class Main {
   }
 
 
-  async loadCsv(path) {
+  loadCsv = async (path) => {
     const loadingContainer = document.getElementById('loadingContainer');
 
     try {
@@ -114,7 +114,7 @@ export class Main {
 
 
   // CSVデータをパースする関数
-  parseCsv(text) {
+  parseCsv = (text) => {
     const lines = text.split('\n');
     const headers = lines[0].split(',');
     const data = [];
@@ -135,7 +135,7 @@ export class Main {
   }
 
 
-  normalizeData(rowData) {
+  normalizeData = (rowData) => {
 
     // |       |             lat |             lon |        depth |
     // |:------|----------------:|----------------:|-------------:|
@@ -157,7 +157,7 @@ export class Main {
   }
 
 
-  initThreejs() {
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
@@ -204,7 +204,8 @@ export class Main {
 
   }
 
-  initGui() {
+
+  initGui = () => {
     const guiContainer = document.getElementById("guiContainer");
     const gui = new GUI({
       container: guiContainer,
@@ -230,7 +231,7 @@ export class Main {
   }
 
 
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -281,7 +282,7 @@ export class Main {
   };
 
 
-  initPointCloud() {
+  initPointCloud = () => {
     const csvData = this.params.csvData;
 
     const vertices = new Float32Array((csvData.length) * 3);

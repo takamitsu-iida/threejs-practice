@@ -141,7 +141,7 @@ export class Main {
   }
 
 
-  initThreejs() {
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
@@ -195,7 +195,7 @@ export class Main {
   }
 
 
-  initStatsjs() {
+  initStatsjs = () => {
     let container = document.getElementById("statsjsContainer");
     if (!container) {
       container = document.createElement("div");
@@ -246,7 +246,7 @@ export class Main {
   };
 
 
-  createShapesFromTopojson(jsonData, objectName) {
+  createShapesFromTopojson = (jsonData, objectName) => {
 
     // Shapeを格納する配列
     const shapes = [];
@@ -306,7 +306,7 @@ export class Main {
   }
 
 
-  createMeshFromShapes(shapes) {
+  createMeshFromShapes = (shapes) => {
 
     // ExtrudeGeometryに渡すdepthパラメータ（厚み）
     const depth = 0.1;
