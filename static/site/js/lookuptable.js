@@ -54,6 +54,25 @@ export class Main {
 
   constructor() {
 
+    this.initThreejs();
+
+    this.initUiScene();
+
+    this.initGround();
+
+    this.initGui();
+
+    this.initStatsjs();
+
+    // リサイズイベントを登録
+    window.addEventListener("resize", this.onWindowResize, false);
+
+    // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
+    this.render();
+  }
+
+
+  initThreejs() {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
@@ -74,10 +93,33 @@ export class Main {
     );
     this.camera.position.set(300, 300, 300);
 
-    //
-    // 色の凡例表示
-    //
+    // レンダラ
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.setSize(this.sizes.width, this.sizes.height);
+    // デバイスピクセル比は上限2に制限(3以上のスマホ・タブレットでは処理が重すぎる)
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.autoClear = false;
+    this.container.appendChild(this.renderer.domElement);
 
+    // コントローラ
+    this.controller = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controller.maxDistance = 900; // ズームアウトの上限
+
+    // 軸を表示
+    //
+    //   Y(green)
+    //    |
+    //    +---- X(red)
+    //   /
+    //  Z(blue)
+    //
+    const axesHelper = new THREE.AxesHelper(10000);
+    this.scene.add(axesHelper);
+  }
+
+
+  initUiScene() {
+    // 色の凡例を表示するシーンとカメラ
     this.uiScene = new THREE.Scene();
 
     // 平行投影カメラ
@@ -97,17 +139,10 @@ export class Main {
     this.sprite.material.map.colorSpace = THREE.SRGBColorSpace;
     this.sprite.scale.x = 0.125;
     this.uiScene.add(this.sprite);
+  }
 
-    // レンダラ
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setSize(this.sizes.width, this.sizes.height);
-    // デバイスピクセル比は上限2に制限(3以上のスマホ・タブレットでは処理が重すぎる)
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.autoClear = false;
-    this.container.appendChild(this.renderer.domElement);
 
-    // ポイントライト
-    this.scene.add(new THREE.PointLight(0xffffff, 3, 0, 0));
+  initGround() {
 
     // 平面
     const geometry = new THREE.PlaneGeometry(400, 400, 32, 32);
@@ -195,32 +230,6 @@ export class Main {
     this.ground = new THREE.Mesh(geometry, material);
     this.scene.add(this.ground);
 
-    // コントローラ
-    this.controller = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controller.maxDistance = 900; // ズームアウトの上限
-
-    // 軸を表示
-    //
-    //   Y(green)
-    //    |
-    //    +---- X(red)
-    //   /
-    //  Z(blue)
-    //
-    const axesHelper = new THREE.AxesHelper(10000);
-    this.scene.add(axesHelper);
-
-    // lil-gui
-    this.initGui();
-
-    // stats.jsを初期化
-    this.initStatsjs();
-
-    // リサイズイベントを登録
-    window.addEventListener("resize", this.onWindowResize, false);
-
-    // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
-    this.render();
   }
 
 
@@ -237,6 +246,7 @@ export class Main {
         this.changeColorMap();
       });
   }
+
 
   initStatsjs() {
     let container = document.getElementById("statsjsContainer");
