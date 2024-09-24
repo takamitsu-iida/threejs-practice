@@ -1,6 +1,10 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/controls/OrbitControls.js";
 
+// stats.js
+import Stats from "three/libs/stats.module.js";
+
+
 export class Main {
 
   container;
@@ -26,6 +30,17 @@ export class Main {
 
   constructor() {
 
+    this.initThreejs();
+
+    this.initStatsjs();
+
+    this.createGround();
+
+    this.render();
+  }
+
+
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
@@ -60,6 +75,101 @@ export class Main {
     directionalLight.position.set(1, 1, 0);
     this.scene.add(directionalLight);
 
+    // コントローラ
+    this.controller = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controller.maxDistance = 1000; // ズーム上限
+    this.controller.maxPolarAngle = (Math.PI * 0.8) / 2; // 角度上限
+    this.controller.minPolarAngle = 0; // 角度下限
+
+    // 軸を表示
+    //
+    //   Y(green)
+    //    |
+    //    +---- X(red)
+    //   /
+    //  Z(blue)
+    //
+    const axesHelper = new THREE.AxesHelper(10000);
+    this.scene.add(axesHelper);
+
+  }
+
+
+  initStatsjs() {
+    let container = document.getElementById("statsjsContainer");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "statsjsContainer";
+      this.container.appendChild(container);
+    }
+
+    this.statsjs = new Stats();
+    this.statsjs.dom.style.position = "relative";
+    this.statsjs.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+    container.appendChild(this.statsjs.dom);
+  }
+
+
+  updatePosition() {
+    // 経過時間を取得
+    const elapsedTime = this.renderParams.clock.getElapsedTime();
+
+    // ジオメトリの位置情報を取得
+    const position = this.ground.geometry.attributes.position;
+
+    for (let i=0; i < position.count; i++) {
+      // 座標の値
+      const x = position.getX(i);
+      const z = position.getZ(i);
+      const nextY = Math.sin(x * 0.02 + z * 0.02 + elapsedTime) * 20;
+      position.setY(i, nextY);
+    }
+
+    // これをセットしておかないとレンダラは更新してくれない
+    position.needsUpdate = true;
+  }
+
+
+  render = () => {
+    // 再帰処理
+    requestAnimationFrame(this.render);
+
+    this.renderParams.delta += this.renderParams.clock.getDelta();
+    if (this.renderParams.delta < this.renderParams.interval) {
+      return;
+    }
+
+    {
+      // stats.jsを更新
+      this.statsjs.update();
+
+      // カメラコントローラーの更新
+      this.controller.update();
+
+      // ジオメトリを加工する
+      this.updatePosition();
+
+      // 再描画
+      this.renderer.render(this.scene, this.camera);
+    }
+
+    this.renderParams.delta %= this.renderParams.interval;
+  }
+
+
+  onWindowResize = (event) => {
+    this.sizes.width = this.container.clientWidth;
+    this.sizes.height = this.container.clientHeight;
+
+    this.camera.aspect = this.sizes.width / this.sizes.height;
+    this.camera.updateProjectionMatrix();
+
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(this.sizes.width, this.sizes.height);
+  };
+
+
+  createGround = () => {
     // 平面
     const geometry = new THREE.PlaneGeometry(400, 400, 32, 32);
 
@@ -97,80 +207,6 @@ export class Main {
 
     this.ground = new THREE.Mesh(geometry, material);
     this.scene.add(this.ground);
-
-    // コントローラ
-    this.controller = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controller.maxDistance = 1000; // ズーム上限
-    this.controller.maxPolarAngle = (Math.PI * 0.8) / 2; // 角度上限
-    this.controller.minPolarAngle = 0; // 角度下限
-
-    // 軸を表示
-    //
-    //   Y(green)
-    //    |
-    //    +---- X(red)
-    //   /
-    //  Z(blue)
-    //
-    const axesHelper = new THREE.AxesHelper(10000);
-    this.scene.add(axesHelper);
-
-    // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
-    this.render();
   }
-
-  updatePosition() {
-    // 経過時間を取得
-    const elapsedTime = this.renderParams.clock.getElapsedTime();
-
-    // ジオメトリの位置情報を取得
-    const position = this.ground.geometry.attributes.position;
-
-    for (let i=0; i < position.count; i++) {
-      // 座標の値
-      const x = position.getX(i);
-      const z = position.getZ(i);
-      const nextY = Math.sin(x * 0.02 + z * 0.02 + elapsedTime) * 20;
-      position.setY(i, nextY);
-    }
-
-    // これをセットしておかないとレンダラは更新してくれない
-    position.needsUpdate = true;
-  }
-
-  render = () => {
-    // 再帰処理
-    requestAnimationFrame(this.render);
-
-    this.renderParams.delta += this.renderParams.clock.getDelta();
-    if (this.renderParams.delta < this.renderParams.interval) {
-      return;
-    }
-
-    {
-      // カメラコントローラーの更新
-      this.controller.update();
-
-      // ジオメトリを加工する
-      this.updatePosition();
-
-      // 再描画
-      this.renderer.render(this.scene, this.camera);
-    }
-
-    this.renderParams.delta %= this.renderParams.interval;
-  }
-
-
-  onWindowResize = (event) => {
-    this.sizes.width = this.container.clientWidth;
-    this.sizes.height = this.container.clientHeight;
-
-    this.camera.aspect = this.sizes.width / this.sizes.height;
-    this.camera.updateProjectionMatrix();
-
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setSize(this.sizes.width, this.sizes.height);
-  };
 
 }

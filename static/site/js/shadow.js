@@ -1,6 +1,10 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/controls/OrbitControls.js";
 
+// stats.js
+import Stats from "three/libs/stats.module.js";
+
+
 export class Main {
 
   container;
@@ -15,6 +19,8 @@ export class Main {
   renderer;
   controller;
 
+  statsjs;
+
   renderParams = {
     clock: new THREE.Clock(),
     delta: 0,
@@ -24,6 +30,18 @@ export class Main {
 
   constructor() {
 
+    this.initThreejs();
+
+    this.initStatsjs();
+
+    this.createSphere();
+
+    this.render();
+
+  }
+
+
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
@@ -96,6 +114,74 @@ export class Main {
     // スポットライト用カメラヘルパー
     this.scene.add(new THREE.CameraHelper(spotLight.shadow.camera));
 
+    // コントローラ
+    this.controller = new OrbitControls(this.camera, this.renderer.domElement);
+
+    // 軸を表示
+    //
+    //   Y(green)
+    //    |
+    //    +---- X(red)
+    //   /
+    //  Z(blue)
+    //
+    const axesHelper = new THREE.AxesHelper(10000);
+    this.scene.add(axesHelper);
+  }
+
+
+  initStatsjs = () => {
+    let container = document.getElementById("statsjsContainer");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "statsjsContainer";
+      this.container.appendChild(container);
+    }
+
+    this.statsjs = new Stats();
+    this.statsjs.dom.style.position = "relative";
+    this.statsjs.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+    container.appendChild(this.statsjs.dom);
+  }
+
+
+  render = () => {
+    // 再帰処理
+    requestAnimationFrame(this.render);
+
+    this.renderParams.delta += this.renderParams.clock.getDelta();
+    if (this.renderParams.delta < this.renderParams.interval) {
+      return;
+    }
+
+    {
+      // stats.jsを更新
+      this.statsjs.update();
+
+      // カメラコントローラーの更新
+      this.controller.update();
+
+      // 再描画
+      this.renderer.render(this.scene, this.camera);
+    }
+
+    this.renderParams.delta %= this.renderParams.interval;
+  }
+
+
+  onWindowResize = (event) => {
+    this.sizes.width = this.container.clientWidth;
+    this.sizes.height = this.container.clientHeight;
+
+    this.camera.aspect = this.sizes.width / this.sizes.height;
+    this.camera.updateProjectionMatrix();
+
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(this.sizes.width, this.sizes.height);
+  };
+
+
+  createSphere = () => {
     // 影を作り出す球を一つ作成
     const sphereGeometry = new THREE.SphereGeometry(3, 32, 32);
     const sphereMaterial = new THREE.MeshPhongMaterial({
@@ -141,55 +227,6 @@ export class Main {
       ground.receiveShadow = true;
       this.scene.add(ground);
     }
-
-    // コントローラ
-    this.controller = new OrbitControls(this.camera, this.renderer.domElement);
-
-    // 軸を表示
-    //
-    //   Y(green)
-    //    |
-    //    +---- X(red)
-    //   /
-    //  Z(blue)
-    //
-    const axesHelper = new THREE.AxesHelper(10000);
-    this.scene.add(axesHelper);
-
-    // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
-    this.render();
   }
-
-  render = () => {
-    // 再帰処理
-    requestAnimationFrame(this.render);
-
-    this.renderParams.delta += this.renderParams.clock.getDelta();
-    if (this.renderParams.delta < this.renderParams.interval) {
-      return;
-    }
-
-    {
-      // カメラコントローラーの更新
-      this.controller.update();
-
-      // 再描画
-      this.renderer.render(this.scene, this.camera);
-    }
-
-    this.renderParams.delta %= this.renderParams.interval;
-  }
-
-
-  onWindowResize = (event) => {
-    this.sizes.width = this.container.clientWidth;
-    this.sizes.height = this.container.clientHeight;
-
-    this.camera.aspect = this.sizes.width / this.sizes.height;
-    this.camera.updateProjectionMatrix();
-
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setSize(this.sizes.width, this.sizes.height);
-  };
 
 }

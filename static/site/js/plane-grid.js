@@ -1,7 +1,13 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/controls/OrbitControls.js";
 import { ImprovedNoise } from "three/libs/ImprovedNoise.js";
+
+// lil-gui
 import { GUI } from "three/libs/lil-gui.module.min.js";
+
+// stats.js
+import Stats from "three/libs/stats.module.js";
+
 
 const vertexShader = /* glsl */`
 
@@ -276,19 +282,37 @@ export class Main {
   renderer;
   controller;
 
+  statsjs;
+
   renderParams = {
     clock: new THREE.Clock(),
     delta: 0,
     interval: 1 / 30,  // = 30fps
   }
 
-  perlin;
+  // パーリンノイズ
+  perlin = new ImprovedNoise();
+
+  // マテリアル
+  material;
+
 
   constructor() {
 
-    // パーリンノイズ
-    this.perlin = new ImprovedNoise();
+    this.initThreejs();
 
+    this.initStatsjs();
+
+    this.createGround();
+
+    this.initGui();
+
+    this.render();
+
+  }
+
+
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
@@ -324,76 +348,6 @@ export class Main {
     directionalLight.position.set(1, 1, 0);
     this.scene.add(directionalLight);
 
-    // 平面
-    const g = new THREE.PlaneGeometry(200, 200, 512, 512);
-
-    // X軸を中心に-90度回転してXZ平面と平行にする
-    g.rotateX(-1 * Math.PI / 2)
-
-    // 頂点のUV座標
-    const uv = g.attributes.uv;
-
-    // uvはFloat32BufferAttribute型
-    // https://threejs.org/docs/#api/en/core/BufferAttribute
-    //
-    // 一次元のarrayに値が格納されているので(u, v)を直接取り出すのは難しいが、
-    // Vector2, Vector3, Vector4, Colorクラスには.fromBufferAttribute(attribute, index)メソッドがあるので、
-    // それを使うとインデックスを指定して(u, v)を取り出せる
-    //
-    // uv.countには(u, v)の個数が格納されている
-
-    // 頂点の位置情報
-    // Float32BufferAttribute型
-    const pos = g.attributes.position;
-
-    const tmpUv = new THREE.Vector2();
-    for (let i = 0; i < uv.count; i++) {
-      // i番目の(u, v)を取り出してtmpUvに複写
-      tmpUv.fromBufferAttribute(uv, i);
-
-      // 値を大きくすると波の周波数が大きくなる
-      tmpUv.multiplyScalar(10);
-
-      // pos.setY(i, this.perlin.noise(tmpUv.x, tmpUv.x, 2.7) * 30);
-      // pos.setY(i, this.perlin.noise(tmpUv.y, tmpUv.y, 2.7) * 30);
-      pos.setY(i, this.perlin.noise(tmpUv.x, tmpUv.y, 2.7) * 30);
-    }
-
-    // 法線ベクトルを計算し直す
-    g.computeVertexNormals();
-
-    const material = new THREE.ShaderMaterial({
-      vertexShader: vertexShader,
-      fragmentShader: fragmentShader,
-      transparent: true,
-      side: THREE.DoubleSide,
-      // グローバル変数
-      uniforms: {
-        // デバッグ用
-        uColor: { value: new THREE.Color("#a0adaf") },
-
-        // 等圧線をひくインターバル
-        uInterval: { value: 1.0 },
-
-        // 等圧線の太さ
-        uThickness: { value: 1.0 },
-
-        // 等圧線を書く方式
-        uAlgo: { value: 5 },
-
-      }
-    });
-
-    const ground = new THREE.Mesh(g, material);
-    ground.layers.enable(1);
-    this.scene.add(ground);
-
-    let box = new THREE.Box3().setFromObject(ground);
-    let boxSize = new THREE.Vector3();
-    box.getSize(boxSize);
-    let boxHelper = new THREE.Box3Helper(box);
-    this.scene.add(boxHelper);
-
     // コントローラ
     this.controller = new OrbitControls(this.camera, this.renderer.domElement);
     this.controller.target.set(0, 2, 0);
@@ -409,28 +363,45 @@ export class Main {
     const axesHelper = new THREE.AxesHelper(10000);
     this.scene.add(axesHelper);
 
+  }
+
+
+  initStatsjs() {
+    let container = document.getElementById("statsjsContainer");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "statsjsContainer";
+      this.container.appendChild(container);
+    }
+
+    this.statsjs = new Stats();
+    this.statsjs.dom.style.position = "relative";
+    this.statsjs.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+    container.appendChild(this.statsjs.dom);
+  }
+
+
+  initGui = () => {
     // lil-gui
     const gui = new GUI({ width: 300 });
     gui
-      .add(material.uniforms.uThickness, "value")
+      .add(this.material.uniforms.uThickness, "value")
       .min(0.0)
       .max(5.0)
       .step(0.01)
       .name("uThickness");
 
     gui
-      .add(material.uniforms.uInterval, "value")
+      .add(this.material.uniforms.uInterval, "value")
       .min(1.0)
       .max(10.0)
       .step(0.1)
       .name("Interval");
 
     gui
-      .add(material.uniforms.uAlgo, "value", [1, 2, 3, 4, 5, 6])
+      .add(this.material.uniforms.uAlgo, "value", [1, 2, 3, 4, 5, 6])
       .name("getContour");
 
-    // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
-    this.render();
   }
 
 
@@ -444,6 +415,9 @@ export class Main {
     }
 
     {
+      // stats.jsを更新
+      this.statsjs.update();
+
       // カメラコントローラーの更新
       this.controller.update();
 
@@ -465,5 +439,79 @@ export class Main {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(this.sizes.width, this.sizes.height);
   };
+
+
+  createGround = () => {
+    // 平面
+    const geometry = new THREE.PlaneGeometry(200, 200, 512, 512);
+
+    // X軸を中心に-90度回転してXZ平面と平行にする
+    geometry.rotateX(-1 * Math.PI / 2)
+
+    // 頂点のUV座標
+    const uv = geometry.attributes.uv;
+
+    // uvはFloat32BufferAttribute型
+    // https://threejs.org/docs/#api/en/core/BufferAttribute
+    //
+    // 一次元のarrayに値が格納されているので(u, v)を直接取り出すのは難しいが、
+    // Vector2, Vector3, Vector4, Colorクラスには.fromBufferAttribute(attribute, index)メソッドがあるので、
+    // それを使うとインデックスを指定して(u, v)を取り出せる
+    //
+    // uv.countには(u, v)の個数が格納されている
+
+    // 頂点の位置情報
+    // Float32BufferAttribute型
+    const pos = geometry.attributes.position;
+
+    const tmpUv = new THREE.Vector2();
+    for (let i = 0; i < uv.count; i++) {
+      // i番目の(u, v)を取り出してtmpUvに複写
+      tmpUv.fromBufferAttribute(uv, i);
+
+      // 値を大きくすると波の周波数が大きくなる
+      tmpUv.multiplyScalar(10);
+
+      // pos.setY(i, this.perlin.noise(tmpUv.x, tmpUv.x, 2.7) * 30);
+      // pos.setY(i, this.perlin.noise(tmpUv.y, tmpUv.y, 2.7) * 30);
+      pos.setY(i, this.perlin.noise(tmpUv.x, tmpUv.y, 2.7) * 30);
+    }
+
+    // 法線ベクトルを計算し直す
+    geometry.computeVertexNormals();
+
+    this.material = new THREE.ShaderMaterial({
+      vertexShader: vertexShader,
+      fragmentShader: fragmentShader,
+      transparent: true,
+      side: THREE.DoubleSide,
+      // グローバル変数
+      uniforms: {
+        // デバッグ用
+        uColor: { value: new THREE.Color("#a0adaf") },
+
+        // 等圧線をひくインターバル
+        uInterval: { value: 1.0 },
+
+        // 等圧線の太さ
+        uThickness: { value: 1.0 },
+
+        // 等圧線を書く方式
+        uAlgo: { value: 5 },
+
+      }
+    });
+
+    const ground = new THREE.Mesh(geometry, this.material);
+    ground.layers.enable(1);
+    this.scene.add(ground);
+
+    let box = new THREE.Box3().setFromObject(ground);
+    let boxSize = new THREE.Vector3();
+    box.getSize(boxSize);
+    let boxHelper = new THREE.Box3Helper(box);
+    this.scene.add(boxHelper);
+  }
+
 
 }

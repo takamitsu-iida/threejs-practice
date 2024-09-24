@@ -21,7 +21,7 @@ export class ObjectSelection {
   // https://github.com/oreilly-japan/learning-three-js-2e-ja-support
 
   // コンストラクタに渡されるパラメータ
-  params;
+  params = {};
 
   // 光線が当たっているオブジェクトへの参照
   INTERSECTED = null;
@@ -447,17 +447,25 @@ export class FiveStageClosGraph {
   // Graphクラスのインスタンス、最後にこれを返す
   graph;
 
+  // 初期オプションは引数で上書きされうる
+  options = {
+    clusters: CLUSTERS_EXAMPLE_1,
+    layout: "circular",
+  };
+
+
   constructor(options={}) {
     this.options = Object.assign(this.options, options);
 
-    this.clusters = this.options.hasOwnProperty("clusters") ? this.options.clusters : [];
-    this.layout = this.options.hasOwnProperty("layout") ? this.options.layout : "circular";
+    this.clusters = this.options.clusters;
+    this.layout = this.options.layout;
 
     // 空のGraphインスタンスを作成
     this.graph = new Graph();
 
     // ノードとエッジを作成してgraphに追加
     this.createNodeEdge();
+
     console.log(`(nodes, edges) = (${this.graph.nodes.length}, ${this.graph.edges.length})`);
 
     // レイアウトを計算

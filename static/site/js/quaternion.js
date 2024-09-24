@@ -1,6 +1,10 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/controls/OrbitControls.js";
 
+// stats.js
+import Stats from "three/libs/stats.module.js";
+
+
 export class Main {
 
   container;
@@ -15,6 +19,8 @@ export class Main {
   renderer;
   controller;
 
+  statsjs;
+
   renderParams = {
     clock: new THREE.Clock(),
     delta: 0,
@@ -27,7 +33,20 @@ export class Main {
   quaternionLocal;
   quaternionWorld;
 
+
   constructor() {
+
+    this.initThreejs();
+
+    this.initStatsjs();
+
+    this.createCubes();
+
+    this.render();
+  }
+
+
+  initThreejs = () => {
 
     // コンテナ
     this.container = document.getElementById("threejsContainer");
@@ -35,6 +54,9 @@ export class Main {
     // コンテナのサイズ
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
+
+    // resizeイベントのハンドラを登録
+    window.addEventListener("resize", this.onWindowResize, false);
 
     // シーン
     this.scene = new THREE.Scene();
@@ -111,6 +133,64 @@ export class Main {
 
     // コントローラ
     this.controller = new OrbitControls(this.camera, this.renderer.domElement);
+  }
+
+
+  initStatsjs = () => {
+    let container = document.getElementById("statsjsContainer");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "statsjsContainer";
+      this.container.appendChild(container);
+    }
+
+    this.statsjs = new Stats();
+    this.statsjs.dom.style.position = "relative";
+    this.statsjs.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+    container.appendChild(this.statsjs.dom);
+  }
+
+
+  render = () => {
+    // 再帰処理
+    requestAnimationFrame(this.render);
+
+    this.renderParams.delta += this.renderParams.clock.getDelta();
+    if (this.renderParams.delta < this.renderParams.interval) {
+      return;
+    }
+
+    {
+      // stats.jsを更新
+      this.statsjs.update();
+
+      // カメラコントローラーの更新
+      this.controller.update();
+
+      // 回転を加える
+      this.rotate();
+
+      // 再描画
+      this.renderer.render(this.scene, this.camera);
+    }
+
+    this.renderParams.delta %= this.renderParams.interval;
+  }
+
+
+  onWindowResize = (event) => {
+    this.sizes.width = this.container.clientWidth;
+    this.sizes.height = this.container.clientHeight;
+
+    this.camera.aspect = this.sizes.width / this.sizes.height;
+    this.camera.updateProjectionMatrix();
+
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(this.sizes.width, this.sizes.height);
+  };
+
+
+  createCubes = () => {
 
     // 影を作り出す立方体を一つ作成
     const boxGeometry = new THREE.BoxGeometry(6, 6, 6);// .toNonIndexed();
@@ -187,16 +267,10 @@ export class Main {
 
     // ローカル座標で回転する場合には、同じクォータニオンを使い回せば良い
     this.quaternionLocal.setFromAxisAngle(new THREE.Vector3(0, 1, 0).normalize(), this.omega);
-
-    // resizeイベントのハンドラを登録
-    window.addEventListener("resize", this.onWindowResize, false);
-
-    // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
-    this.render();
   }
 
 
-  rotate() {
+  rotate = () => {
     // クォータニオンを掛け算して姿勢を変える
     this.boxLocal.quaternion.multiply(this.quaternionLocal);
 
@@ -217,41 +291,6 @@ export class Main {
     this.boxWorld.quaternion.multiply(this.quaternionWorld);
   }
 
-
-  render = () => {
-    // 再帰処理
-    requestAnimationFrame(this.render);
-
-    this.renderParams.delta += this.renderParams.clock.getDelta();
-    if (this.renderParams.delta < this.renderParams.interval) {
-      return;
-    }
-
-    {
-      // カメラコントローラーの更新
-      this.controller.update();
-
-      // 回転を加える
-      this.rotate();
-
-      // 再描画
-      this.renderer.render(this.scene, this.camera);
-    }
-
-    this.renderParams.delta %= this.renderParams.interval;
-  }
-
-
-  onWindowResize = (event) => {
-    this.sizes.width = this.container.clientWidth;
-    this.sizes.height = this.container.clientHeight;
-
-    this.camera.aspect = this.sizes.width / this.sizes.height;
-    this.camera.updateProjectionMatrix();
-
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setSize(this.sizes.width, this.sizes.height);
-  };
 
 
 }

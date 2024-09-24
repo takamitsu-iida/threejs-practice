@@ -181,7 +181,7 @@ export class Main {
     //   /
     //  Z(blue)
     //
-    const axesHelper = new THREE.AxesHelper(10000);
+    const axesHelper = new THREE.AxesHelper(50);
     this.scene.add(axesHelper);
 
     // 環境光

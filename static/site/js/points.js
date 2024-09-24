@@ -1,13 +1,19 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/controls/OrbitControls.js";
+
+// lil-gui
 import { GUI } from "three/libs/lil-gui.module.min.js";
 
+// stats.js
+import Stats from "three/libs/stats.module.js";
 
+
+// 参照元
 // https://codepen.io/prisoner849/pen/WNaLywN?editors=0010
+
 
 export class Main {
 
-  // <DIV>
   container;
 
   // 初期化時にDIV要素(container)のサイズに変更する
@@ -58,12 +64,26 @@ export class Main {
   constructor(params={}) {
     this.params = Object.assign(this.params, params);
 
+    this.initThreejs();
+
+    this.initStatsjs();
+
+    this.createParticles();
+
+    this.render();
+  }
+
+
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
     // コンテナ要素にあわせてサイズを初期化
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
+
+    // リサイズイベント
+    window.addEventListener("resize", this.onWindowResize, false);
 
     // シーン
     this.scene = new THREE.Scene();
@@ -103,7 +123,25 @@ export class Main {
     //
     const axesHelper = new THREE.AxesHelper(15);
     this.scene.add(axesHelper);
+  }
 
+
+  initStatsjs = () => {
+    let container = document.getElementById("statsjsContainer");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "statsjsContainer";
+      this.container.appendChild(container);
+    }
+
+    this.statsjs = new Stats();
+    this.statsjs.dom.style.position = "relative";
+    this.statsjs.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+    container.appendChild(this.statsjs.dom);
+  }
+
+
+  initGui = () => {
     // lil-gui
     const gui = new GUI({ width: 300 });
 
@@ -126,7 +164,48 @@ export class Main {
       .min(0.001)
       .max(0.005)
       .name("rotate speed");
+  }
 
+
+  render = () => {
+    requestAnimationFrame(this.render);
+
+    this.renderParams.delta += this.renderParams.clock.getDelta();
+    if (this.renderParams.delta < this.renderParams.interval) {
+      return;
+    }
+
+    {
+      // stats.jsを更新
+      this.statsjs.update();
+
+      // カメラコントローラーの更新
+      this.controller.update();
+
+      // ポイントクラウドを回転
+      this.spin();
+
+      // 再描画
+      this.renderer.render(this.scene, this.camera);
+    }
+
+    this.renderParams.delta %= this.renderParams.interval;
+  }
+
+
+  onWindowResize = (event) => {
+    this.sizes.width = this.container.clientWidth;
+    this.sizes.height = this.container.clientHeight;
+
+    this.camera.aspect = this.sizes.width / this.sizes.height;
+    this.camera.updateProjectionMatrix();
+
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(this.sizes.width, this.sizes.height);
+  }
+
+
+  createParticles = () => {
     //
     // パーティクル（ポイントクラウド）
     //
@@ -178,24 +257,10 @@ export class Main {
     // メッシュ化
     this.pointCloud = new THREE.Points(this.geometry, this.material)
     this.scene.add(this.pointCloud);
-
-    // resizeイベントのハンドラを登録
-    window.addEventListener("resize", () => {
-      this.sizes.width = this.container.clientWidth;
-      this.sizes.height = this.container.clientHeight;
-
-      this.camera.aspect = this.sizes.width / this.sizes.height;
-      this.camera.updateProjectionMatrix();
-
-      this.renderer.setSize(this.sizes.width, this.sizes.height);
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    });
-
-    this.render();
   }
 
 
-  spin() {
+  spin = () => {
     if (!this.params.rotateDirection) {
       return;
     }
@@ -227,27 +292,5 @@ export class Main {
     this.geometry.attributes.position.needsUpdate = true;
   }
 
-
-  render = () => {
-    requestAnimationFrame(this.render);
-
-    this.renderParams.delta += this.renderParams.clock.getDelta();
-    if (this.renderParams.delta < this.renderParams.interval) {
-      return;
-    }
-
-    {
-      // カメラコントローラーの更新
-      this.controller.update();
-
-      // ポイントクラウドを回転
-      this.spin();
-
-      // 再描画
-      this.renderer.render(this.scene, this.camera);
-    }
-
-    this.renderParams.delta %= this.renderParams.interval;
-  }
 
 }

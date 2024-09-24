@@ -1,7 +1,12 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/controls/OrbitControls.js";
 import { ImprovedNoise } from "three/libs/ImprovedNoise.js";
+
+// lil-gui
 import { GUI } from "three/libs/lil-gui.module.min.js";
+
+// stats.js
+import Stats from "three/libs/stats.module.js";
 
 
 const fragmentShader = /* glsl */`
@@ -172,19 +177,47 @@ export class Main {
   renderer;
   controller;
 
+  statsjs;
+
   renderParams = {
     clock: new THREE.Clock(),
     delta: 0,
     interval: 1 / 30,  // = 30fps
   }
 
-  perlin;
+  // パーリンノイズ
+  perlin = new ImprovedNoise();
+
+    // シェーダーに渡すグローバル変数
+    uniforms = {
+
+      // 等圧線をひくインターバル
+      uInterval: { value: 1.0 },
+
+      // 等圧線の太さ
+      uThickness: { value: 1.0 },
+
+      uBoxMin: { value: new THREE.Vector3() },
+      uBoxMax: { value: new THREE.Vector3() }
+
+    };
+
 
   constructor() {
 
-    // パーリンノイズ
-    this.perlin = new ImprovedNoise();
+    this.initThreejs();
 
+    this.initGui();
+
+    this.initStatsjs();
+
+    this.createGround();
+
+    this.render();
+  }
+
+
+  initThreejs = () => {
     // コンテナ
     this.container = document.getElementById("threejsContainer");
 
@@ -220,6 +253,95 @@ export class Main {
     directionalLight.position.set(1, 1, 0);
     this.scene.add(directionalLight);
 
+    // コントローラ
+    this.controller = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controller.target.set(0, 2, 0);
+
+    // 軸を表示
+    //
+    //   Y(green)
+    //    |
+    //    +---- X(red)
+    //   /
+    //  Z(blue)
+    //
+    const axesHelper = new THREE.AxesHelper(10000);
+    this.scene.add(axesHelper);
+  }
+
+
+  initStatsjs() {
+    let container = document.getElementById("statsjsContainer");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "statsjsContainer";
+      this.container.appendChild(container);
+    }
+
+    this.statsjs = new Stats();
+    this.statsjs.dom.style.position = "relative";
+    this.statsjs.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+    container.appendChild(this.statsjs.dom);
+  }
+
+
+  initGui = () => {
+    const gui = new GUI({ width: 300 });
+
+    gui
+      .add(this.uniforms.uThickness, "value")
+      .min(0.0)
+      .max(5.0)
+      .step(0.01)
+      .name("uThickness");
+
+    gui
+      .add(this.uniforms.uInterval, "value")
+      .min(1.0)
+      .max(10.0)
+      .step(0.1)
+      .name("Interval");
+
+  }
+
+
+  render = () => {
+    // 再帰処理
+    requestAnimationFrame(this.render);
+
+    this.renderParams.delta += this.renderParams.clock.getDelta();
+    if (this.renderParams.delta < this.renderParams.interval) {
+      return;
+    }
+
+    {
+      // stats.jsを更新
+      this.statsjs.update();
+
+      // カメラコントローラーの更新
+      this.controller.update();
+
+      // 再描画
+      this.renderer.render(this.scene, this.camera);
+    }
+
+    this.renderParams.delta %= this.renderParams.interval;
+  }
+
+
+  onWindowResize = (event) => {
+    this.sizes.width = this.container.clientWidth;
+    this.sizes.height = this.container.clientHeight;
+
+    this.camera.aspect = this.sizes.width / this.sizes.height;
+    this.camera.updateProjectionMatrix();
+
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(this.sizes.width, this.sizes.height);
+  };
+
+
+  createGround = () => {
     // 平面
     const g = new THREE.PlaneGeometry(200, 200, 512, 512);
 
@@ -257,19 +379,6 @@ export class Main {
     // 法線ベクトルを計算し直す
     g.computeVertexNormals();
 
-    // シェーダーに渡すグローバル変数
-    const uniforms = {
-
-      // 等圧線をひくインターバル
-      uInterval: { value: 1.0 },
-
-      // 等圧線の太さ
-      uThickness: { value: 1.0 },
-
-      uBoxMin: { value: new THREE.Vector3() },
-      uBoxMax: { value: new THREE.Vector3() }
-
-    };
 
     const material = new THREE.MeshLambertMaterial({
       color: 0xa0adaf,
@@ -278,10 +387,10 @@ export class Main {
       // 組み込みのシェーダーを書き換える
       onBeforeCompile: (shader) => {
 
-        shader.uniforms.uInterval = uniforms.uInterval;
-        shader.uniforms.uThickness = uniforms.uThickness;
-        shader.uniforms.uBoxMin = uniforms.uBoxMin;
-        shader.uniforms.uBoxMax = uniforms.uBoxMax;
+        shader.uniforms.uInterval = this.uniforms.uInterval;
+        shader.uniforms.uThickness = this.uniforms.uThickness;
+        shader.uniforms.uBoxMin = this.uniforms.uBoxMin;
+        shader.uniforms.uBoxMax = this.uniforms.uBoxMax;
 
         shader.vertexShader = `
           varying vec3 vPosition;
@@ -353,75 +462,10 @@ export class Main {
     box.getSize(boxSize);
     let boxHelper = new THREE.Box3Helper(box);
     this.scene.add(boxHelper);
-    uniforms.uBoxMin.value.copy(box.min);
-    uniforms.uBoxMax.value.copy(box.max);
 
-    // コントローラ
-    this.controller = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controller.target.set(0, 2, 0);
+    this.uniforms.uBoxMin.value.copy(box.min);
+    this.uniforms.uBoxMax.value.copy(box.max);
 
-    // 軸を表示
-    //
-    //   Y(green)
-    //    |
-    //    +---- X(red)
-    //   /
-    //  Z(blue)
-    //
-    const axesHelper = new THREE.AxesHelper(10000);
-    this.scene.add(axesHelper);
-
-    // lil-gui
-    const gui = new GUI({ width: 300 });
-    gui
-      .add(uniforms.uThickness, "value")
-      .min(0.0)
-      .max(5.0)
-      .step(0.01)
-      .name("uThickness");
-
-    gui
-      .add(uniforms.uInterval, "value")
-      .min(1.0)
-      .max(10.0)
-      .step(0.1)
-      .name("Interval");
-
-    // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
-    this.render();
   }
-
-
-  render = () => {
-    // 再帰処理
-    requestAnimationFrame(this.render);
-
-    this.renderParams.delta += this.renderParams.clock.getDelta();
-    if (this.renderParams.delta < this.renderParams.interval) {
-      return;
-    }
-
-    {
-      // カメラコントローラーの更新
-      this.controller.update();
-
-      // 再描画
-      this.renderer.render(this.scene, this.camera);
-    }
-
-    this.renderParams.delta %= this.renderParams.interval;
-  }
-
-
-  onWindowResize = (event) => {
-    this.sizes.width = this.container.clientWidth;
-    this.sizes.height = this.container.clientHeight;
-
-    this.camera.aspect = this.sizes.width / this.sizes.height;
-    this.camera.updateProjectionMatrix();
-
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setSize(this.sizes.width, this.sizes.height);
-  };
 
 }
