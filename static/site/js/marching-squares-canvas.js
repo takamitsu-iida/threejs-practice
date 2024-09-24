@@ -129,6 +129,13 @@ export class Main {
   renderer;
   controller;
 
+  renderParams = {
+    clock: new THREE.Clock(),
+    delta: 0,
+    interval: 1 / 30,  // = 30fps
+  }
+
+
   params = {
     gridSize: 10,
     gridNums: {x: 50, y: 50},
@@ -208,11 +215,8 @@ export class Main {
     });
     */
 
-    // アニメーション開始
-    this.startAnimating();
-
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
-    // this.render();
+    this.render();
   }
 
 
@@ -604,56 +608,7 @@ export class Main {
 
   }
 
-
-  animationParams = {
-    fps: 25,
-    fpsInterval: null,
-    now: null,
-    then: null,
-    elapsed: null,
-  }
-
-
-  startAnimating() {
-    this.animationParams.fpsInterval = 1000 / this.animationParams.fps;
-    this.animationParams.then = Date.now();
-    this.animate();
-  }
-
-
-  animate() {
-    requestAnimationFrame(() => { this.animate(); });
-
-    // fpsを間引く
-    this.animationParams.now = Date.now();
-    this.animationParams.elapsed = this.animationParams.now - this.animationParams.then;
-    if (this.animationParams.elapsed > this.animationParams.fpsInterval) {
-      this.animationParams.then = this.animationParams.now - (this.animationParams.elapsed % this.animationParams.fpsInterval);
-
-      // 実際の処理
-      {
-        // クリアして
-        this.clearContext();
-
-        // ボールを移動して
-        this.ball.step();
-
-        // 電位を計算し直す
-        this.calcPotential();
-
-        // 等高線を引く
-        this.drawIsoline();
-
-        // ボールを描画
-        this.drawBall();
-      }
-
-    }
-  }
-
-
   render = () => {
-    // 再帰処理
     requestAnimationFrame(this.render);
 
     this.renderParams.delta += this.renderParams.clock.getDelta();
@@ -662,11 +617,20 @@ export class Main {
     }
 
     {
-      // カメラコントローラーの更新
-      this.controller.update();
+      // クリアして
+      this.clearContext();
 
-      // 再描画
-      this.renderer.render(this.scene, this.camera);
+      // ボールを移動して
+      this.ball.step();
+
+      // 電位を計算し直す
+      this.calcPotential();
+
+      // 等高線を引く
+      this.drawIsoline();
+
+      // ボールを描画
+      this.drawBall();
     }
 
     this.renderParams.delta %= this.renderParams.interval;

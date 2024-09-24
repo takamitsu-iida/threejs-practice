@@ -22,7 +22,12 @@ export class Main {
   camera;
   renderer;
   controller;
-  clock;
+
+  renderParams = {
+    clock: new THREE.Clock(),
+    delta: 0,
+    interval: 1 / 30,  // = 30fps
+  }
 
   material;
 
@@ -61,9 +66,6 @@ export class Main {
     // コントローラ
     this.controller = new OrbitControls(this.camera, this.renderer.domElement);
     this.controller.enableDamping = true;
-
-    // クロック
-    this.clock = new THREE.Clock();
 
     // ジオメトリ
     const geometry = new THREE.PlaneGeometry(1, 1, 32, 32);
@@ -120,23 +122,34 @@ export class Main {
     window.addEventListener("resize", this.onWindowResize, false);
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
-    this.animate();
+    this.render();
   }
 
 
-  animate() {
-    // 時間取得
-    const elapsedTime = this.clock.getElapsedTime();
-    this.material.uniforms.uTime.value = elapsedTime
-
-    // カメラコントローラーの更新
-    this.controller.update();
-
-    // 再描画
-    this.renderer.render(this.scene, this.camera);
-
+  render = () => {
     // 再帰処理
-    requestAnimationFrame(() => { this.animate(); });
+    requestAnimationFrame(this.render);
+
+    this.renderParams.delta += this.renderParams.clock.getDelta();
+    if (this.renderParams.delta < this.renderParams.interval) {
+      return;
+    }
+
+    {
+      // 時間取得
+      const elapsedTime = this.renderParams.clock.getElapsedTime();
+
+      // uniformsの更新
+      this.material.uniforms.uTime.value = elapsedTime
+
+      // カメラコントローラーの更新
+      this.controller.update();
+
+      // 再描画
+      this.renderer.render(this.scene, this.camera);
+    }
+
+    this.renderParams.delta %= this.renderParams.interval;
   }
 
 

@@ -277,6 +277,13 @@ export class Main {
   renderer;
   controller;
 
+  renderParams = {
+    clock: new THREE.Clock(),
+    delta: 0,
+    interval: 1 / 30,  // = 30fps
+  }
+
+
   earth;
   satellite;
 
@@ -408,21 +415,29 @@ export class Main {
   }
 
 
-  render() {
+  render = () => {
+    requestAnimationFrame(this.render);
 
-    // 地球を更新
-    this.earth.update();
+    this.renderParams.delta += this.renderParams.clock.getDelta();
+    if (this.renderParams.delta < this.renderParams.interval) {
+      return;
+    }
 
-    // 人工衛星の経度を更新
-    this.satellite.longitude = Date.now() / 100;
-    this.satellite.updatePosition();
+    {
+      // 地球を更新
+      this.earth.update();
 
-    // カメラコントローラーの更新
-    this.controller.update();
+      // 人工衛星の経度を更新
+      this.satellite.longitude = Date.now() / 100;
+      this.satellite.updatePosition();
 
-    this.renderer.render(this.scene, this.camera);
+      // カメラコントローラーの更新
+      this.controller.update();
 
-    requestAnimationFrame(() => { this.render(); });
+      this.renderer.render(this.scene, this.camera);
+    }
+
+    this.renderParams.delta %= this.renderParams.interval;
   }
 
 }
