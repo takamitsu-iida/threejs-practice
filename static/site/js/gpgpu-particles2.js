@@ -77,7 +77,7 @@ export class Main {
     // パーティクルを初期化
     this.initParticles();
 
-    // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
+    // フレーム毎の処理
     this.render();
   }
 

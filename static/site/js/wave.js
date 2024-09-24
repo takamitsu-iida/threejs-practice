@@ -25,7 +25,12 @@ export class Main {
   camera;
   renderer;
   controller;
-  clock;
+
+  renderParams = {
+    clock: new THREE.Clock(),
+    delta: 0,
+    interval: 1 / 30,  // = 30fps
+  }
 
   material;
 
@@ -69,9 +74,6 @@ export class Main {
       this.controller = new OrbitControls(this.camera, this.renderer.domElement);
       this.controller.enableDamping = true;
     }
-
-    // クロック
-    this.clock = new THREE.Clock();
 
     // ジオメトリ
     const geometry = new THREE.PlaneGeometry(8, 8, 512, 512);
@@ -210,31 +212,42 @@ export class Main {
     window.addEventListener("resize", this.onWindowResize, false);
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
-    this.animate();
+    this.render();
   }
 
 
-  animate() {
-    // 時間取得
-    const elapsedTime = this.clock.getElapsedTime();
-    this.material.uniforms.uTime.value = elapsedTime;
+  render = () => {
+    // 再帰処理
+    requestAnimationFrame(this.render);
 
-    // XZ平面上でカメラを周回させる
-    this.camera.position.x = Math.sin(elapsedTime * 0.17) * 3.0;
-    this.camera.position.z = Math.cos(elapsedTime * 0.17) * 3.0;
-
-    this.camera.lookAt(Math.sin(elapsedTime)*0.2, Math.cos(elapsedTime)*0.2, Math.sin(elapsedTime)*0.2);
-
-    // カメラコントローラーの更新
-    if (this.isHomepage === false) {
-      this.controller.update();
+    this.renderParams.delta += this.renderParams.clock.getDelta();
+    if (this.renderParams.delta < this.renderParams.interval) {
+      return;
     }
 
-    // 再描画
-    this.renderer.render(this.scene, this.camera);
+    {
+      // 時間取得
+      const elapsedTime = this.renderParams.clock.getElapsedTime();
 
-    // 再帰処理
-    requestAnimationFrame(() => { this.animate(); });
+      // uniformsに経過時間を渡す
+      this.material.uniforms.uTime.value = elapsedTime;
+
+      // XZ平面上でカメラを周回させる
+      this.camera.position.x = Math.sin(elapsedTime * 0.17) * 3.0;
+      this.camera.position.z = Math.cos(elapsedTime * 0.17) * 3.0;
+
+      this.camera.lookAt(Math.sin(elapsedTime)*0.2, Math.cos(elapsedTime)*0.2, Math.sin(elapsedTime)*0.2);
+
+      // カメラコントローラーの更新
+      if (this.isHomepage === false) {
+        this.controller.update();
+      }
+
+      // 再描画
+      this.renderer.render(this.scene, this.camera);
+    }
+
+    this.renderParams.delta %= this.renderParams.interval;
   }
 
 

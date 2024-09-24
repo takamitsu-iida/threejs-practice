@@ -16,20 +16,16 @@ export class Main {
     height: 0
   };
 
-  // シーン
   scene;
-
-  // カメラ
   camera;
-
-  // レンダラ
   render;
-
-  // マウス操作のコントローラ
   controller;
 
-  // lil-gui
-  gui;
+  renderParams = {
+    clock: new THREE.Clock(),
+    delta: 0,
+    interval: 1 / 30,  // = 30fps
+  }
 
   geometry;
   material;
@@ -107,7 +103,7 @@ export class Main {
     //   /
     //  Z(blue)
     //
-    const axesHelper = new THREE.AxesHelper(10000);
+    const axesHelper = new THREE.AxesHelper(15);
     this.scene.add(axesHelper);
 
     // lil-gui
@@ -197,7 +193,7 @@ export class Main {
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     });
 
-    this.animate();
+    this.render();
   }
 
 
@@ -234,14 +230,26 @@ export class Main {
   }
 
 
-  animate() {
-    this.controller.update();
+  render = () => {
+    requestAnimationFrame(this.render);
 
-    this.spin();
+    this.renderParams.delta += this.renderParams.clock.getDelta();
+    if (this.renderParams.delta < this.renderParams.interval) {
+      return;
+    }
 
-    this.renderer.render(this.scene, this.camera);
+    {
+      // カメラコントローラーの更新
+      this.controller.update();
 
-    requestAnimationFrame(() => { this.animate(); });
+      // ポイントクラウドを回転
+      this.spin();
+
+      // 再描画
+      this.renderer.render(this.scene, this.camera);
+    }
+
+    this.renderParams.delta %= this.renderParams.interval;
   }
 
 }

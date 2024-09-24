@@ -280,9 +280,9 @@ export class Main {
   }
 
 
-  render() {
+  render = () => {
     // 再帰処理
-    requestAnimationFrame(() => { this.render(); });
+    requestAnimationFrame(this.render);
 
     this.renderParams.delta += this.renderParams.clock.getDelta();
     if (this.renderParams.delta < this.renderParams.interval) {

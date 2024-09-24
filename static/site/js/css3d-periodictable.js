@@ -372,15 +372,15 @@ export class Main {
   }
 
 
-  render() {
+  render = () => {
+    // 再帰処理
+    requestAnimationFrame(this.render);
+
     // カメラコントローラーの更新
     this.controller.update();
 
     // Tween
     TWEEN.update();
-
-    // 再帰処理
-    requestAnimationFrame(() => { this.render(); });
   }
 
 

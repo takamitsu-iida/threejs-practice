@@ -4,7 +4,6 @@ import { ImprovedNoise } from "three/libs/ImprovedNoise.js";
 import { GUI } from "three/libs/lil-gui.module.min.js";
 
 
-
 const fragmentShader = /* glsl */`
 
 // 色は(R, G, B)の3次元
@@ -171,9 +170,13 @@ export class Main {
   scene;
   camera;
   renderer;
-  directionalLight;
   controller;
-  gui;
+
+  renderParams = {
+    clock: new THREE.Clock(),
+    delta: 0,
+    interval: 1 / 30,  // = 30fps
+  }
 
   perlin;
 
@@ -213,9 +216,9 @@ export class Main {
     this.container.appendChild(this.renderer.domElement);
 
     // ディレクショナルライト
-    this.directionalLight = new THREE.DirectionalLight(0xffffff, 1.25);
-    this.directionalLight.position.set(1, 1, 0);
-    this.scene.add(this.directionalLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.25);
+    directionalLight.position.set(1, 1, 0);
+    this.scene.add(directionalLight);
 
     // 平面
     const g = new THREE.PlaneGeometry(200, 200, 512, 512);
@@ -389,15 +392,24 @@ export class Main {
   }
 
 
-  render() {
-    // カメラコントローラーの更新
-    this.controller.update();
-
-    // 再描画
-    this.renderer.render(this.scene, this.camera);
-
+  render = () => {
     // 再帰処理
-    requestAnimationFrame(() => { this.render(); });
+    requestAnimationFrame(this.render);
+
+    this.renderParams.delta += this.renderParams.clock.getDelta();
+    if (this.renderParams.delta < this.renderParams.interval) {
+      return;
+    }
+
+    {
+      // カメラコントローラーの更新
+      this.controller.update();
+
+      // 再描画
+      this.renderer.render(this.scene, this.camera);
+    }
+
+    this.renderParams.delta %= this.renderParams.interval;
   }
 
 

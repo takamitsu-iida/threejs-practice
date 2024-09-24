@@ -347,6 +347,13 @@ export class Main {
   renderer;
   controller;
 
+  renderParams = {
+    clock: new THREE.Clock(),
+    delta: 0,
+    interval: 1 / 30,  // = 30fps
+  }
+
+
   TERRAIN_CX = 100
   TERRAIN_CZ = 100
 
@@ -413,15 +420,24 @@ export class Main {
   }
 
 
-  render() {
-    // カメラコントローラーの更新
-    this.controller.update();
-
-    // 再描画
-    this.renderer.render(this.scene, this.camera);
-
+  render = () => {
     // 再帰処理
-    requestAnimationFrame(() => { this.render(); });
+    requestAnimationFrame(this.render);
+
+    this.renderParams.delta += this.renderParams.clock.getDelta();
+    if (this.renderParams.delta < this.renderParams.interval) {
+      return;
+    }
+
+    {
+      // カメラコントローラーの更新
+      this.controller.update();
+
+      // 再描画
+      this.renderer.render(this.scene, this.camera);
+    }
+
+    this.renderParams.delta %= this.renderParams.interval;
   }
 
 

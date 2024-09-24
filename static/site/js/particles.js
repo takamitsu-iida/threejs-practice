@@ -126,16 +126,17 @@ export class Main {
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     });
 
-    this.animate();
+    this.render();
   }
 
 
-  animate() {
+  render = () => {
+    requestAnimationFrame(this.render);
+
     this.controller.update();
 
     this.renderer.render(this.scene, this.camera);
 
-    requestAnimationFrame(() => { this.animate(); });
   }
 
 }

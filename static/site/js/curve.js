@@ -14,9 +14,13 @@ export class Main {
   scene;
   camera;
   renderer;
-  directionalLight;
   controller;
-  gui;
+
+  renderParams = {
+    clock: new THREE.Clock(),
+    delta: 0,
+    interval: 1 / 30,  // = 30fps
+  }
 
   params = {
     pointNum: 300
@@ -125,7 +129,6 @@ export class Main {
     this.line = new THREE.LineLoop(geometry, material);
     this.scene.add(this.line);
 
-
     // lil-gui
     const gui = new GUI({ width: 300 });
     gui
@@ -144,15 +147,24 @@ export class Main {
   }
 
 
-  render() {
-    // カメラコントローラーの更新
-    this.controller.update();
-
-    // 再描画
-    this.renderer.render(this.scene, this.camera);
-
+  render = () => {
     // 再帰処理
-    requestAnimationFrame(() => { this.render(); });
+    requestAnimationFrame(this.render);
+
+    this.renderParams.delta += this.renderParams.clock.getDelta();
+    if (this.renderParams.delta < this.renderParams.interval) {
+      return;
+    }
+
+    {
+      // カメラコントローラーの更新
+      this.controller.update();
+
+      // 再描画
+      this.renderer.render(this.scene, this.camera);
+    }
+
+    this.renderParams.delta %= this.renderParams.interval;
   }
 
 

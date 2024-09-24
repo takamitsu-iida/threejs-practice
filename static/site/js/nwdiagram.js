@@ -1620,7 +1620,10 @@ export class Diagram {
 
   }
 
-  render() {
+  render = () => {
+    // 再帰処理
+    requestAnimationFrame(this.render);
+
     // stats.jsを更新
     this.statsjs.update();
 
@@ -1640,8 +1643,6 @@ export class Diagram {
       this.objectSelection.render(this.scene, this.camera);
     }
 
-    // 再帰処理
-    requestAnimationFrame(() => { this.render(); });
   }
 
 
