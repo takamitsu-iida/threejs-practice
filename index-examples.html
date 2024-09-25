@@ -742,7 +742,7 @@
 
       <h2>Move along path （イマイチ）</h2>
 
-      <p>１回の釣行で得られる魚群探知機のデータを可視化してみた例。</p>
+      <p>ということで、１回の釣行で得られる魚群探知機のデータを可視化してみた例。</p>
       <p>グレーの線がボートの移動を、緑の線が水深を表している。</p>
       <p>ボートの向きは必ずしも進行方向を向いていないのが分かる。</p>
       <p>魚探の電源を切っている時間が散在するので、データの加工をもう少し工夫しないとだめだなぁ・・・</p>
@@ -763,6 +763,29 @@
         JavaScript <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/move-along-path2.js">move-along-path2.js</a>
       </p>
 
+
+
+      <h2>Move along path</h2>
+
+      <p>パーティクルをパスに沿って移動する例。</p>
+      <p>Curveクラスが持っている `getPointAt(fraction)` を使うとパス上の任意の場所の座標を得られるので、そこにpositionを移動すればいい。</p>
+      <p>ただし、位置の指定をJavaScript側で実行しているので、多数のパーティクルを使うと重くなってしまう。</p>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-move-along-path3.html">
+          <div>Live Demo</div><br>
+          <div><img src="./asset/index-move-along-path3.html.png" /></div>
+        </a>
+      </p>
+
+      <p>
+        HTML <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-move-along-path3.html">index-move-along-path3.html</a>
+      </p>
+      <p>
+        JavaScript <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/move-along-path3.js">move-along-path3.js</a>
+      </p>
 
 
 
