@@ -355,7 +355,7 @@ export class Main {
     // 自分自身のUV座標で取り出すことができる
     //
     // カーブ上にパーティクルを均等に配置したいので、
-    // ここでは(i / particleNum, 0)のを設定する
+    // ここでは(i / particleNum, 0)を設定する
     // uniformsでfractionを渡すので、UV座標にfractionを加算することで、位置を変えていく
 
     const uvs = new Float32Array(numParticles * 2);
@@ -409,7 +409,7 @@ export class Main {
 
           // 現在位置にposを加えて位置を更新
           vec4 modelPosition = modelMatrix * vec4(position + pos, 1.0);
-        	vec4 viewPosition = viewMatrix * modelPosition;
+          vec4 viewPosition = viewMatrix * modelPosition;
           gl_Position = projectionMatrix * viewPosition;
 
           gl_PointSize = uSize * uPixelRatio;
@@ -421,7 +421,8 @@ export class Main {
         void main() {
           float _radius = 0.4;
           vec2 dist = gl_PointCoord - vec2(0.5);
-          float strength = 1.0 - smoothstep(_radius-(_radius*0.4), _radius+(_radius*0.3), length(dist));
+          // float strength = 1.0 - smoothstep(_radius-(_radius*0.4), _radius+(_radius*0.3), length(dist));
+          float strength = 1.0 - smoothstep(_radius-(_radius*0.4), _radius+(_radius*0.3), dot(dist, dist)*2.0);
 
           gl_FragColor = vec4(1.0, 1.0, 1.0, strength);
         }

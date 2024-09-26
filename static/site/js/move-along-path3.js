@@ -230,7 +230,8 @@ export class Main {
         void main() {
           float _radius = 0.4;
           vec2 dist = gl_PointCoord - vec2(0.5);
-          float strength = 1.0 - smoothstep(_radius-(_radius*0.4), _radius+(_radius*0.3), length(dist));
+          // float strength = 1.0 - smoothstep(_radius-(_radius*0.4), _radius+(_radius*0.3), length(dist));
+          float strength = 1.0 - smoothstep(_radius-(_radius*0.4), _radius+(_radius*0.3), dot(dist, dist)*2.0);
 
           gl_FragColor = vec4(1.0, 1.0, 1.0, strength);
         }
