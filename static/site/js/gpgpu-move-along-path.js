@@ -252,11 +252,11 @@ export class Main {
     //
 
     // 位置情報を格納するテクスチャを作成して、
-    let positionTexture = computeRenderer.createTexture();
+    const positionTexture = computeRenderer.createTexture();
 
     // テクスチャにカーブの座標情報を埋め込む
     {
-      let positionArray = positionTexture.image.data;
+      const positionArray = positionTexture.image.data;
 
       let fraction = 0.0;
       for (let i = 0; i < positionArray.length; i += 4) {
@@ -372,7 +372,7 @@ export class Main {
     geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2))
 
     // シェーダーマテリアルを作成
-    let material = new THREE.ShaderMaterial({
+    const material = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
 
