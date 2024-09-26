@@ -251,12 +251,12 @@ export class Main {
     //
 
     // 位置用のテクスチャを作成して、
-    let initialPositionTexture = this.computeRenderer.createTexture();
+    const initialPositionTexture = this.computeRenderer.createTexture();
 
     // 値を初期化する
     // ランダムな場所にパーティクルを配置する
     {
-      let initPositionArray = initialPositionTexture.image.data;
+      const initPositionArray = initialPositionTexture.image.data;
 
       // パーティクルを分布させる範囲
       // -range/2 ～ range/2 の範囲でランダムな初期位置を設定
@@ -289,7 +289,7 @@ export class Main {
 
 
     // 速度用のテクスチャを作成して、
-    let initialVelocityTexture = this.computeRenderer.createTexture();
+    const initialVelocityTexture = this.computeRenderer.createTexture();
 
     // console.log(initialVelocityTexture);
     // テクスチャをいくつ作成しても、同じ大きさで作られることが分かる
@@ -297,7 +297,7 @@ export class Main {
     // 初期速度0で初期化する
     // 速度の計算は先頭ピクセルだけなので全ピクセルを初期化しなくてもいいけど念の為ゼロ埋め
     {
-      let initVelocityArray = initialVelocityTexture.image.data;
+      const initVelocityArray = initialVelocityTexture.image.data;
       for (let i = 0; i < initVelocityArray.length; i++) {
         initVelocityArray[i] = 0;
       }
@@ -545,7 +545,7 @@ export class Main {
     geometry.setIndex(new THREE.BufferAttribute(indices, 3));
 
     // シェーダーマテリアルを作成
-    let material = new THREE.ShaderMaterial({
+    const material = new THREE.ShaderMaterial({
       // updateParticles() の中でフレームごとに値を更新する
       uniforms: this.uniforms,
 
