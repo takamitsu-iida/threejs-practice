@@ -768,8 +768,8 @@
       <h2>Move along path</h2>
 
       <p>パーティクルをパスに沿って移動する例。</p>
-      <p>Curveクラスが持っている `getPointAt(fraction)` を使うとパス上の任意の場所の座標を得られるので、そこにpositionを移動すればいい。</p>
-      <p>ただし、位置の指定をJavaScript側で実行しているので、多数のパーティクルを使うと重くなってしまう。</p>
+      <p>Curveクラスが持っている getPointAt(fraction) を使うとパス上の任意の場所の座標を得られるので、そこにpositionを移動すればいい。</p>
+      <p>ただし、位置の指定をJavaScript側でフレームごとに実行しているので、多数のパーティクルを使うと重くなってしまう。</p>
 
       <br>
 
@@ -785,6 +785,31 @@
       </p>
       <p>
         JavaScript <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/move-along-path3.js">move-along-path3.js</a>
+      </p>
+
+
+
+      <h2>GPGPU move along path</h2>
+
+      <p>パーティクルをパスに沿って移動する例。</p>
+      <p>見た目は前述のものとまったく同じ。</p>
+      <p>パーティクルの位置を事前に計算してGPGPUのテクスチャに保存しておき、シェーダーでそれを参照して位置を変えていく。</p>
+      <p>JavaScript側はfractionの値を更新するだけなので、CPUに負荷はかからない。</p>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-move-along-path.html">
+          <div>Live Demo</div><br>
+          <div><img src="./asset/index-gpgpu-move-along-path.html.png" /></div>
+        </a>
+      </p>
+
+      <p>
+        HTML <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-gpgpu-move-along-path.html">index-gpgpu-move-along-path.html</a>
+      </p>
+      <p>
+        JavaScript <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/gpgpu-move-along-path.js">gpgpu-move-along-path.js</a>
       </p>
 
 
