@@ -1,35 +1,8 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/controls/OrbitControls.js";
-
-// stats.js
-import Stats from "three/libs/stats.module.js";
-
-// 必要な追加モジュール
-// three.js/examples/jsm/misc/GPUComputationRenderer.js
-// three.js/examples/jsm/postprocessing/Pass.js
 import { GPUComputationRenderer } from "three/libs/misc/GPUComputationRenderer.js";
 
-/*
-
-GPUComputationRenderer
-
-変数の概念を使用する。
-
-変数は各計算要素（テクセル）ごとに４つの浮動小数点（RGBA）を保持する
-
-各変数には、その変数を取得するために実行されるべきフラグメントシェーダがある
-
-必要な数の変数を使用して依存関係を作成することで、シェーダーは他の変数のテクスチャにアクセスできるようになる
-
-レンダラーには変数ごとに２つのレンダリングターゲットがあり、ピンポンを実現する
-
-変数の名前にはtextureをプレフィクスとして付けるのが慣例
-例： texturePosition, textureVelocity など
-
-計算サイズ(sizeX * sizeY)はシェーダーで自動的に解像度として定義される
-例：#DEFINE resolution vec2(1024.0, 1024.0)
-
-*/
+import Stats from "three/libs/stats.module.js";
 
 
 export class Main {
@@ -56,9 +29,11 @@ export class Main {
   }
 
   params = {
-    curve: null,
-    numParticles: 50,
-    fractionStep: 0.002,
+    curveRadius: 2.0,
+    curves: [],
+    numCurves: 100,     // カーブの数
+    numParticles: 100,  // カーブあたりのパーティクルの数
+    fractionStep: 0.001,
   }
 
   uniforms = {
@@ -120,7 +95,7 @@ export class Main {
       0.1,                                  // 開始距離
       100                                   // 終了距離
     );
-    this.camera.position.set(2, 2, 2);
+    this.camera.position.set(5, 5, 5);
 
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({ alpha: false, antialias: true });
@@ -204,24 +179,35 @@ export class Main {
   // カーブを作成して描画する
   initCurve = () => {
 
-    // curveを作成
-    const curve = new THREE.CubicBezierCurve3(
-      new THREE.Vector3(-1, 0, 0),
-      new THREE.Vector3(-0.5, 1.5, 0),
-      new THREE.Vector3(0.5, -1.5, 0),
-      new THREE.Vector3(1, 0, 0)
-    );
+    const thetaDelta = (Math.PI * 2) / this.params.numCurves;
 
-    // ラインを作成してシーンに追加
-    this.scene.add(
-      new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(curve.getPoints(50)),
-        new THREE.LineBasicMaterial({ color: 0xa0a0a0 })
-      )
-    );
+    for (let i = 0; i < this.params.numCurves; i++) {
 
-    // curveは外から参照できるようにしておく
-    this.params.curve = curve;
+      const theta = thetaDelta * (i + 1);
+
+      // curveを作成
+      const curve = new THREE.CubicBezierCurve3(
+        // 始点
+        new THREE.Vector3().setFromSphericalCoords(this.params.curveRadius, 0.314, theta),
+        // コントロールポイント1
+        new THREE.Vector3().setFromSphericalCoords(this.params.curveRadius * 3.14, Math.PI / 4, theta),
+        // コントロールポイント2
+        new THREE.Vector3().setFromSphericalCoords(this.params.curveRadius * 3.14, 3 * Math.PI / 4, theta),
+        // 終点
+        new THREE.Vector3().setFromSphericalCoords(this.params.curveRadius, (Math.PI - 0.314), theta)
+      );
+
+      // ラインを作成してシーンに追加
+      this.scene.add(
+        new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints(curve.getPoints(50)),
+          new THREE.LineBasicMaterial({ color: 0xa0a0a0 })
+        )
+      );
+
+      // curveは外から参照できるようにしておく
+      this.params.curves.push(curve);
+    }
 
   }
 
@@ -233,19 +219,24 @@ export class Main {
     //
 
     const numFractions = Math.floor(1 / this.params.fractionStep);
+    const numCurves = this.params.numCurves;
 
     const computeRenderer = new GPUComputationRenderer(
       numFractions,  // width
-      1,             // height
+      numCurves,     // height
       this.renderer  // renderer
     );
 
     // 0.0 ~ 1.0の範囲でfractionStepごとに位置情報を格納する
     //
-    //                         numFractions
-    //  +--+--+--+--+--+--+--+
-    //  |  |  |  |  |  |  |  |
-    //  +--+--+--+--+--+--+--+
+    //                               numFractions
+    //         +--+--+--+--+--+--+--+
+    // curve 1 |  |  |  |  |  |  |  |
+    //         +--+--+--+--+--+--+--+
+    // curve 2 |  |  |  |  |  |  |  |
+    //         +--+--+--+--+--+--+--+
+    // curve 3 |  |  |  |  |  |  |  |
+    //         +--+--+--+--+--+--+--+
 
     //
     // computeRenderer.createTexture();
@@ -258,17 +249,25 @@ export class Main {
     {
       const positionArray = positionTexture.image.data;
 
-      let fraction = 0.0;
-      for (let i = 0; i < positionArray.length; i += 4) {
-        const point = this.params.curve.getPointAt(fraction);
+      for (let i = 0; i < numCurves; i++) {
 
-        // vec4に格納するので、4つずつ値を入れていく
-        positionArray[i + 0] = point.x;  // X座標
-        positionArray[i + 1] = point.y;  // Y座標
-        positionArray[i + 2] = point.z;  // Z座標
-        positionArray[i + 3] = 0.0;      // W座標(未使用)
+        // i番目のカーブに関して、
+        const curve = this.params.curves[i];
 
-        fraction += this.params.fractionStep;
+        for (let j = 0; j < numFractions; j++) {
+          // j番目のfractionに関して、
+          const fraction = j * this.params.fractionStep;
+
+          // カーブ上のfractionに相当する場所の座標を取得
+          const pointAt = curve.getPointAt(fraction);
+
+          const index = (i * numFractions + j) * 4;
+          positionArray[index + 0] = pointAt.x;  // X座標
+          positionArray[index + 1] = pointAt.y;  // Y座標
+          positionArray[index + 2] = pointAt.z;  // Z座標
+          positionArray[index + 3] = 0.0;        // W座標(未使用)
+        }
+
       }
     }
 
@@ -334,11 +333,11 @@ export class Main {
 
   initParticles = () => {
 
-    // パーティクルの数
-    const numParticles = this.params.numParticles;
+    // パーティクルの総数は、カーブの数 * カーブあたりのパーティクルの数
+    // この数だけジオメトリに頂点を作成する
+    const numParticles = this.params.numCurves * this.params.numParticles;
 
     // パーティクルの位置を格納する配列を初期化
-    // positionアトリビュートに設定する
     const positions = new Float32Array(numParticles * 3);
 
     // パーティクルの位置は原点に設定(フレームごとにシェーダーで更新するので適当でよい)
@@ -353,18 +352,33 @@ export class Main {
     // ★★★ ここ超重要！ ★★★
     // UV座標を設定することで、GPUComputationRendererで作成した計算用テクスチャの情報を
     // 自分自身のUV座標で取り出すことができる
-    //
-    // カーブ上にパーティクルを均等に配置したい
-    // テクスチャの構造は幅がnumFractions、高さが1になっている
-    // U座標は、0.0 ~ 1.0の範囲で均等に配置することで、カーブ上にパーティクルを均等配置できる
-    // V座標は、常に0.0でよい
 
-    // uniformsでfractionを渡すので、UV座標にfractionを加算することで、位置を変えていく
+    // テクスチャはこうなってる
+    //
+    //                               numFractions
+    //         +--+--+--+--+--+--+--+
+    // curve 1 |  |  |  |  |  |  |  |
+    //         +--+--+--+--+--+--+--+
+    // curve 2 |  |  |  |  |  |  |  |
+    //         +--+--+--+--+--+--+--+
+    // curve 3 |  |  |  |  |  |  |  |
+    //         +--+--+--+--+--+--+--+
 
     const uvs = new Float32Array(numParticles * 2);
-    for (let i = 0; i < numParticles; i++) {
-      uvs[i * 2 + 0] = i / numParticles;
-      uvs[i * 2 + 1] = 0.0;
+
+    for (let i = 0; i < this.params.numCurves; i++) {
+      // i番目のカーブに関して、
+
+      for (let j = 0; j < this.params.numParticles; j++) {
+        // i番目のカーブ上の、j番目のパーティクルに関して、
+
+        // U座標は0.0 ~ 1.0の範囲で、均等に配置する
+        // V座標はカーブの番号（すなわちi）を0.0 ~ 1.0の範囲に正規化して指定する
+
+        const index = (i * this.params.numParticles + j) * 2;
+        uvs[index + 0] = j / this.params.numParticles;  // カーブ上に均等に配置
+        uvs[index + 1] = i / this.params.numCurves;     // カーブの番号を正規化
+      }
     }
 
     // ジオメトリを作成
