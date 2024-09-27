@@ -645,12 +645,13 @@ class ParticleRenderer {
 
     // UV座標を追加する
     const uv = new Float32Array(width * height * 2);
+
     // テクスチャの情報を自分自身のUV座標で取得できるように設定する
     let p = 0;
     for (var j = 0; j < height; j++) {
       for (var i = 0; i < width; i++) {
-        uv[p++] = i / (width - 1);   // X方向
-        uv[p++] = j / (height - 1);  // Y方向
+        uv[p++] = i / (width - 1);   // X方向 一番右が1.0になるように正規化(widthは0で始まるので最後はwidth -1)
+        uv[p++] = j / (height - 1);  // Y方向 一番下が1.0になるように正規化(heightは0で始まるので最後はheight -1)
       }
     }
 
