@@ -63,8 +63,6 @@ export class Main {
   }
 
 
-  gpuParticle;
-
   constructor(params={}) {
 
     this.params = Object.assign(this.params, params);
@@ -172,6 +170,9 @@ export class Main {
   }
 
 
+
+  gpuParticle;
+
   // パーティクルの初期化
   initParticles = () => {
 
@@ -194,7 +195,7 @@ export class Main {
     // このテクスチャはrender()を呼ぶたびに更新される
     const particleTexture = this.gpuParticle.getParticleTexture();
 
-    // この2枚のテクスチャを合成して画面に表示する
+    // バックグランドのテクスチャと、パーティクルを描画したテクスチャを合成して画面に表示する
 
     // プレーンジオメトリを作成
     const geometry = new THREE.PlaneGeometry(VIEW_WIDTH, VIEW_HEIGHT);
@@ -284,10 +285,10 @@ class GpuParticle {
   // compute()を呼ぶと新しい頂点座標が計算される
   vertexTexture;
 
+  // ParticleRendereクラスのインスタンス
   // パーティクルをオフスクリーンで描画するレンダラ
   particleRenderer;
 
-  // rendererは画面表示用のレンダラ
   // velocityTextureはwind2.pngをテクスチャにしたもので、パーティクルの速度・方向を決めるもの
   // RGBA値のうち、意味のある値が入っているのはRとGだけ
   // Rの0-255でx方向の風速を、Gでy方向の風速をそれぞれ表現
@@ -296,13 +297,15 @@ class GpuParticle {
   // 画像で赤っぽいところは右方向への風が、青っぽいところには上方向への風が吹いている
   constructor(renderer, velocityTexture, options = {}) {
 
+    // コンストラクタで渡されるrendererは画面表示用
+
     // オフスクリーンレンダリング用のWebGLRenderTargetやDataTextureを作成するために使う
     const width = options.width || 1024;
     const height = options.height || 1024;
 
     this.vertexTexture = new VertexTexture(
-      renderer,
-      velocityTexture,
+      renderer,         // 画面表示用のレンダラ
+      velocityTexture,  // 背景画像をテクスチャにしたもの、速度・方向を決める
       {
         width,
         height,
@@ -361,7 +364,7 @@ export class VertexTexture {
   // gpuRenderer.createTexture()の戻り値
   vertexTexture;
 
-  // wind2.png をテクスチャにしたもの
+  // wind2.png をテクスチャにしたもの、風速・方向を決めるのに使う
   velocityTexture;
 
 
@@ -383,14 +386,14 @@ export class VertexTexture {
     console.log(`width=${width}, height=${height}, particleSpeed=${particleSpeed}, particleCount=${particleCount}, dropFactor=${dropFactor}, repeat=${repeat}`);
 
     this.gpuRenderer = new GPUComputationRenderer(
-      particleCount,  // width, Default 64
-      particleCount,  // height, Default 64
+      particleCount,  // width
+      particleCount,  // height
       renderer,
     );
 
-    // テクスチャを作成
-    // width * height個のvec4がフラットな配列として作られると思えばいい
-    // Float32Arrayの長さは width * heigt * 4 になる
+    // 計算用のテクスチャを作成
+    // 大きさはGPUComputationRender作成時に指定した width x height なので、
+    // この場合は particleCount x particleCount の正方形のテクスチャになる
     this.vertexTexture = this.gpuRenderer.createTexture();
 
     // テクスチャを初期化
@@ -408,6 +411,7 @@ export class VertexTexture {
 
     // 変数を定義する
     // 変数にはそれを取得するためのフラグメントシェーダーを紐づける
+    // 戻り値はテクスチャを取り出すのに必要
     this.computationVariable = this.gpuRenderer.addVariable(
 
       // 変数名
@@ -432,8 +436,8 @@ export class VertexTexture {
         highp float a = 12.9898;
         highp float b = 78.233;
         highp float c = 43758.5453;
-        highp float dt= dot(co.xy ,vec2(a,b));
-        highp float sn= mod(dt,3.14);
+        highp float dt = dot(co.xy ,vec2(a,b));
+        highp float sn = mod(dt,3.14);
         return fract(sin(sn) * c);
       }
 
@@ -448,8 +452,8 @@ export class VertexTexture {
         float yPx = 1.0 / ${height}.0;
 
         // なんで0.5足すんだろう？
-        // vec2 centerUv = vec2(pos.x / ${width}.0 + 0.5, pos.y / ${height}.0 + 0.5);
-        vec2 centerUv = vec2(pos.x / ${width}.0 , pos.y / ${height}.0 );
+        vec2 centerUv = vec2(pos.x / ${width}.0 + 0.5, pos.y / ${height}.0 + 0.5);
+        // vec2 centerUv = vec2(pos.x / ${width}.0 , pos.y / ${height}.0 );
 
         // 関数texture2D(sampler2D, vec2)はUV座標vec2を元にRGBA情報を取り出す
         vec3 centerRGB = texture2D(velocityTexture, centerUv).rgb;
@@ -633,14 +637,20 @@ class ParticleRenderer {
       10
     );
 
+    // ジオメトリを作成して、
     const geometry = new THREE.BufferGeometry();
+
+    // 頂点を追加する（値は後で更新される）
     const vertices = new Float32Array(width * height * 3);
+
+    // UV座標を追加する
     const uv = new Float32Array(width * height * 2);
+    // テクスチャの情報を自分自身のUV座標で取得できるように設定する
     let p = 0;
     for (var j = 0; j < height; j++) {
       for (var i = 0; i < width; i++) {
-        uv[p++] = i / (width - 1);
-        uv[p++] = j / (height - 1);
+        uv[p++] = i / (width - 1);   // X方向
+        uv[p++] = j / (height - 1);  // Y方向
       }
     }
 
