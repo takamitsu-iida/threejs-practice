@@ -375,6 +375,8 @@ export class Main {
         // U座標は0.0 ~ 1.0の範囲で、均等に配置する
         // V座標はカーブの番号（すなわちi）を0.0 ~ 1.0の範囲に正規化して指定する
 
+        // 数字が0で始まる数は、-1しないと最後が1.0にならないので注意
+
         const index = (i * this.params.numParticles + j) * 2;
         uvs[index + 0] = j / (this.params.numParticles -1);  // カーブ上に均等に配置
         uvs[index + 1] = i / (this.params.numCurves -1);     // カーブの番号を正規化
