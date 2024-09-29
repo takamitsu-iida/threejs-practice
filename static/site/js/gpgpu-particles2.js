@@ -28,14 +28,19 @@ GPUComputationRenderer
 
 */
 
+// 期待通りに動かないし、CPU処理がやたら重たいので、何かがおかしい
+// どこがおかしいのか、全くわからない
+
 
 // 参照元
 // https://github.com/Kanahiro/three-gpu-particle
 
 
-
-const VIEW_WIDTH = 800;
-const VIEW_HEIGHT = 400;
+// wind2.pngの画像サイズに合わせる場合
+// const VIEW_WIDTH = 1440;
+// const VIEW_HEIGHT = 720;
+const VIEW_WIDTH = 640;
+const VIEW_HEIGHT = 480;
 
 
 export class Main {
@@ -392,7 +397,7 @@ export class VertexTexture {
     );
 
     // 計算用のテクスチャを作成
-    // 大きさはGPUComputationRender作成時に指定した width x height なので、
+    // テクスチャの大きさはGPUComputationRender作成時に指定した width x height なので、
     // この場合は particleCount x particleCount の正方形のテクスチャになる
     this.vertexTexture = this.gpuRenderer.createTexture();
 
@@ -463,6 +468,7 @@ export class VertexTexture {
         vec3 rightRGB = texture2D(velocityTexture, centerUv + vec2(xPx, 0.0)).rgb;
         vec3 bottomRGB = texture2D(velocityTexture, centerUv - vec2(0.0, yPx)).rgb;
 
+        // ここで0.5に近い値を差し引いている
         vec3 avg = (centerRGB + leftRGB + topRGB + rightRGB + bottomRGB) * 0.2 - vec3(vec2(0.49803922), 0.0);
 
         return avg;

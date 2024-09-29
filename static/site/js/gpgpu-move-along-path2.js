@@ -63,7 +63,7 @@ export class Main {
     this.initCurve();
 
     // GPUComputationRendererを初期化
-    this.initComputeRenderer();
+    this.initComputationRenderer();
 
     // パーティクルを初期化
     this.initParticles();
@@ -212,7 +212,7 @@ export class Main {
   }
 
 
-  initComputeRenderer = () => {
+  initComputationRenderer = () => {
 
     //
     // GPUComputationRendererを初期化
@@ -221,7 +221,7 @@ export class Main {
     const numFractions = Math.floor(1 / this.params.fractionStep);
     const numCurves = this.params.numCurves;
 
-    const computeRenderer = new GPUComputationRenderer(
+    const computationRenderer = new GPUComputationRenderer(
       numFractions,  // width
       numCurves,     // height
       this.renderer  // renderer
@@ -239,11 +239,11 @@ export class Main {
     //         +--+--+--+--+--+--+--+
 
     //
-    // computeRenderer.createTexture();
+    // computationRenderer.createTexture();
     //
 
     // 位置情報を格納するテクスチャを作成して、
-    const positionTexture = computeRenderer.createTexture();
+    const positionTexture = computationRenderer.createTexture();
 
     // テクスチャにカーブの座標情報を埋め込む
     {
@@ -274,14 +274,14 @@ export class Main {
     // console.log(positionTexture);
 
     //
-    // 変数に紐づけるシェーダー
+    // 変数に紐づけるフラグメントシェーダー
     // 今回は一度位置情報を決めたら変更しないので、空のシェーダーを作成
     const positionShader = /* glsl */`
       void main() { }
     `;
 
     //
-    // computeRenderer.addVariable();
+    // computationRenderer.addVariable();
     //
 
     // ここ重要
@@ -289,7 +289,7 @@ export class Main {
     // テクスチャと、それに対応するシェーダを指定して、変数 "texturePosition" を追加する
     // シェーダーの中で texture2D( texturePosition, uv ) のように参照できるようになる
 
-    const positionVariable = computeRenderer.addVariable(
+    const positionVariable = computationRenderer.addVariable(
       "texturePosition",  // シェーダーの中で参照する名前
       positionShader,     // シェーダーコード
       positionTexture     // 最初に作ったテクスチャを渡す
@@ -303,19 +303,19 @@ export class Main {
     // this.params.positionVariable = positionVariable;
 
     //
-    // computeRenderer.setVariableDependencies();
+    // computationRenderer.setVariableDependencies();
     //
 
     // 追加した変数の依存関係を設定する
 
     // シェーダーの中で使うのはtexturePositionだけなので、このように設定すればよい
-    computeRenderer.setVariableDependencies(positionVariable, [positionVariable]);
+    computationRenderer.setVariableDependencies(positionVariable, [positionVariable]);
 
     //
-    // computeRenderer.init();
+    // computationRenderer.init();
     //
 
-    const error = computeRenderer.init();
+    const error = computationRenderer.init();
     if (error !== null) {
       console.error(error);
       new Error(error);
@@ -325,7 +325,7 @@ export class Main {
     // テクスチャを取り出してシェーダーマテリアルのuniformsに設定する
     //
 
-    this.uniforms.texturePosition.value = computeRenderer.getCurrentRenderTarget(positionVariable).texture;
+    this.uniforms.texturePosition.value = computationRenderer.getCurrentRenderTarget(positionVariable).texture;
 
   }
 
