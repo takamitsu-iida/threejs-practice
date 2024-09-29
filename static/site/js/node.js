@@ -307,8 +307,8 @@ export class Main {
 
   initTexture = () => {
     const loadingContainer = document.getElementById('loadingContainer');
-    const loadingManager = new THREE.LoadingManager(() => {
 
+    const loadingManager = new THREE.LoadingManager(() => {
       const interval = setInterval(() => {
         loadingContainer.classList.add('fadeout');
         clearInterval(interval);
@@ -317,11 +317,12 @@ export class Main {
       loadingContainer.addEventListener('transitionend', (event) => {
         event.target.remove();
       });
-
     });
 
     const loader = new THREE.TextureLoader(loadingManager);
-    this.textures['Router48'] = loader.load('./static/site/img/Router.48.png');
+
+    this.textures.Router48 = loader.load('./static/site/img/Router.48.png');
+
   }
 
 

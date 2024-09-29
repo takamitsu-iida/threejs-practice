@@ -296,6 +296,10 @@ export class Main {
       positionTexture     // 最初に作ったテクスチャを渡す
     );
 
+    // uniformを登録する場合はここで設定する
+    // positionVariable.material.uniforms = {};
+
+
     // console.log(positionVariable);
 
     // 戻り値は getCurrentRenderTarget() でテクスチャを取り出すのに必要なので、
@@ -363,7 +367,7 @@ export class Main {
 
     const uvs = new Float32Array(numParticles * 2);
     for (let i = 0; i < numParticles; i++) {
-      uvs[i * 2 + 0] = i / (numParticles - 1);
+      uvs[i * 2 + 0] = i / (numParticles - 1);  // iは0始まりなので、i / (numParticles - 1)で正規化
       uvs[i * 2 + 1] = 0.0;
     }
 
