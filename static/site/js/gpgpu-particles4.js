@@ -8,8 +8,14 @@ import Stats from "three/libs/stats.module.js";
 import { GPUComputationRenderer } from "three/libs/misc/GPUComputationRenderer.js";
 
 
-// やりたいことはこれだけど、ソースコードを読んでも難しすぎて分からないので、簡単なやり方で実装する
+// やりたいことはこれだけど、ソースコードを読んでも難しすぎて分からないので、自分で理解可能なやり方で実装する
 // https://qiita.com/Kanahiro/items/8927619c64831972c1d2
+
+// 元になる画像はここから
+// https://github.com/mapbox/webgl-wind
+
+// 解説記事はここから
+// https://blog.mapbox.com/how-i-built-a-wind-map-with-webgl-b63022b5537f
 
 
 export class Main {
@@ -29,28 +35,26 @@ export class Main {
   }
 
   params = {
-    velocityImagePath: './static/site/img/wind2.png',  // 速度の元になる画像のパス
+    velocityImagePath: './static/site/img/wind.png',  // 速度の元になる画像のパス
     velocityImage: null,  // 画像をダウンロードしたImage()オブジェクト
 
     width: 1024,    // 描画する幅
-    height: 0,     // アスペクト比を維持して元画像をリサイズして自動調整する
+    height: 0,      // 高さはアスペクト比を維持して元画像をリサイズするので自動調整
 
-    particleSpeed: 20.0,  // パーティクルの移動速度、経験則的に調整する
-    numParticles: 2000,   // 描画するパーティクルの数
-    dropThreshold: 100,  // 一定期間でパーティクルをリセットするための閾値
+    particleSpeed: 3.0,  // パーティクルの移動速度、この数字は経験則的に調整する
+    numParticles: 5000,   // 描画するパーティクルの数
+    dropThreshold: 100,   // 一定期間でパーティクルをリセットするための閾値
   }
 
-
   velocityImageParams = {
-    // params.velocityImagePath で指定した画像ファイルを解析した結果を配列に保存
+    // params.velocityImagePath で指定した画像ファイルを解析した結果をこれら配列に保存する
     positions: [],
     colors: [],
     alphas: [],
 
-    // さらにGPUComputationRendererを使ってテクスチャに変換したものを保存
+    // colorsを元にしてGPUComputationRendererでテクスチャに変換したものを保存しておく
     textureVelocity: null,
   };
-
 
   computationParams = {
     computationRenderer: null,
@@ -177,14 +181,13 @@ export class Main {
     // 描画した画像をデータとして取得
     const data = ctx.getImageData(0, 0, width, height).data;
 
-    // 位置と色の情報を取得する（アルファ値は使わないけど、ついでに取得する）
-    const positions = [];
-    let colors = [];
-    const alphas = [];
+    // 位置と色の情報を取得する
+    const positions = [];  // 使わない
+    const colors = [];     // 使う
+    const alphas = [];     // 使わない
 
-    // ここでひと手間必要
-    // Y軸の向きが逆転しているので、反転が必要
-
+    // Image()オブジェクトで取得した画像はY軸の向きが逆転している
+    //
     // +---->x
     // |
     // y
@@ -194,24 +197,23 @@ export class Main {
         // RGBAが格納されているのでdataから4つずつ取り出す
         const index = (y * width + x) * 4;
 
-        const r = data[index + 0] / 255;
-        const g = data[index + 1] / 255;
-        const b = data[index + 2] / 255;
-        const a = data[index + 3] / 255;
+        const r = data[index + 0] / 255;  // 0 ~ 1に正規化
+        const g = data[index + 1] / 255;  // 0 ~ 1に正規化
+        const b = data[index + 2] / 255;  // 0 ~ 1に正規化
+        const a = data[index + 3] / 255;  // 0 ~ 1に正規化
 
-        // ★重要★
-        // ここで画像の中心を原点に正規化しているので、シェーダーでUV座標を使う場合は注意すること
         const pX = x - width / 2;      // 画像の中心を原点にする
         const pY = -(y - height / 2);  // 画像の中心を原点にして、上下方向を反転
         const pZ = 0;                  // 2DなのでZは0
 
         positions.push(pX, pY, pZ);
-        colors.push([r, g, b]);
+        colors.push(r, g, b);
         alphas.push(a);
       }
     }
-    colors.reverse();
-    colors = colors.flat();
+
+    // 位置と色を組み合わせて使うなら問題ないが、今回は色だけを使うので、
+    // 配列の順番が逆になっていることに注意
 
     // 画像から取り出した情報を保存しておく
     this.velocityImageParams.positions = positions;
@@ -447,12 +449,19 @@ export class Main {
         float xPx = 1.0 / ${this.params.width}.0;
         float yPx = 1.0 / ${this.params.height}.0;
 
-        vec2 center = texture2D(textureVelocity, uv).rg;
-        vec2 left = texture2D(textureVelocity, uv - vec2(xPx, 0.0)).rg;
-        vec2 top = texture2D(textureVelocity, uv + vec2(0.0, yPx)).rg;
-        vec2 right = texture2D(textureVelocity, uv + vec2(xPx, 0.0)).rg;
-        vec2 bottom = texture2D(textureVelocity, uv - vec2(0.0, yPx)).rg;
+        // ★重要
+        // 速度を記録した画像はImage()で取得したので左上が原点
+        // Three.jsは左下が原点で、上下逆になっている
+        // 0.0 ~ 1.0 に正規化されたUV座標の場合は、1.0から引くことで上下を逆にする
+        uv.y = 1.0 - uv.y;
 
+        vec2 center = texture2D(textureVelocity, uv).rg;
+        vec2 left = texture2D(textureVelocity, uv - vec2(xPx, 0.0)).rg;    // Uを一つ左に移動
+        vec2 bottom = texture2D(textureVelocity, uv + vec2(0.0, yPx)).rg;  // Vを大きくすると下に移動する
+        vec2 right = texture2D(textureVelocity, uv + vec2(xPx, 0.0)).rg;   // Uを一つ右に移動
+        vec2 top = texture2D(textureVelocity, uv - vec2(0.0, yPx)).rg;     // Vを小さくすると上に移動する
+
+        // 上下左右の平均を取って返す
         vec2 avg = (center + left + top + right + bottom) * 0.2;
 
         return avg;
@@ -495,11 +504,11 @@ export class Main {
         // 現在のスクリーン上のXY座標を取得
         vec2 position = texturePositionValue.xy;
 
-        // 現在のXY座標を元に速度用テクスチャにおけるUV座標を取得
+        // 現在のスクリーン上のXY座標を元に、速度用テクスチャにおけるUV座標を計算する
         // X座標の範囲は-width/2 ~ width/2 なので、右にwidth/2加算する
         // Y座標も同様
-        float velocityU = (position.x + ${this.params.width}.0 / 2.0) / ${this.params.width}.0;
-        float velocityV = (position.y + ${this.params.height}.0 / 2.0) / ${this.params.height}.0;
+        float velocityU = (position.x + ${this.params.width}.0 / 2.0) / (${this.params.width}.0 - 1.0);
+        float velocityV = (position.y + ${this.params.height}.0 / 2.0) / (${this.params.height}.0 - 1.0);
         vec2 velocityUv = vec2(velocityU, velocityV);
 
         // 現在位置に対応する速度をテクスチャから取得
@@ -530,10 +539,11 @@ export class Main {
       initialPositionTexture  // 最初に作ったテクスチャを渡す
     );
 
-    // addVariable()の戻り値は getCurrentRenderTarget() でテクスチャを取り出すのに必要なのでインスタンス変数に保存しておく
+    // addVariable()の戻り値は getCurrentRenderTarget() でテクスチャを取り出すときに必要
+    // initParticles()の中で使うので保存しておく
     this.computationParams.positionVariable = positionVariable;
 
-    // uniformを登録
+    // フラグメントシェーダーに渡すuniformを設定する
     positionVariable.material.uniforms = {
       textureVelocity: { value: this.velocityImageParams.textureVelocity },
       particleSpeed: { value: this.params.particleSpeed },
@@ -561,27 +571,31 @@ export class Main {
 
 
   initBackground = () => {
+    // 平面のジオメトリを作成
     const geometry = new THREE.PlaneGeometry(this.params.width, this.params.height);
 
+    // ダウンロードしておいたImage()オブジェクトを使ってテクスチャを作成
     const texture = new THREE.Texture(this.params.velocityImage);
     texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
     texture.needsUpdate = true;
 
+    // マテリアルを作成
     const material = new THREE.MeshBasicMaterial({
       map: texture,
-      transparent: true,
-      side: THREE.DoubleSide,
     });
 
+    // メッシュ化して
     const mesh = new THREE.Mesh(geometry, material);
     // mesh.rotation.x = - Math.PI / 2;
     // mesh.position.x = this.params.width / 2;
     // mesh.position.y = -this.params.height / 2;
     // mesh.scale.set(this.params.width, this.params.height, 1);
 
+    // シーンに追加
     this.scene.add(mesh);
   }
+
 
 
   initParticles = () => {
@@ -589,17 +603,16 @@ export class Main {
     // パーティクルの数
     const numParticles = this.params.numParticles;
 
-    // パーティクルの位置を格納する配列を初期化
-    // positionアトリビュートに設定する
+    // パーティクルの位置を格納する配列を初期化してpositionアトリビュートに設定する
     const positions = new Float32Array(numParticles * 3);
 
     // パーティクルの位置は原点に設定(フレームごとにシェーダーで更新するので適当でよい)
     for (let i = 0; i < numParticles; i++) {
       // i番目のパーティクルに関して、位置情報を設定
       const index = i * 3;
-      positions[index + 0] = 0.0;
-      positions[index + 1] = 0.0;
-      positions[index + 2] = 0.0;
+      positions[index + 0] = 0.0;  // X座標 0.0は画像の中央
+      positions[index + 1] = 0.0;  // Y座標 0.0は画像の中央
+      positions[index + 2] = 0.0;  // Z座標（未使用）
     }
 
     // アトリビュート uv を設定するための配列を初期化
@@ -625,38 +638,38 @@ export class Main {
       uvs[index + 1] = 0.0;
     }
 
-    // ジオメトリを作成
+    // バッファジオメトリを作成
     const geometry = new THREE.BufferGeometry();
 
-    // ジオメトリにpositionアトリビュートを設定する
+    // バッファジオメトリにpositionアトリビュートを設定する
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
 
-    // ジオメトリにuvアトリビュートを設定する
+    // バッファジオメトリにuvアトリビュートを設定する
     geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2))
 
-    // シェーダーマテリアルに渡すuniformsを設定
-    // compute()するたびにテクスチャは更新される
-    this.uniforms.texturePosition.value = this.computationParams.computationRenderer.getCurrentRenderTarget(this.computationParams.positionVariable).texture;
+    // シェーダーマテリアルに渡すuniformsを設定する
+    // compute()するたびにテクスチャの中身は更新される
+
+    // 保存しておいたGPUComputationRendererのインスタンスを取得
+    const computationRenderer = this.computationParams.computationRenderer;
+    const positionVariable = this.computationParams.positionVariable;
+    this.uniforms.texturePosition.value = computationRenderer.getCurrentRenderTarget(positionVariable).texture;
 
     // シェーダーマテリアルを作成
     const material = new THREE.ShaderMaterial({
       transparent: true,
-      depthWrite: false,
-
       uniforms: this.uniforms,
 
-      // バーテックステクスチャはUV座標をフラグメントシェーダーに渡すだけ
       vertexShader: /*glsl*/`
 
-        // 位置情報が書き込まれているテクスチャtexturePositionはuniformで渡す必要がある
-        // フレームごとにcompute()して書き換わるので、その都度uniformも更新する
+        // 位置情報が書き込まれているテクスチャ texturePosition はuniformで渡される
         uniform sampler2D texturePosition;
 
         void main() {
           // 位置をテクスチャから取得する
           vec2 pos = texture2D(texturePosition, uv).xy;
 
-          // 取り出した位置を加算して出力
+          // 取り出した位置を加算してgl_Positionに保存
           gl_Position =  projectionMatrix * modelViewMatrix * vec4(position + vec3(pos, 0.0), 1.0);
 
           gl_PointSize = 3.0;
@@ -664,6 +677,7 @@ export class Main {
       `,
 
       fragmentShader: /*glsl*/`
+        // とりあえず緑色で表示
         void main() {
           gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
         }
@@ -678,6 +692,8 @@ export class Main {
   }
 
   updateParticles = () => {
+    // パーティクルの位置を更新するためにGPUComputationRendererを使って計算する
+    // 計算結果はuniformsで渡したテクスチャの中に保存される（テクスチャのインスタンスは変わらない）
     this.computationParams.computationRenderer.compute();
   }
 
