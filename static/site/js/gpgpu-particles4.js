@@ -8,6 +8,10 @@ import Stats from "three/libs/stats.module.js";
 import { GPUComputationRenderer } from "three/libs/misc/GPUComputationRenderer.js";
 
 
+// やりたいことはこれだけど、ソースコードを読んでも難しすぎて分からないので、簡単なやり方で実装する
+// https://qiita.com/Kanahiro/items/8927619c64831972c1d2
+
+
 export class Main {
 
   container;
@@ -32,8 +36,8 @@ export class Main {
     height: 0,     // アスペクト比を維持して元画像をリサイズして自動調整する
 
     particleSpeed: 20.0,  // パーティクルの移動速度、経験則的に調整する
-    numParticles: 1000,   // 描画するパーティクルの数
-    dropThreshold: 60,  // 一定期間でパーティクルをリセットするための閾値
+    numParticles: 2000,   // 描画するパーティクルの数
+    dropThreshold: 100,  // 一定期間でパーティクルをリセットするための閾値
   }
 
 
@@ -175,8 +179,15 @@ export class Main {
 
     // 位置と色の情報を取得する（アルファ値は使わないけど、ついでに取得する）
     const positions = [];
-    const colors = [];
+    let colors = [];
     const alphas = [];
+
+    // ここでひと手間必要
+    // Y軸の向きが逆転しているので、反転が必要
+
+    // +---->x
+    // |
+    // y
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -195,10 +206,12 @@ export class Main {
         const pZ = 0;                  // 2DなのでZは0
 
         positions.push(pX, pY, pZ);
-        colors.push(r, g, b);
+        colors.push([r, g, b]);
         alphas.push(a);
       }
     }
+    colors.reverse();
+    colors = colors.flat();
 
     // 画像から取り出した情報を保存しておく
     this.velocityImageParams.positions = positions;
@@ -482,9 +495,9 @@ export class Main {
         // 現在のスクリーン上のXY座標を取得
         vec2 position = texturePositionValue.xy;
 
-        // 現在のXY座標を元に速度用テクスチャのUV座標を取得
-        // X座標の範囲は-width/2 ~ width/2 なので、右にwidth/2加算して0～widthに正規化する
-        // Y座標も同様に正規化する
+        // 現在のXY座標を元に速度用テクスチャにおけるUV座標を取得
+        // X座標の範囲は-width/2 ~ width/2 なので、右にwidth/2加算する
+        // Y座標も同様
         float velocityU = (position.x + ${this.params.width}.0 / 2.0) / ${this.params.width}.0;
         float velocityV = (position.y + ${this.params.height}.0 / 2.0) / ${this.params.height}.0;
         vec2 velocityUv = vec2(velocityU, velocityV);
