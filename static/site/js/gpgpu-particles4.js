@@ -28,7 +28,7 @@ export class Main {
     velocityImagePath: './static/site/img/wind2.png',  // 速度の元になる画像のパス
     velocityImage: null,  // 画像をダウンロードしたImage()オブジェクト
 
-    width: 640,    // 描画する幅
+    width: 1024,    // 描画する幅
     height: 0,     // アスペクト比を維持して元画像をリサイズして自動調整する
 
     particleSpeed: 20.0,  // パーティクルの移動速度、経験則的に調整する
