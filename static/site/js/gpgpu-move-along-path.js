@@ -278,7 +278,9 @@ export class Main {
     // 変数に紐づけるフラグメントシェーダー
     // 今回は一度位置情報を決めたら変更しないので、空のシェーダーを作成
     const positionShader = /* glsl */`
-      void main() { }
+      void main() {
+        gl_FragColor = gl_FragColor;
+      }
     `;
 
     //
@@ -299,9 +301,6 @@ export class Main {
     // uniformを登録する場合はここで設定する
     // positionVariable.material.uniforms = {};
 
-
-    // console.log(positionVariable);
-
     // 戻り値は getCurrentRenderTarget() でテクスチャを取り出すのに必要なので、
     // 通常の使い方であれば外から参照できる場所に保存する必要がある
     // 今回は一度テクスチャを作ったら更新しないので、特に保存する必要はない
@@ -312,9 +311,8 @@ export class Main {
     //
 
     // 追加した変数の依存関係を設定する
-
-    // シェーダーの中で使うのはtexturePositionだけなので、このように設定すればよい
-    computationRenderer.setVariableDependencies(positionVariable, [positionVariable]);
+    // シェーダーはテクスチャを参照しないので空の配列を渡せばよい
+    computationRenderer.setVariableDependencies(positionVariable, []);
 
     //
     // computationRenderer.init();
