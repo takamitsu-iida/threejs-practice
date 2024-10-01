@@ -35,11 +35,14 @@ export class Main {
   }
 
   params = {
-    velocityImagePath: './static/site/img/wind.png',  // 速度の元になる画像のパス
-    velocityImage: null,  // 画像をダウンロードしたImage()オブジェクト
+    // 速度の元になる画像のパス
+    velocityImagePath: './static/site/img/wind.png',
 
-    width: 1024,    // 描画する幅
-    height: 0,      // 高さはアスペクト比を維持して元画像をリサイズするので自動調整
+    // 画面に描画する幅
+    viewWidth: 1024,
+
+    // 高さは元画像のアスペクト比を維持して計算する
+    viewHeight: 0,
 
     particleSpeed: 3.0,  // パーティクルの移動速度、この数字は経験則的に調整する
     numParticles: 5000,   // 描画するパーティクルの数
@@ -47,19 +50,25 @@ export class Main {
   }
 
   velocityImageParams = {
+    // ダウンロードしたImage()オブジェクト
+    velocityImage: null,
+
     // params.velocityImagePath で指定した画像ファイルを解析した結果をこれら配列に保存する
     positions: [],
     colors: [],
     alphas: [],
 
+    // 画像の幅と高さはロードしてから調べる
+    imageWidth: 0,
+    imageHeight: 0,
+
     // colorsを元にしてGPUComputationRendererでテクスチャに変換したものを保存しておく
     textureVelocity: null,
   };
 
-  computationParams = {
-    computationRenderer: null,
-    positionVariable: null,
-  }
+  // GPUComputeRendererのインスタンス
+  // フレーム更新ごとにcompute()する
+  computationRenderer;
 
   // パーティクル用のシェーダーマテリアルに渡すuniforms
   uniforms = {
@@ -86,7 +95,7 @@ export class Main {
 
     // loadImage()は非同期関数なので戻り値はpromise
     // そのpromiseをawaitして処理完了を待つ
-    await this.loadImage(this.params.velocityImagePath, this.params.width);
+    await this.loadImage();
 
     // 変換後の画像情報を確認
     // console.log(this.imageParams);
@@ -135,22 +144,25 @@ export class Main {
       img.onload = () => { resolve(img); };
     });
 
-    // Image()オブジェクトを保存しておく（後ほどTHREE.jsのテクスチャに変換するため）
-    this.params.velocityImage = image;
+    // Image()オブジェクトを保存しておく（後ほどTHREE.jsのテクスチャに変換する）
+    this.velocityImageParams.velocityImage = image;
 
     // ダウンロードした画像の幅と高さを取得
     const imageWidth = image.width;
     const imageHeight = image.height;
-    // console.log(imageWidth, imageHeight);
 
-    // リサイズ後の幅を指定
-    const width = this.params.width;
+    // 画像の大きさを保存しておく
+    this.velocityImageParams.imageWidth = imageWidth;
+    this.velocityImageParams.imageHeight = imageHeight;
 
-    // アスペクト比を維持してリサイズするために高さを計算する
+    // 画面に表示する幅をもとに、
+    const width = this.params.viewWidth;
+
+    // アスペクト比を維持して高さを計算する
     const height = Math.floor(imageHeight * (width / imageWidth));
 
     // この高さの情報は後で使うので保存しておく
-    this.params.height = height;
+    this.params.viewHeight = height;
 
     // canvasを取得
     const canvas = document.createElement("canvas");
@@ -165,26 +177,20 @@ export class Main {
     // 画像をcanvasに描画する
     // 引数が多いのでマニュアルを参照
     // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/drawImage
+    //
+    // 描画時にリサイズすることもできるが、今回はリサイズせずに元画像の大きさで描画する
     ctx.drawImage(
       image,        // Image()オブジェクト
       0, 0,         // 元画像の描画開始位置、元画像に余白を入れる場合はここを変更
       imageWidth,   // 元画像の幅
       imageHeight,  // 元画像の高さ
-      0, 0,         // 描画先キャンバスの左上座標
-      width,        // 描画する幅
-      height        // 描画する高さ
     );
 
-    // リサイズ後のイメージをDOMに追加して目視で確認
+    // イメージをDOMに追加して目視で確認
     // document.body.appendChild(canvas);
 
-    // 描画した画像をデータとして取得
-    const data = ctx.getImageData(0, 0, width, height).data;
-
-    // 位置と色の情報を取得する
-    const positions = [];  // 使わない
-    const colors = [];     // 使う
-    const alphas = [];     // 使わない
+    // 描画した画像のデータを取得
+    const data = ctx.getImageData(0, 0, imageWidth, imageHeight).data;
 
     // Image()オブジェクトで取得した画像はY軸の向きが逆転している
     //
@@ -192,28 +198,42 @@ export class Main {
     // |
     // y
 
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        // RGBAが格納されているのでdataから4つずつ取り出す
-        const index = (y * width + x) * 4;
-
-        const r = data[index + 0] / 255;  // 0 ~ 1に正規化
-        const g = data[index + 1] / 255;  // 0 ~ 1に正規化
-        const b = data[index + 2] / 255;  // 0 ~ 1に正規化
-        const a = data[index + 3] / 255;  // 0 ~ 1に正規化
-
-        const pX = x - width / 2;      // 画像の中心を原点にする
-        const pY = -(y - height / 2);  // 画像の中心を原点にして、上下方向を反転
-        const pZ = 0;                  // 2DなのでZは0
-
-        positions.push(pX, pY, pZ);
-        colors.push(r, g, b);
-        alphas.push(a);
-      }
+    // dataを行ごとに分割する
+    const rows = [];
+    for (let y = 0; y < imageHeight; y++) {
+      const index = y * imageWidth * 4;
+      rows.push(data.slice(index, index + imageWidth * 4));
     }
 
-    // 位置と色を組み合わせて使うなら問題ないが、今回は色だけを使うので、
-    // 配列の順番が逆になっていることに注意
+    // 行を逆順にして、この向きに変換する
+    //
+    // Y
+    // |
+    // +---->x
+
+    rows.reverse();
+
+    // 位置と色の情報を取得する
+    const positions = [];  // 使わない
+    const colors = [];     // 使う
+    const alphas = [];     // 使わない
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      for (let j = 0; j < row.length; j += 4) {
+        const r = row[j + 0] / 255;  // 0 ~ 1に正規化
+        const g = row[j + 1] / 255;  // 0 ~ 1に正規化
+        const b = row[j + 2] / 255;  // 0 ~ 1に正規化
+        const a = row[j + 3] / 255;  // 0 ~ 1に正規化
+        colors.push(r, g, b);
+        alphas.push(a);
+
+        const pX = j - imageWidth / 2;   // 画像の中心を原点にする
+        const pY = i - imageHeight / 2;  // 画像の中心を原点にする
+        const pZ = 0;                    // 2DなのでZは0
+        positions.push(pX, pY, pZ);
+      }
+    }
 
     // 画像から取り出した情報を保存しておく
     this.velocityImageParams.positions = positions;
@@ -222,16 +242,17 @@ export class Main {
   };
 
 
+
   initThreejs = () => {
     // シーン
     this.scene = new THREE.Scene();
 
     // カメラ
     this.camera = new THREE.OrthographicCamera(
-      -this.params.width / 2,   // left
-      this.params.width / 2,    // right
-      this.params.height / 2,   // top
-      -this.params.height / 2,  // bottom
+      -this.params.viewWidth / 2,   // left
+      this.params.viewWidth / 2,    // right
+      this.params.viewHeight / 2,   // top
+      -this.params.viewHeight / 2,  // bottom
       0,                        // near
       10                        // far
     );
@@ -245,7 +266,7 @@ export class Main {
     // this.renderer.setClearColor(0xffffff, 1);  // 背景色
 
     // 通常はコンテナにサイズを合わせるが、ここでは固定にする
-    this.renderer.setSize(this.params.width, this.params.height);
+    this.renderer.setSize(this.params.viewWidth, this.params.viewHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.getElementById("threejsContainer").appendChild(this.renderer.domElement);
   }
@@ -291,38 +312,43 @@ export class Main {
 
 
   createVelocityTexture = () => {
-    //
-    // GPUComputationRendererを初期化
-    //
+    // GPUComputationRendererを使って速度計算用のテクスチャを作成する
+    // テクスチャの中に速度情報を埋め込めればやり方は何でもよい
+
+    // 1. GPUComputationRendererを初期化
+
     const computationRenderer = new GPUComputationRenderer(
-      this.params.width,   // width
-      this.params.height,  // height
-      this.renderer,       // renderer
+      this.velocityImageParams.imageWidth,   // width
+      this.velocityImageParams.imageHeight,  // height
+      this.renderer,                         // renderer
     );
 
-    //
-    // テクスチャを作成
-    //
+    // 2. テクスチャを作成
+
     const initialVelocityTexture = computationRenderer.createTexture();
 
-    // 想定しているテクスチャの構造
+    // 想定しているテクスチャの構造（画像データと同じ構造）
     //
-    //        0  1  2  3  4  5  ... width
-    //       +--+--+--+--+--+--+--+
-    //     0 |  |  |  |  |  |  |  |
-    //       +--+--+--+--+--+--+--+
-    //     1 |  |  |  |  |  |  |  |
+    // height
     //       +--+--+--+--+--+--+--+
     //   ... |  |  |  |  |  |  |  |
     //       +--+--+--+--+--+--+--+
-    // height
+    //     1 |  |  |  |  |  |  |  |
+    //       +--+--+--+--+--+--+--+
+    //     0 |  |  |  |  |  |  |  |
+    //       +--+--+--+--+--+--+--+
+    //        0  1  2  3  4  5  ... width
+    //
 
-    // このテクスチャに色情報を埋め込む
+    // 3. 作成したテクスチャに色情報を埋め込む
+
     {
-      const width = this.params.width;
-      const height = this.params.height;
-
       const velocityArray = initialVelocityTexture.image.data;
+
+      const width = this.velocityImageParams.imageWidth;
+      const height = this.velocityImageParams.imageHeight;
+
+      const colors = this.velocityImageParams.colors;
 
       for (let y = 0; y < height; y++) {
         // Y座標がy番目のピクセルに関して、
@@ -335,46 +361,42 @@ export class Main {
           // テクスチャの配列はvec4を格納するので4倍する
           const index = (y * width + x) * 4;
 
-          velocityArray[index + 0] = this.velocityImageParams.colors[velocityIndex + 0] - 0.5;  // R
-          velocityArray[index + 1] = this.velocityImageParams.colors[velocityIndex + 1] - 0.5;  // G
-          velocityArray[index + 2] = this.velocityImageParams.colors[velocityIndex + 2] - 0.5;  // B
-          velocityArray[index + 3] = 0.0;  // 未使用
+          velocityArray[index + 0] = colors[velocityIndex + 0] - 0.5;  // R
+          velocityArray[index + 1] = colors[velocityIndex + 1] - 0.5;  // G
+          velocityArray[index + 2] = colors[velocityIndex + 2] - 0.5;  // B
+          velocityArray[index + 3] = 0.0;                              // 未使用
         }
       }
     }
 
-    // 変数に紐づけるフラグメントシェーダー
+    // 4. 変数に紐づけるフラグメントシェーダーを作成する
+
+    // compute()しないので、何もしないシェーダーでよい
     const textureVelocityShader = /* glsl */`
       void main() {
         gl_FragColor = gl_FragColor;
       }
     `;
 
-    //
-    // computationRenderer.addVariable();
-    //
+    // 5. computationRenderer.addVariable();
+
     const velocityVariable = computationRenderer.addVariable(
       "textureVelocity",      // シェーダーの中で参照する名前
       textureVelocityShader,  // シェーダーコード
       initialVelocityTexture  // 最初に作ったテクスチャを渡す
     );
 
-    //
-    // computationRenderer.setVariableDependencies();
-    //
+    // 6. computationRenderer.setVariableDependencies();
+
+    // フラグメントシェーダーを使わないので空の配列でもよい
     computationRenderer.setVariableDependencies(velocityVariable, [velocityVariable]);
 
-    //
-    // computationRenderer.init();
-    //
-    const error = computationRenderer.init();
-    if (error !== null) {
-      console.error(error);
-      new Error(error);
-    }
+    // 7. computationRenderer.init();
 
-    // テクスチャを取り出して保存しておく
-    // これは一度取り出したら変更されることはない
+    computationRenderer.init();
+
+    // 8. テクスチャを取り出して保存しておく
+
     this.velocityImageParams.textureVelocity = computationRenderer.getCurrentRenderTarget(velocityVariable).texture;
   }
 
@@ -391,8 +413,8 @@ export class Main {
       this.renderer,             // renderer
     );
 
-    // フレームごとにcompute()を実行する必要があるので、外部からアクセスできるようにしておく
-    this.computationParams.computationRenderer = computationRenderer;
+    // フレームごとにcompute()を実行する必要があるので、インスタンス変数に保存しておく
+    this.computationRenderer = computationRenderer;
 
     //
     // computationRenderer.createTexture();
@@ -410,8 +432,8 @@ export class Main {
 
     // テクスチャに座標情報を埋め込む
     {
-      const w = this.params.width;
-      const h = this.params.height;
+      const width = this.params.viewWidth;
+      const height = this.params.viewHeight;
 
       const positionArray = initialPositionTexture.image.data;
 
@@ -421,8 +443,8 @@ export class Main {
         // 配列のインデックスはvec4を格納するので4倍する
         const index = i * 4;
 
-        positionArray[index + 0] = Math.random() * w - w / 2;                  // X座標
-        positionArray[index + 1] = Math.random() * h - h / 2;                  // Y座標
+        positionArray[index + 0] = Math.random() * width - width / 2;          // X座標
+        positionArray[index + 1] = Math.random() * height - height / 2;        // Y座標
         positionArray[index + 2] = Math.random() * this.params.dropThreshold;  // age
         positionArray[index + 3] = 0.0;                                        // absVelocity
       }
@@ -430,6 +452,7 @@ export class Main {
 
     // 変数に紐づけるフラグメントシェーダー
     // addVariable() で登録する texturePosition はuniformで渡さなくても参照できる
+    // 別途作成したtextureVelocityはuniformで渡す必要がある
     const texturePositionShader = /* glsl */`
 
       // 速度情報が書き込まれているテクスチャをuniformで受け取る
@@ -441,28 +464,36 @@ export class Main {
       // パーティクルの生存期間をuniformで受け取る
       uniform float dropThreshold;
 
+      // https://blog.mapbox.com/how-i-built-a-wind-map-with-webgl-b63022b5537f
+      // https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
       float rand(vec2 p) {
-        return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453);
+        return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
       }
 
-      vec2 getVelocityFromTexture(vec2 uv) {
-        float xPx = 1.0 / ${this.params.width}.0;
-        float yPx = 1.0 / ${this.params.height}.0;
+      vec2 getVelocityFromTexture(vec2 position) {
 
-        // ★重要
-        // 速度を記録した画像はImage()で取得したので左上が原点
-        // Three.jsは左下が原点で、上下逆になっている
-        // 0.0 ~ 1.0 に正規化されたUV座標の場合は、1.0から引くことで上下を逆にする
-        uv.y = 1.0 - uv.y;
+        // 現在のスクリーン上のXY座標を元に、速度用テクスチャにおけるUV座標を計算する
+        // X座標の範囲は-width/2 ~ width/2 なので、右にwidth/2加算する
+        // Y座標も同様
+        float u = (position.x + ${this.params.viewWidth}.0 / 2.0) / (${this.params.viewWidth}.0 - 1.0);
+        float v = (position.y + ${this.params.viewHeight}.0 / 2.0) / (${this.params.viewHeight}.0 - 1.0);
+        vec2 uv = vec2(u, v);
+
+        float xPx = 1.0 / ${this.params.viewWidth}.0;
+        float yPx = 1.0 / ${this.params.viewHeight}.0;
 
         vec2 center = texture2D(textureVelocity, uv).rg;
-        vec2 left = texture2D(textureVelocity, uv - vec2(xPx, 0.0)).rg;    // Uを一つ左に移動
-        vec2 bottom = texture2D(textureVelocity, uv + vec2(0.0, yPx)).rg;  // Vを大きくすると下に移動する
-        vec2 right = texture2D(textureVelocity, uv + vec2(xPx, 0.0)).rg;   // Uを一つ右に移動
-        vec2 top = texture2D(textureVelocity, uv - vec2(0.0, yPx)).rg;     // Vを小さくすると上に移動する
+        vec2 l = texture2D(textureVelocity, uv - vec2(xPx, 0.0)).rg;   // Uを一つ左に移動
+        vec2 r = texture2D(textureVelocity, uv + vec2(xPx, 0.0)).rg;   // Uを一つ右に移動
+        vec2 t = texture2D(textureVelocity, uv + vec2(0.0, yPx)).rg;   // Vを一つ上に移動
+        vec2 b = texture2D(textureVelocity, uv - vec2(0.0, yPx)).rg;   // Vを一つ下に移動
 
-        // 上下左右の平均を取って返す
-        vec2 avg = (center + left + top + right + bottom) * 0.2;
+        // 上下左右の平均を取る
+        vec2 avg = (center + l + t + r + b) / 5.0;
+
+        // 極付近のX方向はメルカトル図法の影響で速度が早いので、補正をかける
+        float distortion = cos(radians(v * 180.0 - 90.0));
+        avg.x = avg.x / distortion;
 
         return avg;
       }
@@ -486,8 +517,8 @@ export class Main {
         // ageがdropThresholdを超過していたらランダムな位置に移動
         if (age > dropThreshold) {
           newPosition = vec2(
-            rand(texturePositionValue.xy) * ${this.params.width}.0 - ${this.params.width}.0 / 2.0,
-            rand(texturePositionValue.yx) * ${this.params.height}.0 - ${this.params.height}.0 / 2.0
+            rand(texturePositionValue.xy) * ${this.params.viewWidth}.0 - ${this.params.viewWidth}.0 / 2.0,
+            rand(texturePositionValue.yx) * ${this.params.viewHeight}.0 - ${this.params.viewHeight}.0 / 2.0
           );
           gl_FragColor = vec4(newPosition, 0.0, 0.0);
           return;
@@ -498,29 +529,24 @@ export class Main {
         // 現在の速度の絶対値を取得
         float absVelocity = texturePositionValue.w;
 
+        // TODO: 速度に応じてageを進めるように変更する
+
         // ageを進める
         float newAge = age + rand(vec2(absVelocity, absVelocity));
 
         // 現在のスクリーン上のXY座標を取得
         vec2 position = texturePositionValue.xy;
 
-        // 現在のスクリーン上のXY座標を元に、速度用テクスチャにおけるUV座標を計算する
-        // X座標の範囲は-width/2 ~ width/2 なので、右にwidth/2加算する
-        // Y座標も同様
-        float velocityU = (position.x + ${this.params.width}.0 / 2.0) / (${this.params.width}.0 - 1.0);
-        float velocityV = (position.y + ${this.params.height}.0 / 2.0) / (${this.params.height}.0 - 1.0);
-        vec2 velocityUv = vec2(velocityU, velocityV);
-
         // 現在位置に対応する速度をテクスチャから取得
-        vec2 velocity = getVelocityFromTexture(velocityUv);
+        vec2 velocity = getVelocityFromTexture(position);
 
         // 新しい位置を計算
         newPosition = position + velocity * particleSpeed;
 
-        if (newPosition.x < -${this.params.width}.0 / 2.0) newPosition.x = ${this.params.width}.0 / 2.0;
-        if (newPosition.x > ${this.params.width}.0 / 2.0) newPosition.x = -${this.params.width}.0 / 2.0;
-        if (newPosition.y < -${this.params.height}.0 / 2.0) newPosition.y = ${this.params.height}.0 / 2.0;
-        if (newPosition.y > ${this.params.height}.0 / 2.0) newPosition.y = -${this.params.height}.0 / 2.0;
+        if (newPosition.x < -${this.params.viewWidth}.0 / 2.0) newPosition.x = ${this.params.viewWidth}.0 / 2.0;
+        if (newPosition.x > ${this.params.viewWidth}.0 / 2.0) newPosition.x = -${this.params.viewWidth}.0 / 2.0;
+        if (newPosition.y < -${this.params.viewHeight}.0 / 2.0) newPosition.y = ${this.params.viewHeight}.0 / 2.0;
+        if (newPosition.y > ${this.params.viewHeight}.0 / 2.0) newPosition.y = -${this.params.viewHeight}.0 / 2.0;
 
         gl_FragColor = vec4(newPosition, newAge, length(velocity));
       }
@@ -532,16 +558,12 @@ export class Main {
 
     // テクスチャと、それに対応するシェーダを指定して、変数 "texturePosition" を追加する
     // シェーダーの中で texture2D( texturePosition, uv ) のように参照できるようになる
-
+    // addVariable()の戻り値は getCurrentRenderTarget() でテクスチャを取り出すときに必要
     const positionVariable = computationRenderer.addVariable(
       "texturePosition",      // シェーダーの中で参照する名前
       texturePositionShader,  // シェーダーコード
       initialPositionTexture  // 最初に作ったテクスチャを渡す
     );
-
-    // addVariable()の戻り値は getCurrentRenderTarget() でテクスチャを取り出すときに必要
-    // initParticles()の中で使うので保存しておく
-    this.computationParams.positionVariable = positionVariable;
 
     // フラグメントシェーダーに渡すuniformを設定する
     positionVariable.material.uniforms = {
@@ -567,15 +589,19 @@ export class Main {
       new Error(error);
     }
 
+    // テクスチャオブジェクトを取得してuniformsに設定する
+    // compute()するたびにテクスチャのデータは更新される
+    this.uniforms.texturePosition.value = computationRenderer.getCurrentRenderTarget(positionVariable).texture;
+
   }
 
 
   initBackground = () => {
     // 平面のジオメトリを作成
-    const geometry = new THREE.PlaneGeometry(this.params.width, this.params.height);
+    const geometry = new THREE.PlaneGeometry(this.params.viewWidth, this.params.viewHeight);
 
     // ダウンロードしておいたImage()オブジェクトを使ってテクスチャを作成
-    const texture = new THREE.Texture(this.params.velocityImage);
+    const texture = new THREE.Texture(this.velocityImageParams.velocityImage);
     texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
     texture.needsUpdate = true;
@@ -585,8 +611,10 @@ export class Main {
       map: texture,
     });
 
-    // メッシュ化して
+    // メッシュ化
     const mesh = new THREE.Mesh(geometry, material);
+
+    // カメラがOrthographicCameraなので、平面の向きを調整しなくてよい
     // mesh.rotation.x = - Math.PI / 2;
     // mesh.position.x = this.params.width / 2;
     // mesh.position.y = -this.params.height / 2;
@@ -597,13 +625,12 @@ export class Main {
   }
 
 
-
   initParticles = () => {
 
     // パーティクルの数
     const numParticles = this.params.numParticles;
 
-    // パーティクルの位置を格納する配列を初期化してpositionアトリビュートに設定する
+    // positionアトリビュート用の配列
     const positions = new Float32Array(numParticles * 3);
 
     // パーティクルの位置は原点に設定(フレームごとにシェーダーで更新するので適当でよい)
@@ -629,6 +656,7 @@ export class Main {
     // U座標は、パーティクルの番号を 0.0 ~ 1.0 の範囲で正規化する
     // V座標は、常に0.0でよい
 
+    // uvアトリビュート用の配列
     const uvs = new Float32Array(numParticles * 2);
 
     for (let i = 0; i < numParticles; i++) {
@@ -646,14 +674,6 @@ export class Main {
 
     // バッファジオメトリにuvアトリビュートを設定する
     geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2))
-
-    // シェーダーマテリアルに渡すuniformsを設定する
-    // compute()するたびにテクスチャの中身は更新される
-
-    // 保存しておいたGPUComputationRendererのインスタンスを取得
-    const computationRenderer = this.computationParams.computationRenderer;
-    const positionVariable = this.computationParams.positionVariable;
-    this.uniforms.texturePosition.value = computationRenderer.getCurrentRenderTarget(positionVariable).texture;
 
     // シェーダーマテリアルを作成
     const material = new THREE.ShaderMaterial({
@@ -694,7 +714,7 @@ export class Main {
   updateParticles = () => {
     // パーティクルの位置を更新するためにGPUComputationRendererを使って計算する
     // 計算結果はuniformsで渡したテクスチャの中に保存される（テクスチャのインスタンスは変わらない）
-    this.computationParams.computationRenderer.compute();
+    this.computationRenderer.compute();
   }
 
 }
