@@ -44,8 +44,8 @@ export class Main {
     // 高さは元画像のアスペクト比を維持して計算する
     viewHeight: 0,
 
-    particleSpeed: 3.0,  // パーティクルの移動速度、この数字は経験則的に調整する
-    numParticles: 5000,   // 描画するパーティクルの数
+    particleSpeed: 3.0,   // パーティクルの移動速度、この数字は経験則的に調整する
+    numParticles: 10000,  // 描画するパーティクルの数
     dropThreshold: 100,   // 一定期間でパーティクルをリセットするための閾値
   }
 
@@ -253,8 +253,8 @@ export class Main {
       this.params.viewWidth / 2,    // right
       this.params.viewHeight / 2,   // top
       -this.params.viewHeight / 2,  // bottom
-      0,                        // near
-      10                        // far
+      0,                            // near
+      10                            // far
     );
 
     // カメラは(x, y)平面の原点に配置、z軸は手前に引く
@@ -263,7 +263,6 @@ export class Main {
     // レンダラ
     // alpha: true はデフォルトのapha値が0.0になる。falseは1.0
     this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    // this.renderer.setClearColor(0xffffff, 1);  // 背景色
 
     // 通常はコンテナにサイズを合わせるが、ここでは固定にする
     this.renderer.setSize(this.params.viewWidth, this.params.viewHeight);
@@ -589,7 +588,8 @@ export class Main {
       new Error(error);
     }
 
-    // テクスチャオブジェクトを取得してuniformsに設定する
+    // テクスチャオブジェクトを取得するして
+    // パーティクルを描画するシェーダーマテリアルのuniformsに設定する
     // compute()するたびにテクスチャのデータは更新される
     this.uniforms.texturePosition.value = computationRenderer.getCurrentRenderTarget(positionVariable).texture;
 
