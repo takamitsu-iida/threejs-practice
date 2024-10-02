@@ -44,9 +44,20 @@ export class Main {
     // 高さは元画像のアスペクト比を維持して計算する
     viewHeight: 0,
 
-    particleSpeed: 3.0,   // パーティクルの移動速度、この数字は経験則的に調整する
-    numParticles: 10000,  // 描画するパーティクルの数
-    dropThreshold: 100,   // 一定期間でパーティクルをリセットするための閾値
+    // 描画するパーティクルの数
+    // texImage2Dで作れる最大サイズは16384x16384なのに対して、
+    // この実装では numParticles x 1 のテクスチャを作るので、
+    // 上限は16384ということになる
+    // テクスチャの構造を変えればもっと大きな数にできる
+    numParticles: 16384,
+
+    // パーティクルの移動速度、この数字は経験則的に調整する
+    particleSpeed: 2.0,
+
+    // 確率でパーティクルをランダムな位置に飛ばす閾値
+    dropRate: 0.003,
+    dropRateBump: 0.01,
+
   }
 
   velocityImageParams = {
@@ -74,6 +85,9 @@ export class Main {
   uniforms = {
     // パーティクルの位置情報が入ったテクスチャをシェーダーに渡す
     texturePosition: { value: null },
+
+    // 色情報が入った16x16のテクスチャをシェーダーに渡す
+    u_color_ramp: { value: null },
   }
 
 
@@ -111,6 +125,9 @@ export class Main {
 
     // stats.jsを初期化
     this.initStatsjs();
+
+    // GPUComputationRendererを使ってパーティクルの色を決めるためのテクスチャを作成
+    this.createColorRampTexture();
 
     // GPUComputationRendererを使って速度計算用のテクスチャを作成
     this.createVelocityTexture();
@@ -310,9 +327,66 @@ export class Main {
   }
 
 
+  createColorRampArray() {
+    const colors = {
+      0.0: '#3288bd',
+      0.1: '#66c2a5',
+      0.2: '#abdda4',
+      0.3: '#e6f598',
+      0.4: '#fee08b',
+      0.5: '#fdae61',
+      0.6: '#f46d43',
+      1.0: '#d53e4f'
+    };
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // 256 x 1でグラデーションを作成
+    canvas.width = 256;
+    canvas.height = 1;
+
+    const gradient = ctx.createLinearGradient(0, 0, 256, 0);
+    for (const stop in colors) {
+      gradient.addColorStop(+stop, colors[stop]);
+    }
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 256, 1);
+
+    return new Uint8Array(ctx.getImageData(0, 0, 256, 1).data);
+  }
+
+
+  createColorRampTexture = () => {
+    // 256 x 1 のテクスチャを作成
+    const width = 256;
+
+    const computationRenderer = new GPUComputationRenderer(width, 1, this.renderer);
+    const initialTexture = computationRenderer.createTexture();
+
+    // colors は 256 x 4(RGBA) = 1024 のUint8Array
+    const colors = this.createColorRampArray();
+
+    for (let i = 0; i < width; i++) {
+      const index = i * 4;
+      initialTexture.image.data[index + 0] = colors[index + 0] / 255;  // R
+      initialTexture.image.data[index + 1] = colors[index + 1] / 255;  // G
+      initialTexture.image.data[index + 2] = colors[index + 2] / 255;  // B
+      initialTexture.image.data[index + 3] = colors[index + 3] / 255;  // A
+    }
+
+    const shader = '';  // compute()しないので空でよい
+    const variable = computationRenderer.addVariable("textureColorRamp",shader,initialTexture);
+    computationRenderer.setVariableDependencies(variable, [variable]);
+    computationRenderer.init();
+
+    // テクスチャを取り出してuniformsに保存
+    this.uniforms.u_color_ramp.value = computationRenderer.getCurrentRenderTarget(variable).texture;
+  }
+
+
   createVelocityTexture = () => {
-    // GPUComputationRendererを使って速度計算用のテクスチャを作成する
-    // テクスチャの中に速度情報を埋め込めればやり方は何でもよい
 
     // 1. GPUComputationRendererを初期化
 
@@ -324,7 +398,7 @@ export class Main {
 
     // 2. テクスチャを作成
 
-    const initialVelocityTexture = computationRenderer.createTexture();
+    const initialTexture = computationRenderer.createTexture();
 
     // 想定しているテクスチャの構造（画像データと同じ構造）
     //
@@ -340,10 +414,7 @@ export class Main {
     //
 
     // 3. 作成したテクスチャに色情報を埋め込む
-
     {
-      const velocityArray = initialVelocityTexture.image.data;
-
       const width = this.velocityImageParams.imageWidth;
       const height = this.velocityImageParams.imageHeight;
 
@@ -360,42 +431,31 @@ export class Main {
           // テクスチャの配列はvec4を格納するので4倍する
           const index = (y * width + x) * 4;
 
-          velocityArray[index + 0] = colors[velocityIndex + 0] - 0.5;  // R
-          velocityArray[index + 1] = colors[velocityIndex + 1] - 0.5;  // G
-          velocityArray[index + 2] = colors[velocityIndex + 2] - 0.5;  // B
-          velocityArray[index + 3] = 0.0;                              // 未使用
+          initialTexture.image.data[index + 0] = colors[velocityIndex + 0] - 0.5;  // R
+          initialTexture.image.data[index + 1] = colors[velocityIndex + 1] - 0.5;  // G
+          initialTexture.image.data[index + 2] = colors[velocityIndex + 2] - 0.5;  // B
+          initialTexture.image.data[index + 3] = 0.0;                              // 未使用
         }
       }
     }
 
     // 4. 変数に紐づけるフラグメントシェーダーを作成する
-
-    // compute()しないので、何もしないシェーダーでよい
-    const textureVelocityShader = /* glsl */`
-      void main() {
-        gl_FragColor = gl_FragColor;
-      }
-    `;
+    const shader = '';  // compute()しないので空でよい
 
     // 5. computationRenderer.addVariable();
-
     const velocityVariable = computationRenderer.addVariable(
-      "textureVelocity",      // シェーダーの中で参照する名前
-      textureVelocityShader,  // シェーダーコード
-      initialVelocityTexture  // 最初に作ったテクスチャを渡す
+      "textureVelocity",  // シェーダーの中で参照する名前（未使用なので何でも良い）
+      shader,             // シェーダーコード
+      initialTexture      // 最初に作ったテクスチャを渡す
     );
 
     // 6. computationRenderer.setVariableDependencies();
-
-    // フラグメントシェーダーを使わないので空の配列でもよい
     computationRenderer.setVariableDependencies(velocityVariable, [velocityVariable]);
 
     // 7. computationRenderer.init();
-
     computationRenderer.init();
 
     // 8. テクスチャを取り出して保存しておく
-
     this.velocityImageParams.textureVelocity = computationRenderer.getCurrentRenderTarget(velocityVariable).texture;
   }
 
@@ -412,6 +472,10 @@ export class Main {
       this.renderer,             // renderer
     );
 
+    // ここでは簡単のため(numParticles, 1)のテクスチャを作成しているが、
+    // テクスチャの幅の上限は16384なので、
+    // より多くのパーティクルを扱いたい場合はテクスチャの構造を変える必要がある
+
     // フレームごとにcompute()を実行する必要があるので、インスタンス変数に保存しておく
     this.computationRenderer = computationRenderer;
 
@@ -426,10 +490,10 @@ export class Main {
     //  |  |  |  |  |  |  |  |
     //  +--+--+--+--+--+--+--+
 
-    // パーティクルの位置情報を格納するテクスチャを作成して、
+    // パーティクルの位置と速度の情報を格納するテクスチャを作成して、
     const initialPositionTexture = computationRenderer.createTexture();
 
-    // テクスチャに座標情報を埋め込む
+    // テクスチャに情報を埋め込む、
     {
       const width = this.params.viewWidth;
       const height = this.params.viewHeight;
@@ -442,27 +506,31 @@ export class Main {
         // 配列のインデックスはvec4を格納するので4倍する
         const index = i * 4;
 
-        positionArray[index + 0] = Math.random() * width - width / 2;          // X座標
-        positionArray[index + 1] = Math.random() * height - height / 2;        // Y座標
-        positionArray[index + 2] = Math.random() * this.params.dropThreshold;  // age
-        positionArray[index + 3] = 0.0;                                        // absVelocity
+        // 初期状態はランダムな場所に配置する
+        positionArray[index + 0] = Math.random() * width - width / 2;     // X座標
+        positionArray[index + 1] = Math.random() * height - height / 2;   // Y座標
+        positionArray[index + 2] = 0.0                                    // 速度X
+        positionArray[index + 3] = 0.0;                                   // 速度Y
       }
     }
 
     // 変数に紐づけるフラグメントシェーダー
-    // addVariable() で登録する texturePosition はuniformで渡さなくても参照できる
-    // 別途作成したtextureVelocityはuniformで渡す必要がある
     const texturePositionShader = /* glsl */`
 
       // 速度情報が書き込まれているテクスチャをuniformで受け取る
-      uniform sampler2D textureVelocity;
+      uniform sampler2D u_texture_velocity;
 
       // パーティクルの移動速度をuniformで受け取る
-      uniform float particleSpeed;
+      uniform float u_particle_speed;
 
-      // パーティクルの生存期間をuniformで受け取る
-      uniform float dropThreshold;
+      // パーティクルをランダムな位置に飛ばす確率をuniformで受け取る
+      uniform float u_drop_rate;
+      uniform float u_drop_rate_bump;
 
+      // ランダムのシード（JavaScriptでMath.random()を実行して渡す）
+      uniform float u_rand_seed;
+
+      // 疑似ランダム関数
       // https://blog.mapbox.com/how-i-built-a-wind-map-with-webgl-b63022b5537f
       // https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
       float rand(vec2 p) {
@@ -471,30 +539,37 @@ export class Main {
 
       vec2 getVelocityFromTexture(vec2 position) {
 
-        // 現在のスクリーン上のXY座標を元に、速度用テクスチャにおけるUV座標を計算する
+        // スクリーン上のXY座標を元に、速度用テクスチャにおけるUV座標を計算する
         // X座標の範囲は-width/2 ~ width/2 なので、右にwidth/2加算する
         // Y座標も同様
         float u = (position.x + ${this.params.viewWidth}.0 / 2.0) / (${this.params.viewWidth}.0 - 1.0);
         float v = (position.y + ${this.params.viewHeight}.0 / 2.0) / (${this.params.viewHeight}.0 - 1.0);
         vec2 uv = vec2(u, v);
 
-        float xPx = 1.0 / ${this.params.viewWidth}.0;
-        float yPx = 1.0 / ${this.params.viewHeight}.0;
+        // このピクセルの速度を取得 RがX方向、GがY方向
+        vec2 center = texture2D(u_texture_velocity, uv).rg;
 
-        vec2 center = texture2D(textureVelocity, uv).rg;
-        vec2 l = texture2D(textureVelocity, uv - vec2(xPx, 0.0)).rg;   // Uを一つ左に移動
-        vec2 r = texture2D(textureVelocity, uv + vec2(xPx, 0.0)).rg;   // Uを一つ右に移動
-        vec2 t = texture2D(textureVelocity, uv + vec2(0.0, yPx)).rg;   // Vを一つ上に移動
-        vec2 b = texture2D(textureVelocity, uv - vec2(0.0, yPx)).rg;   // Vを一つ下に移動
+        // 速度用テクスチャは画素数が粗いので近傍の速度を取得して補間する
+        float xGrid = 1.0 / ${this.params.viewWidth}.0;
+        float yGrid = 1.0 / ${this.params.viewHeight}.0;
 
-        // 上下左右の平均を取る
-        vec2 avg = (center + l + t + r + b) / 5.0;
+        vec2 l = texture2D(u_texture_velocity, uv - vec2(xGrid, 0.0)).rg;   // Uを一つ左に移動
+        vec2 r = texture2D(u_texture_velocity, uv + vec2(xGrid, 0.0)).rg;   // Uを一つ右に移動
+        vec2 t = texture2D(u_texture_velocity, uv + vec2(0.0, yGrid)).rg;   // Vを一つ上に移動
+        vec2 b = texture2D(u_texture_velocity, uv - vec2(0.0, yGrid)).rg;   // Vを一つ下に移動
 
-        // 極付近のX方向はメルカトル図法の影響で速度が早いので、補正をかける
+        // mix()を使って補間する、もしくは
+        // vec2 f = fract(uv * vec2(${this.params.viewWidth}.0, ${this.params.viewHeight}.0));
+        // vec2 vel = mix(mix(l, r, f.x), mix(t, b, f.x), f.y);
+
+        // 単純に上下左右の平均を取る
+        vec2 vel = (center + l + t + r + b) / 5.0;
+
+        // 極付近のX方向はメルカトル図法の影響で速度が早いはずなので、補正をかける
         float distortion = cos(radians(v * 180.0 - 90.0));
-        avg.x = avg.x / distortion;
+        vel.x = (vel.x / distortion);
 
-        return avg;
+        return vel;
       }
 
 
@@ -503,51 +578,44 @@ export class Main {
         // UV座標を取得
         vec2 uv = gl_FragCoord.xy / resolution.xy;
 
-        // 関数texture2D(sampler2D, vec2)はUV座標vec2を元に情報を取り出す
-        // 取り出したvec4の使い方は(x, y, age, absVelocity)と定義している
+        // 取り出したvec4の使い方は(x, y, vel.x, vel.y)と定義
         vec4 texturePositionValue = texture2D(texturePosition, uv);
 
-        // 現在のageを取得
-        float age = texturePositionValue.z;
+        // texturePositionに保存してあるXY座標を取り出す
+        vec2 currentPosition = texturePositionValue.xy;
 
-        // 新しい位置
-        vec2 newPosition;
-
-        // ageがdropThresholdを超過していたらランダムな位置に移動
-        if (age > dropThreshold) {
-          newPosition = vec2(
-            rand(texturePositionValue.xy) * ${this.params.viewWidth}.0 - ${this.params.viewWidth}.0 / 2.0,
-            rand(texturePositionValue.yx) * ${this.params.viewHeight}.0 - ${this.params.viewHeight}.0 / 2.0
-          );
-          gl_FragColor = vec4(newPosition, 0.0, 0.0);
-          return;
-        }
-
-        // ageがdropThresholdを超過していない場合は、速度を取得して新しい場所に移動
-
-        // 現在の速度の絶対値を取得
-        float absVelocity = texturePositionValue.w;
-
-        // TODO: 速度に応じてageを進めるように変更する
-
-        // ageを進める
-        float newAge = age + rand(vec2(absVelocity, absVelocity));
-
-        // 現在のスクリーン上のXY座標を取得
-        vec2 position = texturePositionValue.xy;
-
-        // 現在位置に対応する速度をテクスチャから取得
-        vec2 velocity = getVelocityFromTexture(position);
+        // 現在位置における風のベクトルを速度用テクスチャから取得
+        vec2 velocity = getVelocityFromTexture(currentPosition);
 
         // 新しい位置を計算
-        newPosition = position + velocity * particleSpeed;
+        vec2 newPosition = currentPosition + velocity * u_particle_speed;
 
+        // 画面の上下左右を超えた場合の処理
+        // newPositionが0.0 ~ 1.0に正規化されてる値ならfract(1.0 + newPosition)ですむのだが・・・
         if (newPosition.x < -${this.params.viewWidth}.0 / 2.0) newPosition.x = ${this.params.viewWidth}.0 / 2.0;
         if (newPosition.x > ${this.params.viewWidth}.0 / 2.0) newPosition.x = -${this.params.viewWidth}.0 / 2.0;
         if (newPosition.y < -${this.params.viewHeight}.0 / 2.0) newPosition.y = ${this.params.viewHeight}.0 / 2.0;
         if (newPosition.y > ${this.params.viewHeight}.0 / 2.0) newPosition.y = -${this.params.viewHeight}.0 / 2.0;
 
-        gl_FragColor = vec4(newPosition, newAge, length(velocity));
+        // ランダムな位置に飛ばす確率を計算
+        // 速度が早いほど飛びやすくなる
+        float dropRate = u_drop_rate + length(velocity) * u_drop_rate_bump;
+
+        // ランダムに生成した値が1.0-dropRateの範囲に収まっていれば0.0、それ以外は1.0
+        // つまりほとんどの場合は0.0で、稀に1.0になる
+        float drop = step(1.0 - dropRate, rand(newPosition.xy));
+
+        // ランダムな座標を計算
+        vec2 randomPosition = vec2(
+          rand(uv * u_rand_seed + 1.3) * ${this.params.viewWidth}.0 - ${this.params.viewWidth}.0 / 2.0,
+          rand(uv * u_rand_seed + 2.1) * ${this.params.viewHeight}.0 - ${this.params.viewHeight}.0 / 2.0
+        );
+
+        // dropが1.0ならランダムな位置に飛ぶ
+        newPosition = mix(newPosition, randomPosition, drop);
+
+        // 新しい位置情報を書き込む
+        gl_FragColor = vec4(newPosition, velocity);
       }
     `;
 
@@ -566,9 +634,22 @@ export class Main {
 
     // フラグメントシェーダーに渡すuniformを設定する
     positionVariable.material.uniforms = {
-      textureVelocity: { value: this.velocityImageParams.textureVelocity },
-      particleSpeed: { value: this.params.particleSpeed },
-      dropThreshold: { value: this.params.dropThreshold },
+
+      // 速度情報が書き込まれているテクスチャ
+      u_texture_velocity: { value: this.velocityImageParams.textureVelocity },
+
+      // パーティクルの移動速度
+      u_particle_speed: { value: this.params.particleSpeed },
+
+      // パーティクルをランダムな位置に飛ばす確率
+      u_drop_rate: { value: this.params.dropRate },
+
+      // パーティクルをランダムな位置に飛ばす確率の増加量
+      u_drop_rate_bump: { value: this.params.dropRateBump },
+
+      // ランダムのシード
+      u_rand_seed: { value: Math.random() },
+
     };
 
     //
@@ -685,6 +766,8 @@ export class Main {
         // 位置情報が書き込まれているテクスチャ texturePosition はuniformで渡される
         uniform sampler2D texturePosition;
 
+        varying vec2 vUv;
+
         void main() {
           // 位置をテクスチャから取得する
           vec2 pos = texture2D(texturePosition, uv).xy;
@@ -692,14 +775,36 @@ export class Main {
           // 取り出した位置を加算してgl_Positionに保存
           gl_Position =  projectionMatrix * modelViewMatrix * vec4(position + vec3(pos, 0.0), 1.0);
 
-          gl_PointSize = 3.0;
+          // パーティクルの大きさ
+          gl_PointSize = 2.0;
+
+          // フラグメントシェーダーにuv座標を渡す
+          vUv = uv;
         }
       `,
 
       fragmentShader: /*glsl*/`
-        // とりあえず緑色で表示
+
+        // 色が書き込まれている256x1のテクスチャをuniformで受け取る
+        uniform sampler2D u_color_ramp;
+
+        // 位置情報が書き込まれているテクスチャ texturePosition はuniformで渡される
+        uniform sampler2D texturePosition;
+
+        varying vec2 vUv;
+
         void main() {
-          gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+
+          vec2 velocity = texture2D(texturePosition, vUv).zw;
+
+          // 0.0 ~ 1.0に正規化した速度を取得
+          float speed = clamp(length(velocity), 0.0, 1.0);
+
+          // u_color_rampは256x1の構造なのでvec2(speed, 0.0)の色を取得
+          gl_FragColor = texture2D(u_color_ramp, vec2(speed, 0.0));
+
+          // 緑一色ならこれ
+          // gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
         }
       `,
     });
