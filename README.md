@@ -682,12 +682,13 @@ GPGPUを使えばCPUに負荷がかからないことを確かめるために、
 
 ## GPGPU move along wind flow
 
-クイックハックしてパーティクルの軌跡を描画してみたのがこれ。
+クイックハックしてパーティクルの軌跡を描画してみたのがこれ。軌跡がでると一気に雰囲気が変わる。
 
 レンダラのオプション `preserveDrawingBuffer` を設定して、透明度0.01の板をカメラの前に設置しただけ。
 
-画面がチラつくので、これではダメなんだけど、軌跡がでると一気に雰囲気が変わる。
+透明度0.01といえど、100フレーム重ねれば透過度1.0になって見えなくなるので、移動するパーティクルは尾をひくようになる。
 
+背景を重ねようとすると画面がチラつくのでこれではダメなんだけど、
 ちゃんとやるにはオフスクリーンレンダリングを使って１フレーム前の画像と重ね合わせるといいみたい。
 
 [![ScreenImage](./asset/index-gpgpu-move-along-wind2.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-move-along-wind2.html)
