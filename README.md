@@ -85,7 +85,39 @@ https://takamitsu-iida.github.io/threejs-practice/index-examples.html
 後で自分が参照するときに困らないようにソースコードはできるだけ同じような書き方に変えています。
 
 
-<br>
+
+## Node
+
+球体でノードを表現する例。
+
+グループ化することで内部にテクスチャを張っているが、作成する順番が重要で、球体を最後にしないと内部が見えなくなる。
+
+選択したときのブリンクエフェクトは、内部のもう一つ同じサイズの球体を作成してvisibleをトグルすることで実現している。
+
+![ScreenImage](./asset/index-node.html.png)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-node.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-node.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/node.js)
+
+
+
+
+
+
+
+
+
+
+
+<br><br><br><br><br><br><br><br><br><br><br>
+
+# 以下、すべて自分用メモ
+
+<br><br>
+
 
 # 参考文献
 
