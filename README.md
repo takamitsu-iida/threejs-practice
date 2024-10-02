@@ -94,7 +94,7 @@ https://takamitsu-iida.github.io/threejs-practice/index-examples.html
 
 選択したときのブリンクエフェクトは、内部のもう一つ同じサイズの球体を作成してvisibleをトグルすることで実現している。
 
-![ScreenImage](./asset/index-node.html.png)
+[![ScreenImage](./asset/index-node.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-node.html)
 
 [Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-node.html)
 
