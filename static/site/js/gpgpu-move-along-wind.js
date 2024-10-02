@@ -86,7 +86,7 @@ export class Main {
     // パーティクルの位置情報が入ったテクスチャをシェーダーに渡す
     texturePosition: { value: null },
 
-    // 色情報が入った16x16のテクスチャをシェーダーに渡す
+    // グラデーションの色情報を格納した256x1のテクスチャをシェーダーに渡す
     u_color_ramp: { value: null },
   }
 
