@@ -1,8 +1,12 @@
 import * as THREE from "three";
 
+// lil-gui
+import { GUI } from "three/libs/lil-gui.module.min.js";
+
+// stats.js
 import Stats from "three/libs/stats.module.js";
 
-// 必要な追加モジュール
+// GPUComputationRendereを使うのに必要なモジュール
 // three.js/examples/jsm/misc/GPUComputationRenderer.js
 // three.js/examples/jsm/postprocessing/Pass.js
 import { GPUComputationRenderer } from "three/libs/misc/GPUComputationRenderer.js";
@@ -45,19 +49,29 @@ export class Main {
     viewHeight: 0,
 
     // 描画するパーティクルの数
-    // texImage2Dで作れる最大サイズは16384x16384なのに対して、
-    // この実装では numParticles x 1 のテクスチャを作るので、
-    // 上限は16384ということになる
-    // テクスチャの構造を変えればもっと大きな数にできる
-    numParticles: 16384,
+    // データテクスチャを1024 x 1024で作成したので、これが上限
+    numParticles: 50000,
 
     // パーティクルの移動速度、この数字は経験則的に調整する
     particleSpeed: 2.0,
 
     // 確率でパーティクルをランダムな位置に飛ばす閾値
-    dropRate: 0.003,
+    dropRate: 0.002,
+
+    // 速度に応じて確率を上げるための係数
     dropRateBump: 0.01,
 
+    // 背景画像のメッシュ
+    backgroundMesh: null,
+
+    // バックグランドに速度の元になる画像を表示するかどうか
+    showBackground: true,
+
+    // パーティクルのメッシュ
+    particleMesh: null,
+
+    // パーティクルを表示するかどうか
+    showParticles: true,
   }
 
   velocityImageParams = {
@@ -88,6 +102,9 @@ export class Main {
 
     // グラデーションの色情報を格納した256x1のテクスチャをシェーダーに渡す
     u_color_ramp: { value: null },
+
+    // パーティクルのサイズ
+    u_point_size: { value: 2.0 },
   }
 
 
@@ -125,6 +142,9 @@ export class Main {
 
     // stats.jsを初期化
     this.initStatsjs();
+
+    // lil-guiを初期化
+    this.initGui();
 
     // GPUComputationRendererを使ってパーティクルの色を決めるためのテクスチャを作成
     this.createColorRampTexture();
@@ -303,6 +323,33 @@ export class Main {
   }
 
 
+  initGui = () => {
+    const gui = new GUI({ width: 300 });
+
+    gui
+      .add(this.uniforms.u_point_size, "value")
+      .name("particle size")
+      .min(1.0)
+      .max(3.0)
+      .step(0.1);
+
+    gui
+      .add(this.params, "showBackground")
+      .name("show background")
+      .onChange((value) => {
+        this.params.backgroundMesh.visible = value;
+      });
+
+    gui
+      .add(this.params, "showParticles")
+      .name("show particles")
+      .onChange((value) => {
+        this.params.particleMesh.visible = value;
+      });
+
+  }
+
+
   render = () => {
     // 再帰処理
     requestAnimationFrame(this.render);
@@ -400,7 +447,7 @@ export class Main {
 
     const initialTexture = computationRenderer.createTexture();
 
-    // 想定しているテクスチャの構造（画像データと同じ構造）
+    // 想定しているテクスチャの構造（Three.jsのスクリーン座標と同じ構造）
     //
     // height
     //       +--+--+--+--+--+--+--+
@@ -433,7 +480,7 @@ export class Main {
 
           initialTexture.image.data[index + 0] = colors[velocityIndex + 0] - 0.5;  // R
           initialTexture.image.data[index + 1] = colors[velocityIndex + 1] - 0.5;  // G
-          initialTexture.image.data[index + 2] = colors[velocityIndex + 2] - 0.5;  // B
+          initialTexture.image.data[index + 2] = 0.0;                              // 未使用
           initialTexture.image.data[index + 3] = 0.0;                              // 未使用
         }
       }
@@ -467,14 +514,14 @@ export class Main {
     //
 
     const computationRenderer = new GPUComputationRenderer(
-      this.params.numParticles,  // width
-      1,                         // height
-      this.renderer,             // renderer
+      1024,           // width
+      1024,           // height
+      this.renderer,  // renderer
     );
 
-    // ここでは簡単のため(numParticles, 1)のテクスチャを作成しているが、
-    // テクスチャの幅の上限は16384なので、
-    // より多くのパーティクルを扱いたい場合はテクスチャの構造を変える必要がある
+    // widthとheightは上限が16384なので、この値を超えるとエラーになる
+    // したがってnumParticles x 1 のテクスチャでは、作成できるパーティクルの数が16384個に制限される
+    // そこで1024x1024のテクスチャを使って、より多くのパーティクルを扱えるようにする
 
     // フレームごとにcompute()を実行する必要があるので、インスタンス変数に保存しておく
     this.computationRenderer = computationRenderer;
@@ -485,10 +532,14 @@ export class Main {
 
     // 想定しているテクスチャの構造
     //
-    //   0  1  2  3  4  5  ... numParticles
-    //  +--+--+--+--+--+--+--+
-    //  |  |  |  |  |  |  |  |
-    //  +--+--+--+--+--+--+--+
+    //         0  1  2  3  4  5  1023
+    //        +--+--+--+--+--+--+--+
+    //      0 |  |  |  |  |  |  |  |
+    //        +--+--+--+--+--+--+--+
+    //   1024 |  |  |  |  |  |  |  |
+    //        +--+--+--+--+--+--+--+
+    //   ...  |  |  |  |  |  |  |  |
+    //        +--+--+--+--+--+--+--+
 
     // パーティクルの位置と速度の情報を格納するテクスチャを作成して、
     const initialPositionTexture = computationRenderer.createTexture();
@@ -501,8 +552,6 @@ export class Main {
       const positionArray = initialPositionTexture.image.data;
 
       for (let i = 0; i < this.params.numParticles; i++) {
-        // i番目のパーティクルに関して、
-
         // 配列のインデックスはvec4を格納するので4倍する
         const index = i * 4;
 
@@ -614,6 +663,12 @@ export class Main {
         // dropが1.0ならランダムな位置に飛ぶ
         newPosition = mix(newPosition, randomPosition, drop);
 
+        // 同じ位置にとどまってしまう場合はランダムな位置に飛ばす
+        float d = distance(currentPosition, newPosition);
+        if (d < 0.00001) {
+          newPosition = randomPosition;
+        }
+
         // 新しい位置情報を書き込む
         gl_FragColor = vec4(newPosition, velocity);
       }
@@ -634,7 +689,6 @@ export class Main {
 
     // フラグメントシェーダーに渡すuniformを設定する
     positionVariable.material.uniforms = {
-
       // 速度情報が書き込まれているテクスチャ
       u_texture_velocity: { value: this.velocityImageParams.textureVelocity },
 
@@ -649,7 +703,6 @@ export class Main {
 
       // ランダムのシード
       u_rand_seed: { value: Math.random() },
-
     };
 
     //
@@ -701,6 +754,9 @@ export class Main {
     // mesh.position.y = -this.params.height / 2;
     // mesh.scale.set(this.params.width, this.params.height, 1);
 
+    // メッシュをparamsに保存しておく
+    this.params.backgroundMesh = mesh;
+
     // シーンに追加
     this.scene.add(mesh);
   }
@@ -729,10 +785,17 @@ export class Main {
     // UV座標を設定することで、GPUComputationRendererで作成した計算用テクスチャの情報を
     // 自分自身のUV座標で取り出すことができる
 
-    //   0  1  2  3  4  5  ... numParticles
-    //  +--+--+--+--+--+--+--+
-    //  |  |  |  |  |  |  |  |
-    //  +--+--+--+--+--+--+--+
+    // 想定しているテクスチャの構造
+    //
+    //         0  1  2  3  4  5  1023
+    //        +--+--+--+--+--+--+--+
+    //      0 |  |  |  |  |  |  |  |
+    //        +--+--+--+--+--+--+--+
+    //   1024 |  |  |  |  |  |  |  |
+    //        +--+--+--+--+--+--+--+
+    //   ...  |  |  |  |  |  |  |  |
+    //        +--+--+--+--+--+--+--+
+
 
     // U座標は、パーティクルの番号を 0.0 ~ 1.0 の範囲で正規化する
     // V座標は、常に0.0でよい
@@ -741,10 +804,15 @@ export class Main {
     const uvs = new Float32Array(numParticles * 2);
 
     for (let i = 0; i < numParticles; i++) {
-      // i番目のパーティクルに関してUV座標を設定
+      // i番目のパーティクルに関して、
+
+      // テクスチャの横幅が1024なので、1024で割った商が行、余りが列
+      const col = i % 1024;
+      const row = Math.floor(i / 1024);
+
       const index = i * 2;
-      uvs[index + 0] = i / (numParticles - 1);  // iは0始まりなので、i / (numParticles - 1)で正規化
-      uvs[index + 1] = 0.0;
+      uvs[index + 0] = col / (1024 - 1);  // 0.0 ~ 1.0に正規化
+      uvs[index + 1] = row / (1024 - 1);  // 0.0 ~ 1.0に正規化
     }
 
     // バッファジオメトリを作成
@@ -759,6 +827,7 @@ export class Main {
     // シェーダーマテリアルを作成
     const material = new THREE.ShaderMaterial({
       transparent: true,
+
       uniforms: this.uniforms,
 
       vertexShader: /*glsl*/`
@@ -766,20 +835,29 @@ export class Main {
         // 位置情報が書き込まれているテクスチャ texturePosition はuniformで渡される
         uniform sampler2D texturePosition;
 
-        varying vec2 vUv;
+        uniform float u_point_size;
+
+        // 速度情報をフラグメントシェーダーに渡す
+        varying vec2 vVelocity;
 
         void main() {
-          // 位置をテクスチャから取得する
-          vec2 pos = texture2D(texturePosition, uv).xy;
+          // 自身のUV座標に対応するテクスチャの値を
+          vec4 texturePositionValue = texture2D(texturePosition, uv);
+
+          // 位置はXY
+          vec2 pos = texturePositionValue.xy;
 
           // 取り出した位置を加算してgl_Positionに保存
           gl_Position =  projectionMatrix * modelViewMatrix * vec4(position + vec3(pos, 0.0), 1.0);
 
-          // パーティクルの大きさ
-          gl_PointSize = 2.0;
+          // 速度はZW
+          vec2 vel = texturePositionValue.zw;
 
-          // フラグメントシェーダーにuv座標を渡す
-          vUv = uv;
+          // 速度の情報をvaryingでフラグメントシェーダーに渡す
+          vVelocity = vel;
+
+          // パーティクルの大きさ
+          gl_PointSize = u_point_size;
         }
       `,
 
@@ -788,17 +866,12 @@ export class Main {
         // 色が書き込まれている256x1のテクスチャをuniformで受け取る
         uniform sampler2D u_color_ramp;
 
-        // 位置情報が書き込まれているテクスチャ texturePosition はuniformで渡される
-        uniform sampler2D texturePosition;
-
-        varying vec2 vUv;
+        varying vec2 vVelocity;
 
         void main() {
 
-          vec2 velocity = texture2D(texturePosition, vUv).zw;
-
           // 0.0 ~ 1.0に正規化した速度を取得
-          float speed = clamp(length(velocity), 0.0, 1.0);
+          float speed = clamp(length(vVelocity), 0.0, 1.0);
 
           // u_color_rampは256x1の構造なのでvec2(speed, 0.0)の色を取得
           gl_FragColor = texture2D(u_color_ramp, vec2(speed, 0.0));
@@ -809,8 +882,11 @@ export class Main {
       `,
     });
 
-    // メッシュ化して
+    // メッシュ化
     const mesh = new THREE.Points(geometry, material);
+
+    // メッシュをparamsに保存しておく
+    this.params.particleMesh = mesh;
 
     // シーンに追加
     this.scene.add(mesh);
