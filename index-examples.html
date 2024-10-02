@@ -939,6 +939,39 @@
 
 
 
+
+      <h2>GPGPU move along wind flow</h2>
+
+      <p>天気予報でもよく見かける風の可視化。</p>
+      <p>自分でもやってみたいので、Three.jsでの実装を探してみたら<a href="https://qiita.com/Kanahiro/items/8927619c64831972c1d2">ここ</a>にあった。</p>
+      <p>ソースコードを見てみたものの、実力不足で理解できず orz</p>
+      <p>自分理解できる方法でやってみたのがこれ。</p>
+      <p>とりあえず、見た目の美しさは度外視して、パーティクルを風に流されるように移動させた。</p>
+      <p>風のデータは<a href="https://github.com/mapbox/webgl-wind">ここ</a>から取得。</p>
+      <p>画像の色に風の向き記録されていて、RがX方向の風の強さを、GがY方向の風の強さを表している。</p>
+
+      <br>
+
+      <p>
+        <a href="https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-move-along-wind.html">
+          <figure>
+            <img src="./asset/index-gpgpu-move-along-wind.html.png" />
+            <figcaption>Live Demo</figcaption>
+          </figure>
+        </a>
+      </p>
+
+      <br>
+
+      <p>
+        HTML <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/index-gpgpu-move-along-wind.html">index-gpgpu-move-along-wind.html</a>
+      </p>
+      <p>
+        JavaScript <a href="https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/gpgpu-move-along-wind.js">gpgpu-move-along-wind.js</a>
+      </p>
+
+
+
       <h2>GPGPU Particle trail</h2>
 
       <p>頂点を移動すると共に、その尻尾を描画する例。</p>
