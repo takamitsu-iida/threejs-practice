@@ -229,7 +229,7 @@ ShaderMaterialとGLSLで記述したシェーダーを使った例。
 
 綺麗に見せるには経験則的にパラメータをいろいろイジる必要があることを実感できる作例。
 
-[![ScreenImage]()](https://takamitsu-iida.github.io/threejs-practice/index-wave.html)
+[![ScreenImage](./asset/index-wave.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-wave.html)
 
 [Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-wave.html)
 
