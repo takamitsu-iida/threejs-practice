@@ -102,7 +102,7 @@ export class Main {
   // パーティクル用のシェーダーマテリアルに渡すuniforms
   uniforms = {
     // パーティクルの位置情報が入ったテクスチャをシェーダーに渡す
-    texturePosition: { value: null },
+    u_texture_position: { value: null },
 
     // グラデーションの色情報を格納した256x1のテクスチャをシェーダーに渡す
     u_color_ramp: { value: null },
@@ -866,7 +866,7 @@ export class Main {
     // テクスチャオブジェクトを取得するして
     // パーティクルを描画するシェーダーマテリアルのuniformsに設定する
     // compute()するたびにテクスチャのデータは更新される
-    this.uniforms.texturePosition.value = computationRenderer.getCurrentRenderTarget(positionVariable).texture;
+    this.uniforms.u_texture_position.value = computationRenderer.getCurrentRenderTarget(positionVariable).texture;
 
   }
 
@@ -985,7 +985,7 @@ export class Main {
       vertexShader: /*glsl*/`
 
         // 位置情報が書き込まれているテクスチャ texturePosition はuniformで渡される
-        uniform sampler2D texturePosition;
+        uniform sampler2D u_texture_position;
 
         uniform float u_point_size;
 
@@ -994,7 +994,7 @@ export class Main {
 
         void main() {
           // 自身のUV座標に対応するテクスチャの値を
-          vec4 texturePositionValue = texture2D(texturePosition, uv);
+          vec4 texturePositionValue = texture2D(u_texture_position, uv);
 
           // 位置はXY
           vec2 pos = texturePositionValue.xy;
