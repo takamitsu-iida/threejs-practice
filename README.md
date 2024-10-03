@@ -701,6 +701,40 @@ GPGPUを使えばCPUに負荷がかからないことを確かめるために、
 
 <br>
 
+## GPGPU move along wind flow
+
+背景画像用のシーンとカメラを別に作成して、背景、パーティクルの順番でレンダリングするようにしたのがこれ。
+
+[![ScreenImage](./asset/index-gpgpu-move-along-wind3.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-move-along-wind3.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-move-along-wind3.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-gpgpu-move-along-wind3.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/gpgpu-move-along-wind3.js)
+
+<br>
+
+## GPGPU move along wind flow（失敗作）
+
+パーティクルをオフスクリーンにレンダリングしてテクスチャを作成して、１フレーム前のテクスチャと合成するようにしたのがこれ。
+
+せっかくパーティクルに色を付けてるのに、テクスチャの色を加算するとパーティクルの色が飛んで白くなってしまう。
+
+残念ながら、どうやって解決したらいいか、いまの実力では思い浮かばない・・・
+
+でも、オフスクリーンレンダリングのやり方はとても勉強になったので、記録として残しておく。
+
+[![ScreenImage](./asset/index-gpgpu-move-along-wind4.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-move-along-wind4.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-move-along-wind4.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-gpgpu-move-along-wind4.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/gpgpu-move-along-wind4.js)
+
+<br>
+
 ## GPGPU Particle trail
 
 頂点を移動すると共に、その尻尾を描画する例。
