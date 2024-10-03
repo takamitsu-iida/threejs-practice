@@ -49,7 +49,7 @@ export class Main {
     viewHeight: 0,
 
     // 描画するパーティクルの数
-    // データテクスチャを640 x 480で作成したので約30万個が上限
+    // データテクスチャを1024 x 1024で作成したので、これが上限
     numParticles: 50000,
 
     // パーティクルの移動速度、この数字は経験則的に調整する
@@ -104,7 +104,7 @@ export class Main {
     u_color_ramp: { value: null },
 
     // パーティクルのサイズ
-    u_point_size: { value: 2.0 },
+    u_point_size: { value: 1.0 },
   }
 
 
@@ -156,7 +156,7 @@ export class Main {
     this.initComputationRenderer();
 
     // 背景を初期化
-    this.initBackground();
+    // this.initBackground();
 
     // パーティクルを初期化
     this.initParticles();
@@ -299,12 +299,26 @@ export class Main {
 
     // レンダラ
     // alpha: true はデフォルトのapha値が0.0になる。falseは1.0
-    this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    this.renderer = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: true,
+      preserveDrawingBuffer: true,
+    });
+    this.renderer.autoClearColor = false;
 
     // 通常はコンテナにサイズを合わせるが、ここでは固定にする
     this.renderer.setSize(this.params.viewWidth, this.params.viewHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.getElementById("threejsContainer").appendChild(this.renderer.domElement);
+
+    const fadePlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(this.params.viewWidth, this.params.viewHeight),
+      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.02 })
+    );
+    fadePlane.material.renderOrder = -1;
+    fadePlane.position.z = -1;
+
+    this.scene.add(fadePlane);
   }
 
 
@@ -333,12 +347,14 @@ export class Main {
       .max(3.0)
       .step(0.1);
 
+    /*
     gui
       .add(this.params, "showBackground")
       .name("show background")
       .onChange((value) => {
-        this.params.backgroundMesh.visible = value;
+        this.scene.background = value ? this.params.backgroundMesh : null;
       });
+    */
 
     gui
       .add(this.params, "showParticles")
@@ -514,15 +530,14 @@ export class Main {
     //
 
     const computationRenderer = new GPUComputationRenderer(
-      640,            // width
-      480,            // height
+      1024,           // width
+      1024,           // height
       this.renderer,  // renderer
     );
 
-    // widthとheightは上限が16384で、この値を超えるとエラーになる
-    // したがってnumParticles x 1 のテクスチャで作ると扱えるパーティクルの数は16384個に制限される
-    // そこで640x480のテクスチャを使って、より多くのパーティクルを扱えるようにする
-    // 約30万個のパーティクルを扱える
+    // widthとheightは上限が16384なので、この値を超えるとエラーになる
+    // したがってnumParticles x 1 のテクスチャでは、作成できるパーティクルの数が16384個に制限される
+    // そこで1024x1024のテクスチャを使って、より多くのパーティクルを扱えるようにする
 
     // フレームごとにcompute()を実行する必要があるので、インスタンス変数に保存しておく
     this.computationRenderer = computationRenderer;
@@ -533,11 +548,11 @@ export class Main {
 
     // 想定しているテクスチャの構造
     //
-    //         0  1  2  3  4  5  639
+    //         0  1  2  3  4  5  1023
     //        +--+--+--+--+--+--+--+
     //      0 |  |  |  |  |  |  |  |
     //        +--+--+--+--+--+--+--+
-    //    640 |  |  |  |  |  |  |  |
+    //   1024 |  |  |  |  |  |  |  |
     //        +--+--+--+--+--+--+--+
     //   ...  |  |  |  |  |  |  |  |
     //        +--+--+--+--+--+--+--+
@@ -744,6 +759,7 @@ export class Main {
     // マテリアルを作成
     const material = new THREE.MeshBasicMaterial({
       map: texture,
+      transparent: true,
     });
 
     // メッシュ化
@@ -788,16 +804,18 @@ export class Main {
 
     // 想定しているテクスチャの構造
     //
-    //         0  1  2  3  4  5  639
+    //         0  1  2  3  4  5  1023
     //        +--+--+--+--+--+--+--+
     //      0 |  |  |  |  |  |  |  |
     //        +--+--+--+--+--+--+--+
-    //    640 |  |  |  |  |  |  |  |
+    //   1024 |  |  |  |  |  |  |  |
     //        +--+--+--+--+--+--+--+
     //   ...  |  |  |  |  |  |  |  |
     //        +--+--+--+--+--+--+--+
-    //
-    // 先頭から何番目のパーティクルか、に応じてUV座標を 0.0 ~ 1.0 の範囲で正規化する
+
+
+    // U座標は、パーティクルの番号を 0.0 ~ 1.0 の範囲で正規化する
+    // V座標は、常に0.0でよい
 
     // uvアトリビュート用の配列
     const uvs = new Float32Array(numParticles * 2);
@@ -805,13 +823,13 @@ export class Main {
     for (let i = 0; i < numParticles; i++) {
       // i番目のパーティクルに関して、
 
-      // テクスチャの横幅が640なので、640で割った商が行、余りが列
-      const col = i % 640;
-      const row = Math.floor(i / 640);
+      // テクスチャの横幅が1024なので、1024で割った商が行、余りが列
+      const col = i % 1024;
+      const row = Math.floor(i / 1024);
 
       const index = i * 2;
-      uvs[index + 0] = col / (640 - 1);  // 0.0 ~ 1.0に正規化
-      uvs[index + 1] = row / (640 - 1);  // 0.0 ~ 1.0に正規化
+      uvs[index + 0] = col / (1024 - 1);  // 0.0 ~ 1.0に正規化
+      uvs[index + 1] = row / (1024 - 1);  // 0.0 ~ 1.0に正規化
     }
 
     // バッファジオメトリを作成
