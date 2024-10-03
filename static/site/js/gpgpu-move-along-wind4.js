@@ -30,6 +30,10 @@ export class Main {
   camera;
   renderer;
 
+  // 背景用のシーンとカメラは別にしておく
+  bg_scene;
+  bg_camera;
+
   statsjs;
 
   renderParams = {
@@ -111,28 +115,6 @@ export class Main {
     u_point_size: { value: 1.0 },
   }
 
-  // オフスクリーンでレンダリングするレンダーターゲット
-  // initThreejs()の中で初期化する
-  offScreenParams = {
-    target: null,       // パーティクルを描画するレンダーターゲット
-    prevTarget: null,   // 一つ前のフレーム
-    mixedTarget: null,  // 一つ前のフレームとparticlesを合成したもの、これを画面に出力する
-
-    camera: null,       // オフスクリーン用のカメラ
-    scene: null,        // パーティクルを描画するシーン
-    mixedScene: null,   // 一つ前のテクスチャと現在のテクスチャを合成するためのシーン
-    mixedMesh: null,    // 一つ前のテクスチャと現在のテクスチャを合成したメッシュ
-
-    swap: () => {       // prevTargetとmixedTargetを入れ替える
-      const temp = this.offScreenParams.mixedTarget;
-      this.offScreenParams.mixedTarget = this.offScreenParams.prevTarget;
-      this.offScreenParams.prevTarget = temp;
-    },
-
-    getCurrentTexture: () => {
-      return this.offScreenParams.mixedTarget.texture;
-    }
-  }
 
   constructor(params = {}) {
     this.params = Object.assign(this.params, params);
@@ -163,9 +145,6 @@ export class Main {
       clearInterval(interval);
     }, 500);
 
-    // 背景のテクスチャを作成する
-    this.initBackgroundTexture();
-
     // scene, camera, rendererを初期化
     this.initThreejs();
 
@@ -175,12 +154,15 @@ export class Main {
     // lil-guiを初期化
     this.initGui();
 
+    // 背景のメッシュをシーンに追加
+    this.initBackground();
+
     // GPUComputationRendererを使ってパーティクルの色を決めるためのテクスチャを作成
-    // rendererを使うのでinitThreejs()の後に実行
+    // rendererが必要なのでinitThreejs()の後に実行
     this.createColorRampTexture();
 
     // GPUComputationRendererを使って速度計算用のテクスチャを作成
-    // rendererを使うのでinitThreejs()の後に実行
+    // rendererが必要なのでinitThreejs()の後に実行
     this.createVelocityTexture();
 
     // GPUComputationRendererを初期化
@@ -325,52 +307,11 @@ export class Main {
     // カメラは(x, y)平面の原点に配置、z軸は手前に引く
     this.camera.position.set(0, 0, 1);
 
-    // レンダラ
-    // alpha: true はデフォルトのapha値が0.0になる。falseは1.0
-    this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    // 背景を映すシーンとカメラも同様に初期化する
+    this.bg_scene = new THREE.Scene();
 
-    // 通常はコンテナにサイズを合わせるが、ここでは固定にする
-    this.renderer.setSize(this.params.viewWidth, this.params.viewHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    document.getElementById("threejsContainer").appendChild(this.renderer.domElement);
-
-    // ★オフスクリーンでレンダリングするためのターゲットを３個作成する
-
-    // パーティクルを描画するレンダーターゲット
-    this.offScreenParams.target = new THREE.WebGLRenderTarget(
-      this.params.viewWidth,
-      this.params.viewHeight,
-      {
-        magFilter: THREE.LinearFilter,
-        minFilter: THREE.LinearFilter,
-        format: THREE.RGBAFormat,
-      }
-    );
-
-    // 一つ前のフレーム
-    this.offScreenParams.prevTarget = new THREE.WebGLRenderTarget(
-      this.params.viewWidth,
-      this.params.viewHeight,
-      {
-        magFilter: THREE.LinearFilter,
-        minFilter: THREE.LinearFilter,
-        format: THREE.RGBAFormat,
-      }
-    );
-
-    // 一つ前のフレームとparticlesを合成したもの、これを画面に出力する
-    this.offScreenParams.mixedTarget = new THREE.WebGLRenderTarget(
-      this.params.viewWidth,
-      this.params.viewHeight,
-      {
-        magFilter: THREE.LinearFilter,
-        minFilter: THREE.LinearFilter,
-        format: THREE.RGBAFormat,
-      }
-    );
-
-    // オフスクリーン用のカメラ
-    this.offScreenParams.camera = new THREE.OrthographicCamera(
+    // 背景を映すカメラも同様に初期化
+    this.bg_camera = new THREE.OrthographicCamera(
       -this.params.viewWidth / 2,   // left
       this.params.viewWidth / 2,    // right
       this.params.viewHeight / 2,   // top
@@ -378,52 +319,30 @@ export class Main {
       0,                            // near
       10                            // far
     );
+    this.bg_camera.position.set(0, 0, 1);
 
-    // オフスクリーン用のシーン（パーティクル描画用）
-    this.offScreenParams.scene = new THREE.Scene();
-
-    // オフスクリーン用のシーン（テクスチャ合成用）
-    this.offScreenParams.mixedScene = new THREE.Scene();
-
-    // オフスクリーンで作成したテクスチャを画面表示するジオメトリ
-    const geometry = new THREE.PlaneGeometry(this.params.viewWidth, this.params.viewHeight);
-
-    // オフスクリーンで作成したテクスチャを画面表示するマテリアル
-    const material = new THREE.ShaderMaterial({
-      side: THREE.DoubleSide,
-      transparent: true,
-      uniforms: {
-          u_background_texture: {
-            value: this.velocityImageParams.texture
-          },
-          u_particle_texture: {
-              value: this.offScreenParams.getCurrentTexture()
-          },
-      },
-      vertexShader: /* GLSL */`
-        varying vec2 vUv;
-        void main() {
-          gl_Position =  projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          vUv = uv;
-        }
-      `,
-      fragmentShader: /* GLSL */`
-          uniform sampler2D u_background_texture;
-          uniform sampler2D u_particle_texture;
-          varying vec2 vUv;
-          void main() {
-              vec4 backgroundColor = texture2D(u_background_texture, vUv);
-              vec4 particleColor = texture2D(u_particle_texture, vUv);
-              gl_FragColor = vec4(mix(backgroundColor.rgb, particleColor.rgb, particleColor.a), 1.0);
-          }
-      `,
+    // ★ここ重要
+    this.renderer = new THREE.WebGLRenderer({
+      alpha: false,
+      antialias: true,
+      preserveDrawingBuffer: true,  // preserveDrawingBufferを有効にすると古い描画が残る
     });
+    this.renderer.autoClearColor = false;  // これも必要
 
-    // オフスクリーンで作成したテクスチャを画面表示するメッシュ
-    const mesh = new THREE.Mesh(geometry, material);
+    // 通常はコンテナにサイズを合わせるが、ここでは固定にする
+    this.renderer.setSize(this.params.viewWidth, this.params.viewHeight);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    document.getElementById("threejsContainer").appendChild(this.renderer.domElement);
 
-    // シーンに追加
-    this.scene.add(mesh);
+    // ★ここ重要
+    // フェードアウトさせるために透過度の高い板をカメラの前に設置する
+    const fadePlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(this.params.viewWidth, this.params.viewHeight),
+      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.01 })
+    );
+    fadePlane.material.renderOrder = 1;
+    fadePlane.position.z = -1;
+    this.scene.add(fadePlane);
   }
 
 
@@ -452,14 +371,12 @@ export class Main {
       .max(3.0)
       .step(0.1);
 
-    /*
     gui
       .add(this.params, "showBackground")
       .name("show background")
       .onChange((value) => {
         this.params.backgroundMesh.visible = value;
       });
-    */
 
     gui
       .add(this.params, "showParticles")
@@ -487,26 +404,10 @@ export class Main {
       // パーティクルの位置を更新
       this.updateParticles();
 
-      // ★オフスクリーン用のレンダーターゲットにパーティクルを描画
-      this.renderer.setRenderTarget(this.offScreenParams.target);
-      this.renderer.render(this.offScreenParams.scene, this.offScreenParams.camera);
-      this.renderer.setRenderTarget(null);
+      // 背景を描画
+      this.renderer.render(this.bg_scene, this.bg_camera);
 
-      // ★一つ前のフレームのテクスチャと、いまのテクスチャを重ね合わせる
-
-      // ★uniformsにテクスチャをセットして、
-      this.offScreenParams.mixedMesh.material.uniforms.u_current_texture.value = this.offScreenParams.target.texture;
-      this.offScreenParams.mixedMesh.material.uniforms.u_previous_texture.value = this.offScreenParams.prevTarget.texture;
-
-      // ★オフスクリーンで合成する
-      this.renderer.setRenderTarget(this.offScreenParams.mixedTarget);
-      this.renderer.render(this.offScreenParams.mixedScene, this.offScreenParams.camera);
-      this.renderer.setRenderTarget(null);
-
-      // ★スワップする
-      this.offScreenParams.swap();
-
-      // 再描画
+      // パーティクルを描画
       this.renderer.render(this.scene, this.camera);
     }
 
@@ -867,12 +768,10 @@ export class Main {
     // パーティクルを描画するシェーダーマテリアルのuniformsに設定する
     // compute()するたびにテクスチャのデータは更新される
     this.uniforms.texturePosition.value = computationRenderer.getCurrentRenderTarget(positionVariable).texture;
-
   }
 
 
-  // これは未使用
-  initBackground = () => {
+    initBackground = () => {
     // 平面のジオメトリを作成
     const geometry = new THREE.PlaneGeometry(this.params.viewWidth, this.params.viewHeight);
 
@@ -882,8 +781,12 @@ export class Main {
     texture.minFilter = THREE.NearestFilter;
     texture.needsUpdate = true;
 
+    texture.type = THREE.FloatType; // ★追加
+
     // マテリアルを作成
     const material = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0.05,
       map: texture,
     });
 
@@ -896,23 +799,12 @@ export class Main {
     // mesh.position.y = -this.params.height / 2;
     // mesh.scale.set(this.params.width, this.params.height, 1);
 
-    // メッシュをparamsに保存しておく
+    // メッシュをparamsに保存しておく（lil-guiで表示のON/OFFを切り替えるため）
     this.params.backgroundMesh = mesh;
 
-    // シーンに追加
-    this.scene.add(mesh);
-  }
-
-
-  initBackgroundTexture = () => {
-    // ダウンロードしておいたImage()オブジェクトを使ってテクスチャを作成
-    const texture = new THREE.Texture(this.velocityImageParams.velocityImage);
-    texture.magFilter = THREE.NearestFilter;
-    texture.minFilter = THREE.NearestFilter;
-    texture.needsUpdate = true;
-
-    // テクスチャを保存
-    this.velocityImageParams.texture = texture;
+    // ★ここ重要
+    // 背景用のシーンに追加
+    this.bg_scene.add(mesh);
   }
 
 
@@ -1037,47 +929,8 @@ export class Main {
     // メッシュをparamsに保存しておく(lil-guiで表示のON/OFFを切り替えるため)
     this.params.particleMesh = mesh;
 
-    // ★ パーティクルのメッシュをオフスクリーン用のシーンに追加
-    this.offScreenParams.scene.add(mesh);
-
-    // ★ 一つ前のテクスチャといまのテクスチャを合成したメッシュ
-    const mixedMesh = new THREE.Mesh(
-      // プレーンジオメトリと、
-      new THREE.PlaneGeometry(this.params.viewWidth, this.params.viewHeight),
-      // シェーダーマテリアルでメッシュを作成
-      new THREE.ShaderMaterial({
-        uniforms: {
-          u_current_texture: { value: null },
-          u_previous_texture: { value: null },
-        },
-
-        vertexShader: /*glsl*/`
-          varying vec2 vUv;
-          void main() {
-            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-            vUv = uv;
-          }
-        `,
-
-        fragmentShader: /*glsl*/`
-          uniform sampler2D u_current_texture;
-          uniform sampler2D u_previous_texture;
-          varying vec2 vUv;
-          void main() {
-            vec4 curr = texture2D(u_current_texture, vUv);
-            vec4 prev = texture2D(u_previous_texture, vUv) - vec4(0.0, 0.0, 0.0, 0.01);
-            vec4 mixed = curr + prev;
-            gl_FragColor = mixed;
-          }
-        `,
-      })
-    );
-
-    // ★テクスチャを合成したメッシュはオフスクリーン用のシーンに追加
-    this.offScreenParams.mixedScene.add(mixedMesh);
-
-    // ★保存しておく（uniformsで渡すテクスチャを毎フレームセットするため）
-    this.offScreenParams.mixedMesh = mixedMesh;
+    // パーティクルのメッシュをシーンに追加
+    this.scene.add(mesh);
   }
 
   updateParticles = () => {
