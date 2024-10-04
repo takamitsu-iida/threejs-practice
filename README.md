@@ -686,10 +686,10 @@ GPGPUを使えばCPUに負荷がかからないことを確かめるために、
 
 レンダラのオプション `preserveDrawingBuffer` を設定して、透明度0.01の板をカメラの前に設置しただけ。
 
-透明度0.01といえど、100フレーム重ねれば透過度1.0になって見えなくなるので、移動するパーティクルは尾をひくようになる。
+透明度0.01といえど、100フレーム重ねれば透過度1.0になって見えなくなるので、移動するパーティクルは短い尾をひくようになる。
 
-背景を重ねようとすると画面がチラつくのでこれではダメなんだけど、
-ちゃんとやるにはオフスクリーンレンダリングを使って１フレーム前の画像と重ね合わせるといいみたい。
+ただし、背景も100フレーム経過後には見えなくなるし、その他の画像と重ね合わせることができないので、
+ちゃんとやるにはオフスクリーンレンダリングを使って合成する必要がある。
 
 [![ScreenImage](./asset/index-gpgpu-move-along-wind2.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-move-along-wind2.html)
 
@@ -701,9 +701,11 @@ GPGPUを使えばCPUに負荷がかからないことを確かめるために、
 
 <br>
 
-## GPGPU move along wind flow
+## GPGPU move along wind flow（失敗作）
 
 背景画像用のシーンとカメラを別に作成して、背景、パーティクルの順番でレンダリングするようにしたのがこれ。
+
+チラつくのでこのやり方ではダメなんだと思う。
 
 [![ScreenImage](./asset/index-gpgpu-move-along-wind3.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-move-along-wind3.html)
 

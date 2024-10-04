@@ -73,6 +73,9 @@ export class Main {
 
     // パーティクルを表示するかどうか
     showParticles: true,
+
+    // TODO 必要？
+    displayMesh: null,
   }
 
   velocityImageParams = {
@@ -99,7 +102,7 @@ export class Main {
   // フレーム更新ごとにcompute()する
   computationRenderer;
 
-  // パーティクル用のシェーダーマテリアルに渡すuniforms
+  // パーティクル描画用のシェーダーマテリアルに渡すuniforms
   uniforms = {
     // パーティクルの位置情報が入ったテクスチャをシェーダーに渡す
     u_texture_position: { value: null },
@@ -111,27 +114,32 @@ export class Main {
     u_point_size: { value: 1.0 },
   }
 
-  // オフスクリーンでレンダリングするレンダーターゲット
+  // オフスクリーンでレンダリングするパラメータ
   // initThreejs()の中で初期化する
   offScreenParams = {
-    target: null,       // パーティクルを描画するレンダーターゲット
-    prevTarget: null,   // 一つ前のフレーム
-    mixedTarget: null,  // 一つ前のフレームとparticlesを合成したもの、これを画面に出力する
+    scene: null,             // パーティクルのメッシュを配置するシーン
+    camera: null,            // オフスクリーン用のカメラ
+    renderTarget: null,      // パーティクルを描画するレンダーターゲット
 
-    camera: null,       // オフスクリーン用のカメラ
-    scene: null,        // パーティクルを描画するシーン
-    mixedScene: null,   // 一つ前のテクスチャと現在のテクスチャを合成するためのシーン
-    mixedMesh: null,    // 一つ前のテクスチャと現在のテクスチャを合成したメッシュ
+    mixRenderTarget: null,   // 累積テクスチャを作るレンダーターゲットを２つ用意して交代で使う
+    mixRenderTarget1: null,  // パーティクルを描画したテクスチャを重ね合わせるためのレンダーターゲット
+    mixRenderTarget2: null,  // パーティクルを描画したテクスチャを重ね合わせるためのレンダーターゲット
+    mixScene: null,          // 合成するテクスチャを配置ためのシーン
+    mixMesh: null,           // 一つ前のテクスチャと現在のテクスチャを合成したメッシュ
 
-    swap: () => {       // prevTargetとmixedTargetを入れ替える
-      const temp = this.offScreenParams.mixedTarget;
-      this.offScreenParams.mixedTarget = this.offScreenParams.prevTarget;
-      this.offScreenParams.prevTarget = temp;
+    // renderTargetから取り出したテクスチャ
+    currentTexture: null,
+    mixTexture: null,
+
+    // mixRenderTarget1と2を入れ替える
+    swapMixRenderTarget: () => {
+      if (this.offScreenParams.mixRenderTarget === this.offScreenParams.mixRenderTarget1) {
+        this.offScreenParams.mixRenderTarget = this.offScreenParams.mixRenderTarget2;
+      } else {
+        this.offScreenParams.mixRenderTarget = this.offScreenParams.mixRenderTarget1;
+      }
     },
 
-    getCurrentTexture: () => {
-      return this.offScreenParams.mixedTarget.texture;
-    }
   }
 
   constructor(params = {}) {
@@ -334,40 +342,15 @@ export class Main {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.getElementById("threejsContainer").appendChild(this.renderer.domElement);
 
-    // ★オフスクリーンでレンダリングするためのターゲットを３個作成する
+    //
+    // ★オフスクリーン用
+    //
 
-    // パーティクルを描画するレンダーターゲット
-    this.offScreenParams.target = new THREE.WebGLRenderTarget(
-      this.params.viewWidth,
-      this.params.viewHeight,
-      {
-        magFilter: THREE.LinearFilter,
-        minFilter: THREE.LinearFilter,
-        format: THREE.RGBAFormat,
-      }
-    );
+    // オフスクリーン用のシーン（パーティクル描画用）
+    this.offScreenParams.scene = new THREE.Scene();
 
-    // 一つ前のフレーム
-    this.offScreenParams.prevTarget = new THREE.WebGLRenderTarget(
-      this.params.viewWidth,
-      this.params.viewHeight,
-      {
-        magFilter: THREE.LinearFilter,
-        minFilter: THREE.LinearFilter,
-        format: THREE.RGBAFormat,
-      }
-    );
-
-    // 一つ前のフレームとparticlesを合成したもの、これを画面に出力する
-    this.offScreenParams.mixedTarget = new THREE.WebGLRenderTarget(
-      this.params.viewWidth,
-      this.params.viewHeight,
-      {
-        magFilter: THREE.LinearFilter,
-        minFilter: THREE.LinearFilter,
-        format: THREE.RGBAFormat,
-      }
-    );
+    // オフスクリーン用のシーン（テクスチャ合成用）
+    this.offScreenParams.mixScene = new THREE.Scene();
 
     // オフスクリーン用のカメラ
     this.offScreenParams.camera = new THREE.OrthographicCamera(
@@ -378,52 +361,121 @@ export class Main {
       0,                            // near
       10                            // far
     );
+    this.offScreenParams.camera.position.set(0, 0, 1);
 
-    // オフスクリーン用のシーン（パーティクル描画用）
-    this.offScreenParams.scene = new THREE.Scene();
+    // パーティクルを描画するレンダーターゲット
+    this.offScreenParams.renderTarget = new THREE.WebGLRenderTarget(
+      this.params.viewWidth,
+      this.params.viewHeight,
+      {
+        magFilter: THREE.LinearFilter,
+        minFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat,
+      }
+    );
 
-    // オフスクリーン用のシーン（テクスチャ合成用）
-    this.offScreenParams.mixedScene = new THREE.Scene();
+    // 累積テクスチャを作成するためのレンダーターゲット（1と2を作って交代で使う）
+    this.offScreenParams.mixRenderTarget1 = new THREE.WebGLRenderTarget(
+      this.params.viewWidth,
+      this.params.viewHeight,
+      {
+        magFilter: THREE.LinearFilter,
+        minFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat,
+      }
+    );
 
-    // オフスクリーンで作成したテクスチャを画面表示するジオメトリ
-    const geometry = new THREE.PlaneGeometry(this.params.viewWidth, this.params.viewHeight);
+    // 累積テクスチャを作成するためのレンダーターゲット（1と2を作って交代で使う）
+    this.offScreenParams.mixRenderTarget2 = new THREE.WebGLRenderTarget(
+      this.params.viewWidth,
+      this.params.viewHeight,
+      {
+        magFilter: THREE.LinearFilter,
+        minFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat,
+      }
+    );
 
-    // オフスクリーンで作成したテクスチャを画面表示するマテリアル
-    const material = new THREE.ShaderMaterial({
-      side: THREE.DoubleSide,
-      transparent: true,
-      uniforms: {
-          u_background_texture: {
-            value: this.velocityImageParams.texture
-          },
-          u_particle_texture: {
-              value: this.offScreenParams.getCurrentTexture()
-          },
-      },
-      vertexShader: /* GLSL */`
-        varying vec2 vUv;
-        void main() {
-          gl_Position =  projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          vUv = uv;
-        }
-      `,
-      fragmentShader: /* GLSL */`
+    this.offScreenParams.mixRenderTarget = this.offScreenParams.mixRenderTarget1;
+
+    //
+    // ★ 累積テクスチャを作成するためのメッシュを作る
+    //
+    const mixMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(this.params.viewWidth, this.params.viewHeight),
+      new THREE.ShaderMaterial({
+        transparent: true,
+        uniforms: {
+          u_current_texture: { value: this.offScreenParams.currentTexture },  // render()のたびに更新
+          u_mix_texture: { value: this.offScreenParams.mixTexture },          // render()のたびに更新
+        },
+
+        vertexShader: /*glsl*/`
+          varying vec2 vUv;
+          void main() {
+            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+            vUv = uv;
+          }
+        `,
+
+        fragmentShader: /*glsl*/`
+          uniform sampler2D u_current_texture;
+          uniform sampler2D u_mix_texture;
+          varying vec2 vUv;
+
+          void main() {
+            vec4 current = texture2D(u_current_texture, vUv);
+            vec4 mixed = texture2D(u_mix_texture, vUv);
+            mixed -= vec4(vec3(0.0), 0.01);
+            // gl_FragColor = current + mixed;
+            gl_FragColor = current;
+          }
+        `,
+      })
+    );
+
+    // ★このメッシュをオフスクリーン用のmixSceneに追加
+    this.offScreenParams.mixScene.add(mixMesh);
+
+    // ★このメッシュを保存しておく（render時にuniformsの値を更新するため）
+    this.offScreenParams.mixMesh = mixMesh;
+
+    //
+    // ★ 最終的に画面表示するメッシュを作成（背景画像とパーティクル画像を重ね合わせて表示する）
+    //
+
+    const displayMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(this.params.viewWidth, this.params.viewHeight),
+      new THREE.ShaderMaterial({
+        transparent: true,
+        uniforms: {
+          u_background_texture: { value: this.velocityImageParams.texture },  // 背景画像
+          u_particle_texture: { value: this.offScreenParams.mixTexture },     // 累積テクスチャ画像
+        },
+        vertexShader: /* GLSL */`
+          varying vec2 vUv;
+          void main() {
+            gl_Position =  projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            vUv = uv;
+          }
+        `,
+        fragmentShader: /* GLSL */`
           uniform sampler2D u_background_texture;
           uniform sampler2D u_particle_texture;
           varying vec2 vUv;
           void main() {
-              vec4 backgroundColor = texture2D(u_background_texture, vUv);
-              vec4 particleColor = texture2D(u_particle_texture, vUv);
-              gl_FragColor = vec4(mix(backgroundColor.rgb, particleColor.rgb, particleColor.a), 1.0);
+            vec4 backgroundColor = texture2D(u_background_texture, vUv);
+            vec4 particleColor = texture2D(u_particle_texture, vUv);
+            gl_FragColor = vec4(mix(backgroundColor.rgb, particleColor.rgb, particleColor.a), 1.0);
           }
-      `,
-    });
+        `,
+      })
+    );
 
-    // オフスクリーンで作成したテクスチャを画面表示するメッシュ
-    const mesh = new THREE.Mesh(geometry, material);
+    this.params.displayMesh = displayMesh;
 
-    // シーンに追加
-    this.scene.add(mesh);
+    // 画面表示用のシーンに追加
+    this.scene.add(displayMesh);
   }
 
 
@@ -488,25 +540,33 @@ export class Main {
       this.updateParticles();
 
       // ★オフスクリーン用のレンダーターゲットにパーティクルを描画
-      this.renderer.setRenderTarget(this.offScreenParams.target);
+      this.renderer.setRenderTarget(this.offScreenParams.renderTarget);
       this.renderer.render(this.offScreenParams.scene, this.offScreenParams.camera);
       this.renderer.setRenderTarget(null);
-
-      // ★一つ前のフレームのテクスチャと、いまのテクスチャを重ね合わせる
+      this.offScreenParams.currentTexture = this.offScreenParams.renderTarget.texture;
+      if (this.offScreenParams.mixTexture === null) {
+        // 初回対応
+        this.offScreenParams.mixTexture = this.offScreenParams.renderTarget.texture;
+      }
 
       // ★uniformsにテクスチャをセットして、
-      this.offScreenParams.mixedMesh.material.uniforms.u_current_texture.value = this.offScreenParams.target.texture;
-      this.offScreenParams.mixedMesh.material.uniforms.u_previous_texture.value = this.offScreenParams.prevTarget.texture;
+      this.offScreenParams.mixMesh.material.uniforms.u_current_texture.value = this.offScreenParams.currentTexture;
+      this.offScreenParams.mixMesh.material.uniforms.u_mix_texture.value = this.offScreenParams.mixTexture;
 
-      // ★オフスクリーンで合成する
-      this.renderer.setRenderTarget(this.offScreenParams.mixedTarget);
-      this.renderer.render(this.offScreenParams.mixedScene, this.offScreenParams.camera);
+      // ★累積画像を作成する
+      this.renderer.setRenderTarget(this.offScreenParams.mixRenderTarget);
+      this.renderer.render(this.offScreenParams.mixScene, this.offScreenParams.camera);
       this.renderer.setRenderTarget(null);
+      // テクスチャを取り出す
+      this.offScreenParams.mixTexture = this.offScreenParams.mixRenderTarget.texture;
 
-      // ★スワップする
-      this.offScreenParams.swap();
+      // mixRenderTargetを入れ替える
+      this.offScreenParams.swapMixRenderTarget();
 
-      // 再描画
+      // TODO
+      this.params.displayMesh.material.uniforms.u_particle_texture = this.offScreenParams.mixTexture;
+
+      // 画面に描画
       this.renderer.render(this.scene, this.camera);
     }
 
@@ -564,7 +624,7 @@ export class Main {
     }
 
     const shader = 'void main() { }';  // compute()しないので空でよい
-    const variable = computationRenderer.addVariable("textureColorRamp",shader,initialTexture);
+    const variable = computationRenderer.addVariable("textureColorRamp", shader, initialTexture);
     computationRenderer.setVariableDependencies(variable, [variable]);
     computationRenderer.init();
 
@@ -1040,80 +1100,6 @@ export class Main {
 
     // ★ パーティクルのメッシュをオフスクリーン用のシーンに追加
     this.offScreenParams.scene.add(mesh);
-
-
-    // ★ 一つ前のテクスチャといまのテクスチャを合成したメッシュを作る
-    const mixedMesh = new THREE.Mesh(
-      // プレーンジオメトリと、
-      new THREE.PlaneGeometry(this.params.viewWidth, this.params.viewHeight),
-      // シェーダーマテリアルでメッシュを作成
-      new THREE.ShaderMaterial({
-        uniforms: {
-          u_current_texture: { value: null },
-          u_previous_texture: { value: null },
-        },
-
-        vertexShader: /*glsl*/`
-          varying vec2 vUv;
-          void main() {
-            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-            vUv = uv;
-          }
-        `,
-
-        fragmentShader: /*glsl*/`
-          precision mediump float;
-
-          uniform sampler2D u_current_texture;
-          uniform sampler2D u_previous_texture;
-          varying vec2 vUv;
-
-          float when_gt(float x, float y) {
-            return max(sign(x-y), 0.0);
-          }
-
-          void test1() {
-            vec4 curr = texture2D(u_current_texture, vUv);
-            vec4 prev = texture2D(u_previous_texture, vUv) - vec4(vec3(0.0), 0.02);
-            vec4 mixed = curr + prev;
-            gl_FragColor = mixed;
-          }
-
-          void test2() {
-            vec4 curr = texture2D(u_current_texture, vUv);
-            vec4 prev = texture2D(u_previous_texture, vUv);
-            prev *= 0.99;
-            vec4 mixed = curr + prev;
-            // mixed = vec4(mix(curr.rgb, prev.rgb, prev.a), prev.a);
-            // mixed = mix(curr, prev, 0.8);
-            // mixed = vec4(vec3(0.0, 1.0, 0.0), mixed.a);
-            gl_FragColor = mixed;
-          }
-
-          void test3() {
-            // https://discourse.threejs.org/t/shader-material-blending/9087
-            vec4 curr = texture2D(u_current_texture, vUv);
-            vec4 prev = texture2D(u_previous_texture, vUv) * 0.99;
-            float threshold = 0.5;
-            prev.r *= when_gt(prev.r, threshold);
-            prev.g *= when_gt(prev.g, threshold);
-            prev.b *= when_gt(prev.b, threshold);
-            prev.a *= when_gt(prev.a, threshold);
-            gl_FragColor = curr + prev;
-          }
-
-          void main() {
-            test2();
-          }
-        `,
-      })
-    );
-
-    // ★テクスチャを合成したメッシュはオフスクリーン用のシーンに追加
-    this.offScreenParams.mixedScene.add(mixedMesh);
-
-    // ★保存しておく（uniformsで渡すテクスチャを毎フレームセットするため）
-    this.offScreenParams.mixedMesh = mixedMesh;
   }
 
   updateParticles = () => {
