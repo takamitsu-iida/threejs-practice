@@ -412,7 +412,20 @@ export class Main {
             vec4 current = texture2D(u_current_texture, vUv);
             vec4 mixed = texture2D(u_mix_texture, vUv);
             mixed -= vec4(vec3(0.0), 0.01);
-            gl_FragColor = current + mixed;
+            // gl_FragColor = current + mixed;
+
+            vec4 added = current + mixed;
+            if (added.r > 1.0) {
+              added.r = current.r;
+            }
+            if (added.g > 1.0) {
+              added.g = current.g;
+            }
+            if (added.b > 1.0) {
+              added.b = current.b;
+            }
+
+            gl_FragColor = added;
           }
         `,
       })

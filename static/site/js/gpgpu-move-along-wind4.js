@@ -112,13 +112,11 @@ export class Main {
   }
 
   // オフスクリーンでレンダリングするレンダーターゲット
-  // initThreejs()の中で初期化する
   offScreenParams = {
     target: null,       // パーティクルを描画するレンダーターゲット
     prevTarget: null,   // 一つ前のフレーム
     mixedTarget: null,  // 一つ前のフレームとparticlesを合成したもの、これを画面に出力する
 
-    camera: null,       // オフスクリーン用のカメラ
     scene: null,        // パーティクルを描画するシーン
     mixedScene: null,   // 一つ前のテクスチャと現在のテクスチャを合成するためのシーン
     mixedMesh: null,    // 一つ前のテクスチャと現在のテクスチャを合成したメッシュ
@@ -176,11 +174,9 @@ export class Main {
     this.initGui();
 
     // GPUComputationRendererを使ってパーティクルの色を決めるためのテクスチャを作成
-    // rendererを使うのでinitThreejs()の後に実行
     this.createColorRampTexture();
 
     // GPUComputationRendererを使って速度計算用のテクスチャを作成
-    // rendererを使うのでinitThreejs()の後に実行
     this.createVelocityTexture();
 
     // GPUComputationRendererを初期化
@@ -369,16 +365,6 @@ export class Main {
       }
     );
 
-    // オフスクリーン用のカメラ
-    this.offScreenParams.camera = new THREE.OrthographicCamera(
-      -this.params.viewWidth / 2,   // left
-      this.params.viewWidth / 2,    // right
-      this.params.viewHeight / 2,   // top
-      -this.params.viewHeight / 2,  // bottom
-      0,                            // near
-      10                            // far
-    );
-
     // オフスクリーン用のシーン（パーティクル描画用）
     this.offScreenParams.scene = new THREE.Scene();
 
@@ -489,7 +475,7 @@ export class Main {
 
       // ★オフスクリーン用のレンダーターゲットにパーティクルを描画
       this.renderer.setRenderTarget(this.offScreenParams.target);
-      this.renderer.render(this.offScreenParams.scene, this.offScreenParams.camera);
+      this.renderer.render(this.offScreenParams.scene, this.camera);
       this.renderer.setRenderTarget(null);
 
       // ★一つ前のフレームのテクスチャと、いまのテクスチャを重ね合わせる
@@ -500,7 +486,7 @@ export class Main {
 
       // ★オフスクリーンで合成する
       this.renderer.setRenderTarget(this.offScreenParams.mixedTarget);
-      this.renderer.render(this.offScreenParams.mixedScene, this.offScreenParams.camera);
+      this.renderer.render(this.offScreenParams.mixedScene, this.camera);
       this.renderer.setRenderTarget(null);
 
       // ★スワップする
@@ -1102,8 +1088,22 @@ export class Main {
             gl_FragColor = curr + prev;
           }
 
+          void test4() {
+            vec4 curr = texture2D(u_current_texture, vUv);
+            vec4 prev = texture2D(u_previous_texture, vUv);
+
+            prev -= vec4(vec3(0.0), 0.01);
+
+            vec4 mixed = curr + prev;
+
+            if (mixed.r >= 1.0 || mixed.g >= 1.0 || mixed.b >= 1.0) {
+              mixed /= 2.0;
+            }
+
+            gl_FragColor = mixed;
+          }
           void main() {
-            test2();
+            test4();
           }
         `,
       })
