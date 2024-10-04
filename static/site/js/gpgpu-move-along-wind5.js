@@ -74,7 +74,7 @@ export class Main {
     // パーティクルを表示するかどうか
     showParticles: true,
 
-    // TODO 必要？
+    // 画面表示用のメッシュ
     displayMesh: null,
   }
 
@@ -115,23 +115,21 @@ export class Main {
   }
 
   // オフスクリーンでレンダリングするパラメータ
-  // initThreejs()の中で初期化する
   offScreenParams = {
     scene: null,             // パーティクルのメッシュを配置するシーン
-    camera: null,            // オフスクリーン用のカメラ
+    mixMesh: null,           // 合成するためのメッシュ
+    mixScene: null,          // mixMeshを配置するシーン
+
     renderTarget: null,      // パーティクルを描画するレンダーターゲット
+    mixRenderTarget1: null,  // 累積テクスチャを作るためのレンダーターゲット（実体）
+    mixRenderTarget2: null,  // 累積テクスチャを作るためのレンダーターゲット（実体）
+    mixRenderTarget: null,   // 1 or 2を参照
 
-    mixRenderTarget: null,   // 累積テクスチャを作るレンダーターゲットを２つ用意して交代で使う
-    mixRenderTarget1: null,  // パーティクルを描画したテクスチャを重ね合わせるためのレンダーターゲット
-    mixRenderTarget2: null,  // パーティクルを描画したテクスチャを重ね合わせるためのレンダーターゲット
-    mixScene: null,          // 合成するテクスチャを配置ためのシーン
-    mixMesh: null,           // 一つ前のテクスチャと現在のテクスチャを合成したメッシュ
-
-    // renderTargetから取り出したテクスチャ
+    // 各renderTargetから取り出したテクスチャ
     currentTexture: null,
     mixTexture: null,
 
-    // mixRenderTarget1と2を入れ替える
+    // 参照しているmixRenderTarget1 or 2を入れ替える
     swapMixRenderTarget: () => {
       if (this.offScreenParams.mixRenderTarget === this.offScreenParams.mixRenderTarget1) {
         this.offScreenParams.mixRenderTarget = this.offScreenParams.mixRenderTarget2;
@@ -184,11 +182,9 @@ export class Main {
     this.initGui();
 
     // GPUComputationRendererを使ってパーティクルの色を決めるためのテクスチャを作成
-    // rendererを使うのでinitThreejs()の後に実行
     this.createColorRampTexture();
 
     // GPUComputationRendererを使って速度計算用のテクスチャを作成
-    // rendererを使うのでinitThreejs()の後に実行
     this.createVelocityTexture();
 
     // GPUComputationRendererを初期化
@@ -352,17 +348,6 @@ export class Main {
     // オフスクリーン用のシーン（テクスチャ合成用）
     this.offScreenParams.mixScene = new THREE.Scene();
 
-    // オフスクリーン用のカメラ
-    this.offScreenParams.camera = new THREE.OrthographicCamera(
-      -this.params.viewWidth / 2,   // left
-      this.params.viewWidth / 2,    // right
-      this.params.viewHeight / 2,   // top
-      -this.params.viewHeight / 2,  // bottom
-      0,                            // near
-      10                            // far
-    );
-    this.offScreenParams.camera.position.set(0, 0, 1);
-
     // パーティクルを描画するレンダーターゲット
     this.offScreenParams.renderTarget = new THREE.WebGLRenderTarget(
       this.params.viewWidth,
@@ -427,8 +412,7 @@ export class Main {
             vec4 current = texture2D(u_current_texture, vUv);
             vec4 mixed = texture2D(u_mix_texture, vUv);
             mixed -= vec4(vec3(0.0), 0.01);
-            // gl_FragColor = current + mixed;
-            gl_FragColor = current;
+            gl_FragColor = current + mixed;
           }
         `,
       })
@@ -444,7 +428,7 @@ export class Main {
     // ★ 最終的に画面表示するメッシュを作成（背景画像とパーティクル画像を重ね合わせて表示する）
     //
 
-    const displayMesh = new THREE.Mesh(
+    const mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(this.params.viewWidth, this.params.viewHeight),
       new THREE.ShaderMaterial({
         transparent: true,
@@ -472,10 +456,10 @@ export class Main {
       })
     );
 
-    this.params.displayMesh = displayMesh;
-
     // 画面表示用のシーンに追加
-    this.scene.add(displayMesh);
+    this.scene.add(mesh);
+
+    this.params.displayMesh = mesh;
   }
 
 
@@ -541,11 +525,11 @@ export class Main {
 
       // ★オフスクリーン用のレンダーターゲットにパーティクルを描画
       this.renderer.setRenderTarget(this.offScreenParams.renderTarget);
-      this.renderer.render(this.offScreenParams.scene, this.offScreenParams.camera);
+      this.renderer.render(this.offScreenParams.scene, this.camera);
       this.renderer.setRenderTarget(null);
       this.offScreenParams.currentTexture = this.offScreenParams.renderTarget.texture;
       if (this.offScreenParams.mixTexture === null) {
-        // 初回対応
+        // 初回のみ
         this.offScreenParams.mixTexture = this.offScreenParams.renderTarget.texture;
       }
 
@@ -555,16 +539,15 @@ export class Main {
 
       // ★累積画像を作成する
       this.renderer.setRenderTarget(this.offScreenParams.mixRenderTarget);
-      this.renderer.render(this.offScreenParams.mixScene, this.offScreenParams.camera);
+      this.renderer.render(this.offScreenParams.mixScene, this.camera);
       this.renderer.setRenderTarget(null);
-      // テクスチャを取り出す
       this.offScreenParams.mixTexture = this.offScreenParams.mixRenderTarget.texture;
 
       // mixRenderTargetを入れ替える
       this.offScreenParams.swapMixRenderTarget();
 
-      // TODO
-      this.params.displayMesh.material.uniforms.u_particle_texture = this.offScreenParams.mixTexture;
+      // ★uniformsにテクスチャをセットして、
+      this.params.displayMesh.material.uniforms.u_particle_texture.value = this.offScreenParams.mixTexture;
 
       // 画面に描画
       this.renderer.render(this.scene, this.camera);
@@ -1095,11 +1078,11 @@ export class Main {
     // メッシュ化
     const mesh = new THREE.Points(geometry, material);
 
-    // メッシュをparamsに保存しておく(lil-guiで表示のON/OFFを切り替えるため)
-    this.params.particleMesh = mesh;
-
     // ★ パーティクルのメッシュをオフスクリーン用のシーンに追加
     this.offScreenParams.scene.add(mesh);
+
+    // メッシュをparamsに保存しておく(lil-guiで表示のON/OFFを切り替えるため)
+    this.params.particleMesh = mesh;
   }
 
   updateParticles = () => {
