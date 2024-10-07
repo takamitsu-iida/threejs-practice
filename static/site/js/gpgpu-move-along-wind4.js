@@ -114,14 +114,17 @@ export class Main {
   // オフスクリーンでレンダリングするレンダーターゲット
   offScreenParams = {
     target: null,       // パーティクルを描画するレンダーターゲット
-    prevTarget: null,   // 一つ前のフレーム
-    mixedTarget: null,  // 一つ前のフレームとparticlesを合成したもの、これを画面に出力する
+
+    // チラツキを防ぐために、レンダーターゲットを２つ用意して入れ替えて使う
+    prevTarget: null,   // 一つ前のフレームのレンダーターゲット
+    mixedTarget: null,  // 画面出力用テクスチャを作るレンダーターゲット
 
     scene: null,        // パーティクルを描画するシーン
     mixedScene: null,   // 一つ前のテクスチャと現在のテクスチャを合成するためのシーン
     mixedMesh: null,    // 一つ前のテクスチャと現在のテクスチャを合成したメッシュ
 
-    swap: () => {       // prevTargetとmixedTargetを入れ替える
+    // prevTargetとmixedTargetを入れ替える
+    swap: () => {
       const temp = this.offScreenParams.mixedTarget;
       this.offScreenParams.mixedTarget = this.offScreenParams.prevTarget;
       this.offScreenParams.prevTarget = temp;
@@ -1102,6 +1105,7 @@ export class Main {
 
             gl_FragColor = mixed;
           }
+
           void main() {
             test4();
           }

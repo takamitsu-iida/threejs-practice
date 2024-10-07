@@ -72,6 +72,16 @@ https://takamitsu-iida.github.io/threejs-practice/index-load-csv.html
 先にどうやってデータ補間するかを解決しないと。
 もしくは、2Dでコンターを作成して、それを3D化した方がいいかな。
 
+<!--
+
+https://jamescheshire.github.io/learningR/interpolating-point-data.html
+
+Thiessen Polygon ティーセンポリゴン
+逆距離加重法 IDW (Inverse Distance Weighting)
+通常距離加重法 NDW (Normal Distance Weighting)
+
+-->
+
 
 <br><br><br>
 
