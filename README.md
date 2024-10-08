@@ -664,7 +664,7 @@ GPGPUを使えばCPUに負荷がかからないことを確かめるために、
 
 <br>
 
-## GPGPU move along wind flow
+## GPGPU move along wind flow (Part 1)
 
 天気予報でもよく見かける風の可視化。
 
@@ -690,7 +690,7 @@ GPGPUを使えばCPUに負荷がかからないことを確かめるために、
 
 <br>
 
-## GPGPU move along wind flow
+## GPGPU move along wind flow (Part 2)
 
 クイックハックしてパーティクルの軌跡を描画してみたのがこれ。軌跡がでると一気に雰囲気が変わる。
 
@@ -711,7 +711,7 @@ GPGPUを使えばCPUに負荷がかからないことを確かめるために、
 
 <br>
 
-## GPGPU move along wind flow（失敗作）
+## GPGPU move along wind flow (Part 3) 失敗作
 
 背景画像用のシーンとカメラを別に作成して、背景、パーティクルの順番でレンダリングするようにしたのがこれ。
 
@@ -727,7 +727,7 @@ GPGPUを使えばCPUに負荷がかからないことを確かめるために、
 
 <br>
 
-## GPGPU move along wind flow（これでよい？）
+## GPGPU move along wind flow (Part 4) 完成
 
 オフスクリーンでパーティクルをレンダリングしてテクスチャを作成して、１フレーム前のテクスチャと合成するようにしたのがこれ。
 
