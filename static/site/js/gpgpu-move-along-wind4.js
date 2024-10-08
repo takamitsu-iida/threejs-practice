@@ -22,6 +22,11 @@ import { GPUComputationRenderer } from "three/libs/misc/GPUComputationRenderer.j
 // https://blog.mapbox.com/how-i-built-a-wind-map-with-webgl-b63022b5537f
 
 
+//
+// NOTE: チラツキが解消できているので、この実装が一番よいと思われる
+//
+
+
 export class Main {
 
   container;
@@ -1106,8 +1111,24 @@ export class Main {
             gl_FragColor = mixed;
           }
 
+          void test5() {
+            vec4 curr = texture2D(u_current_texture, vUv);
+            vec4 prev = texture2D(u_previous_texture, vUv);
+
+            // 過去のフレームの色を少し暗くする
+            prev -= vec4(vec3(0.0), 0.01);
+
+            // これでもよい
+            // vec4 mixed = curr * curr.a + prev * (1.0 - curr.a);
+
+            // curr.aを二値化して、prevかcurrのどちらかを描画する
+            vec4 mixed = mix(prev, curr, step(0.5, curr.a));
+
+            gl_FragColor = mixed;
+          }
+
           void main() {
-            test4();
+            test5();
           }
         `,
       })

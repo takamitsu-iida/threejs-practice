@@ -22,6 +22,8 @@ import { GPUComputationRenderer } from "three/libs/misc/GPUComputationRenderer.j
 // https://blog.mapbox.com/how-i-built-a-wind-map-with-webgl-b63022b5537f
 
 
+// NOTE: この実装はダメ。画面がチラつく。
+
 export class Main {
 
   container;

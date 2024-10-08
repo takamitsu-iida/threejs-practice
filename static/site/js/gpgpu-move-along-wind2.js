@@ -21,6 +21,10 @@ import { GPUComputationRenderer } from "three/libs/misc/GPUComputationRenderer.j
 // 解説記事はここから
 // https://blog.mapbox.com/how-i-built-a-wind-map-with-webgl-b63022b5537f
 
+//
+// レンダラのオプションpreserveDrawingBufferをtrueにすることで過去の画像と重ね合わせる
+// この実装では、背景画像が消えてしまう
+//
 
 export class Main {
 
@@ -279,7 +283,6 @@ export class Main {
   };
 
 
-
   initThreejs = () => {
     // シーン
     this.scene = new THREE.Scene();
@@ -314,13 +317,12 @@ export class Main {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.getElementById("threejsContainer").appendChild(this.renderer.domElement);
 
-    // 透過度0.01の板をカメラの前に設置する
+    // ★ 透過度0.01の板をカメラの前に設置する
     const fadePlane = new THREE.Mesh(
       new THREE.PlaneGeometry(this.params.viewWidth, this.params.viewHeight),
       new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.01 })
     );
-    fadePlane.material.renderOrder = -1;
-    fadePlane.position.z = -1;
+    fadePlane.position.z = 0.9;  // カメラの前に配置
     this.scene.add(fadePlane);
   }
 
