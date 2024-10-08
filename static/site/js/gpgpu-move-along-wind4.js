@@ -23,7 +23,7 @@ import { GPUComputationRenderer } from "three/libs/misc/GPUComputationRenderer.j
 
 
 //
-// NOTE: チラツキが解消できているので、この実装が一番よいと思われる
+// NOTE: チラツキが解消できているので、この実装が一番よい
 //
 
 
@@ -72,6 +72,9 @@ export class Main {
 
     // バックグランドに速度の元になる画像を表示するかどうか
     showBackground: true,
+
+    // 画面表示用のメッシュ
+    disipalyMesh: null,
 
     // パーティクルのメッシュ
     particleMesh: null,
@@ -351,7 +354,10 @@ export class Main {
       }
     );
 
-    // 一つ前のフレーム
+    // prevTargetとmixedTargetの役割は同じで、交代交代に使う
+    // 自分が作ったテクスチャを自分で使うとエラーになるので、その対策も兼ねている
+
+    // 一つ前のフレームとparticlesを合成する
     this.offScreenParams.prevTarget = new THREE.WebGLRenderTarget(
       this.params.viewWidth,
       this.params.viewHeight,
@@ -362,7 +368,7 @@ export class Main {
       }
     );
 
-    // 一つ前のフレームとparticlesを合成したもの、これを画面に出力する
+    // 一つ前のフレームとparticlesを合成する
     this.offScreenParams.mixedTarget = new THREE.WebGLRenderTarget(
       this.params.viewWidth,
       this.params.viewHeight,
@@ -379,20 +385,17 @@ export class Main {
     // オフスクリーン用のシーン（テクスチャ合成用）
     this.offScreenParams.mixedScene = new THREE.Scene();
 
-    // オフスクリーンで作成したテクスチャを画面表示するジオメトリ
+    // オフスクリーンで作成したテクスチャを画面表示する板ポリゴンのジオメトリ
     const geometry = new THREE.PlaneGeometry(this.params.viewWidth, this.params.viewHeight);
 
-    // オフスクリーンで作成したテクスチャを画面表示するマテリアル
+    // 板ポリゴンに貼り付けるマテリアル
     const material = new THREE.ShaderMaterial({
       side: THREE.DoubleSide,
       transparent: true,
       uniforms: {
-          u_background_texture: {
-            value: this.velocityImageParams.texture
-          },
-          u_particle_texture: {
-              value: this.offScreenParams.getCurrentTexture()
-          },
+        u_show_background: { value: this.params.showBackground },
+        u_background_texture: { value: this.velocityImageParams.texture },
+        u_particle_texture: { value: this.offScreenParams.getCurrentTexture() },
       },
       vertexShader: /* GLSL */`
         varying vec2 vUv;
@@ -402,14 +405,19 @@ export class Main {
         }
       `,
       fragmentShader: /* GLSL */`
-          uniform sampler2D u_background_texture;
-          uniform sampler2D u_particle_texture;
-          varying vec2 vUv;
-          void main() {
-              vec4 backgroundColor = texture2D(u_background_texture, vUv);
-              vec4 particleColor = texture2D(u_particle_texture, vUv);
-              gl_FragColor = vec4(mix(backgroundColor.rgb, particleColor.rgb, particleColor.a), 1.0);
+        uniform bool u_show_background;
+        uniform sampler2D u_background_texture;
+        uniform sampler2D u_particle_texture;
+        varying vec2 vUv;
+        void main() {
+          vec4 backgroundColor = texture2D(u_background_texture, vUv);
+          vec4 particleColor = texture2D(u_particle_texture, vUv);
+          if (u_show_background) {
+            gl_FragColor = vec4(mix(backgroundColor.rgb, particleColor.rgb, particleColor.a), 1.0);
+          } else {
+            gl_FragColor = particleColor;
           }
+        }
       `,
     });
 
@@ -418,6 +426,9 @@ export class Main {
 
     // シーンに追加
     this.scene.add(mesh);
+
+    // 保存しておく（uniformsの値を変更するため）
+    this.params.disipalyMesh = mesh;
   }
 
 
@@ -446,14 +457,12 @@ export class Main {
       .max(3.0)
       .step(0.1);
 
-    /*
     gui
       .add(this.params, "showBackground")
       .name("show background")
       .onChange((value) => {
-        this.params.backgroundMesh.visible = value;
+        this.params.disipalyMesh.material.uniforms.u_show_background.value = value;
       });
-    */
 
     gui
       .add(this.params, "showParticles")

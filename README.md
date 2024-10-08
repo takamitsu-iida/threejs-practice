@@ -752,9 +752,13 @@ GPGPUを使えばCPUに負荷がかからないことを確かめるために、
 ```
 
 > [!NOTE]
+>
 > 自分用メモ
-> パーティクルを確率で新しい場所に移動させているので、軌跡を描くことなく一瞬で消滅する点が存在する
-> 一定期間は生存させるロジックを組み込む必要がある
+>
+> パーティクルを確率で新しい場所に移動させているので、軌跡を描くことなく一瞬で消滅してしまう点も存在する。
+>
+> 一定期間はパーティクルを生存させたいのだけど、GPGPで保存できる情報がvec4なのでageを保存する領域がなく、実装できていない。
+
 
 [![ScreenImage](./asset/index-gpgpu-move-along-wind4.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-move-along-wind4.html)
 
