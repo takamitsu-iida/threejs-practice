@@ -736,7 +736,7 @@ GPGPUを使えばCPUに負荷がかからないことを確かめるために、
 - 現在パーティクルが存在する場所、すなわちアルファ値が1.0のところは過去のテクスチャを加算しない
 - 逆にパーティクルがない場所は過去のテクスチャだけを描画する
 
-という要件をストレートに実装。パーティクルの色もちゃんと出てるし、これで良さげ。
+という要件をストレートに実装。パーティクルの色もちゃんと出てるし、これで良さそう。
 
 ```GLSL
   void test5() {
@@ -751,15 +751,6 @@ GPGPUを使えばCPUに負荷がかからないことを確かめるために、
   }
 ```
 
-> [!NOTE]
->
-> 自分用メモ
->
-> パーティクルを確率で新しい場所に移動させているので、軌跡を描くことなく一瞬で消滅してしまう点も存在する。
->
-> 一定期間はパーティクルを生存させたいのだけど、GPGPで保存できる情報がvec4なのでageを保存する領域がなく、実装できていない。
-
-
 [![ScreenImage](./asset/index-gpgpu-move-along-wind4.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-move-along-wind4.html)
 
 [Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-move-along-wind4.html)
@@ -767,6 +758,25 @@ GPGPUを使えばCPUに負荷がかからないことを確かめるために、
 [HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-gpgpu-move-along-wind4.html)
 
 [JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/gpgpu-move-along-wind4.js)
+
+<br>
+
+## GPGPU move along wind flow （見た目の調整のための改造版）
+
+見た目を調整するために、GPGPUで用いているテクスチャのデータ構造を変更。
+
+Part 1～4ではテクスチャの各ピクセルに(位置X, 位置Y, 速度X, 速度Y)を格納していた。
+これを(位置X, 位置Y, 速度の絶対値, 経過フレーム数)に変更。
+
+確率でランダムな位置にパーティクルを飛ばしていたのを、一定期間は必ず表示するように変更した。
+
+[![ScreenImage](./asset/index-gpgpu-move-along-wind5.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-move-along-wind5.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-move-along-wind5.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-gpgpu-move-along-wind5.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/gpgpu-move-along-wind5.js)
 
 <br>
 
