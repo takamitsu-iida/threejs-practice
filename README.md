@@ -14,11 +14,16 @@ JavaScriptだけで描画すると重たくなってしまうのを解決した�
 
 試しに5-Stage CLOS ネットワークを3D作図したものがこれです。
 
-https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html
+![ライブデモ](https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html "https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html")
 
 - (clusters, routers/cluster) = (10, 20) の場合、ルータ224台、エッジ440本
 - (clusters, routers/cluster) = (20, 30) の場合、ルータ664台、エッジ1,280本
 - (clusters, routers/cluster) = (30, 30) の場合、ルータ964台、エッジ1,920本
+
+
+画面をキャプチャした動画
+
+<video src="https://takamitsu-iida.github.io/decks/assets/index-nwdiagram.html.mp4" controls="true" width="800"></video>
 
 <br>
 
