@@ -14,7 +14,9 @@ JavaScriptだけで描画すると重たくなってしまうのを解決した�
 
 試しに5-Stage CLOS ネットワークを3D作図したものがこれです。
 
-[https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html](https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html)
+[![ScreenImage](./asset/index-nwdiagram.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html)
 
 - (clusters, routers/cluster) = (10, 20) の場合、ルータ224台、エッジ440本
 - (clusters, routers/cluster) = (20, 30) の場合、ルータ664台、エッジ1,280本
@@ -44,10 +46,12 @@ JavaScriptだけで描画すると重たくなってしまうのを解決した�
 
 魚群探知機から抽出した水深のCSVデータを加工して3Dで海底地形図を表示したい。
 
-まだ実力が足りないので、
+まだまだ実力が足りないので、
 まずはポイントクラウドを表示してみてどう見えるか。試しにやってみたのがこれです。
 
-https://takamitsu-iida.github.io/threejs-practice/index-load-csv.html
+[![ScreenImage](./asset/index-load-csv.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-csv.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-csv.html)
 
 用いたCSVのデータは10万ポイント。
 
