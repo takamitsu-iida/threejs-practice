@@ -20,11 +20,6 @@ JavaScriptだけで描画すると重たくなってしまうのを解決した�
 - (clusters, routers/cluster) = (20, 30) の場合、ルータ664台、エッジ1,280本
 - (clusters, routers/cluster) = (30, 30) の場合、ルータ964台、エッジ1,920本
 
-
-画面をキャプチャした動画
-
-[!(./assets/index-nwdiagram.html.png)](https://takamitsu-iida.github.io/decks/assets/index-nwdiagram.html.mp4)
-
 <br>
 
 実用するなら見やすいレイアウトを追求しないといけませんが、たとえ見づらくてもアートっぽい雰囲気を感じられればそれでいいかな、という気になります。
