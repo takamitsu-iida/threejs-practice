@@ -628,7 +628,7 @@ Curveクラスが持っている getPointAt(fraction) を使うとパス上の�
 
 <br>
 
-## GPGPU move along path
+## GPGPU move along path (Part 1)
 
 パーティクルをパスに沿って移動させる例。
 
@@ -650,7 +650,7 @@ GPGPUの例は探せばいくつも出てくるけど、どれもこれも難し
 
 <br>
 
-## GPGPU move along path
+## GPGPU move along path (Part 2)
 
 GPGPUを使えばCPUに負荷がかからないことを確かめるために、多数のパーティクルをパスに沿って移動させた例。
 
@@ -665,6 +665,26 @@ GPGPUを使えばCPUに負荷がかからないことを確かめるために、
 [HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-gpgpu-move-along-path2.html)
 
 [JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/gpgpu-move-along-path2.js)
+
+<br>
+
+## GPGPU move along path (Part 3)
+
+Part1と2の場合、事前に作成したテクスチャをuniformで渡してもいいわけで、GPGPUと言えるほどのことはしていない。
+
+パーティクルの位置もGPUで計算するようにしたのがこれ。
+
+フレームの更新ごとに`compute()`を実行してGPUで位置情報のテクスチャを更新。テクスチャに格納されている位置情報を読み取ってパーティクルを表示する。
+
+ついでなのでlil-guiでパラメータを変更できるようにしておいた。
+
+[![ScreenImage](./asset/index-gpgpu-move-along-path3.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-move-along-path3.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-move-along-path3.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-gpgpu-move-along-path3.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/gpgpu-move-along-path3.js)
 
 <br>
 

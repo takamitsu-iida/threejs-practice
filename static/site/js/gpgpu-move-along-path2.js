@@ -295,7 +295,8 @@ export class Main {
       positionTexture     // 最初に作ったテクスチャを渡す
     );
 
-    // console.log(positionVariable);
+    // uniformを登録する場合はここで設定する
+    // positionVariable.material.uniforms = {};
 
     // 戻り値は getCurrentRenderTarget() でテクスチャを取り出すのに必要なので、
     // 通常の使い方であれば外から参照できる場所に保存する必要がある
