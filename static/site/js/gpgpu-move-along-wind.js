@@ -846,8 +846,8 @@ export class Main {
           // 位置はXY
           vec2 pos = texturePositionValue.xy;
 
-          // 取り出した位置を加算してgl_Positionに保存
-          gl_Position =  projectionMatrix * modelViewMatrix * vec4(position + vec3(pos, 0.0), 1.0);
+          // 位置を取り出した値に更新してgl_Positionに保存
+          gl_Position =  projectionMatrix * modelViewMatrix * vec4(pos, 0.0, 1.0);
 
           // 速度はZW
           vec2 vel = texturePositionValue.zw;
