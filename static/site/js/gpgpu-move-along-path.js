@@ -412,8 +412,8 @@ export class Main {
           // 位置をテクスチャから取得する
           vec3 pos = texture2D(texturePosition, nextUv).xyz;
 
-          // 現在位置にposを加えて位置を更新
-          vec4 modelPosition = modelMatrix * vec4(position + pos, 1.0);
+          // 現在位置を取り出したposに更新する
+          vec4 modelPosition = modelMatrix * vec4(pos, 1.0);
           vec4 viewPosition = viewMatrix * modelPosition;
           gl_Position = projectionMatrix * viewPosition;
 
