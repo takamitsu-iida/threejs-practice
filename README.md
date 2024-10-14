@@ -572,6 +572,28 @@ Topojsonは手持ちで持っていた神奈川県三浦市のものを利用。
 
 <br>
 
+## Load GeoJSON
+
+GeoJSONを読み込んでTHREE.LineSegmentsでワイヤーフレームを表示した例。
+
+[ここ](https://observablehq.com/@mbostock/geojson-in-three-js)を参考に作成。
+
+d3.jsで書かれた部分は何が行われているのかよくわからないので、GeoJSONのデータだけ頂いて自分で理解できるやり方で実装したもの。
+
+GeoJSONは点と点を線で繋いでいく形式なので、LineSegmentsで表示するのが簡単でよい。
+
+地図を塗りつぶすにはポリゴン化しなければいけないので、現実的なCPUリソースの範囲内で実現するのは困難になる。その場合は球体に地図のテクスチャを貼ってしまった方が良い。
+
+[![ScreenImage](./asset/index-load-geojson.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-geojson.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-geojson.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-geojson.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-geojson.js)
+
+<br>
+
 ## Move along path
 
 オブジェクトをパスに沿って移動させる例。
