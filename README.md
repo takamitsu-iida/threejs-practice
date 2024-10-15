@@ -572,7 +572,7 @@ Topojsonは手持ちで持っていた神奈川県三浦市のものを利用。
 
 <br>
 
-## Load GeoJSON
+## Load GeoJSON (Part 1)
 
 GeoJSONを読み込んでTHREE.LineSegmentsでワイヤーフレームを表示した例。
 
@@ -591,6 +591,23 @@ GeoJSONは点と点を線で繋いでいく形式なので、LineSegmentsで表�
 [HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-geojson.html)
 
 [JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-geojson.js)
+
+<br>
+
+## Load GeoJSON (Part 2)
+
+球体にテクスチャを貼った上にGeoJSONでワイヤフレームを描画した例。
+
+国を表示するテクスチャがあるといいんだけど、そう都合よく見つからないので、取り急ぎは手持ちのテクスチャでやってみた。
+
+[![ScreenImage](./asset/index-load-geojson2.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-geojson2.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-geojson2.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-geojson2.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-geojson2.js)
+
 
 <br>
 
