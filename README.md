@@ -611,6 +611,22 @@ GeoJSONは点と点を線で繋いでいく形式なので、LineSegmentsで表�
 
 <br>
 
+## Load GeoJSON (Part 3)
+
+都市間を`CubicBezierCurve3`で作成した曲線で繋いだもの。
+
+[ここ](https://medium.com/@xiaoyangzhao/drawing-curves-on-webgl-globe-using-three-js-and-d3-draft-7e782ffd7ab)を参考に作成。
+
+[![ScreenImage](./asset/index-load-geojson3.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-geojson3.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-geojson3.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-geojson3.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-geojson3.js)
+
+<br>
+
 ## Move along path
 
 オブジェクトをパスに沿って移動させる例。
