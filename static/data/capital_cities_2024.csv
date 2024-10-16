@@ -1,0 +1,198 @@
+OBJECTID,cptl_name,ctry_name,adm0_a3,iso_a2,ja_cptl,ja_ctry,x,y
+1,Vatican City,Vatican,VAT,VA,バチカン,バチカン市国,12.4533865,41.9032822
+2,Alofi,Niue,NIU,NZ,アロフィ,ニウエ,-169.9136254,-19.0659877
+3,San Marino,San Marino,SMR,SM,サンマリノ,サンマリノ,12.4417702,43.9360958
+4,Vaduz,Liechtenstein,LIE,LI,ファドーツ,リヒテンシュタイン,9.5166695,47.1337238
+5,Luxembourg,Luxembourg,LUX,LU,ルクセンブルク,ルクセンブルク,6.1300028,49.6116604
+6,Palikir,Federated States of Micronesia,FSM,FM,パリキール,ミクロネシア,158.1499743,6.9166437
+7,Majuro,Marshall Islands,MHL,MH,マジュロ,マーシャル諸島,171.3800002,7.1030043
+8,Funafuti,Tuvalu,TUV,TV,フナフティ,ツバル,179.2166471,-8.516652
+9,Melekeok,Palau,PLW,PW,マルキョク,パラオ,134.6265485,7.4873962
+10,Monaco,Monaco,MCO,MC,モナコ,モナコ,7.4069132,43.7396457
+11,Tarawa,Kiribati,KIR,KI,タラワ,キリバス,173.0175708,1.3381875
+12,Moroni,Comoros,COM,KM,モロニ,コモロ,43.2402441,-11.7041577
+13,Andorra,Andorra,AND,AD,アンドララベリャ,アンドラ,1.516486,42.5000014
+14,Avarua,Cook Islands,COK,CK,アバルア,クック諸島,-159.7854367,-21.1962256
+15,Port-of-Spain,Trinidad and Tobago,TTO,TT,ポートオブスペイン,トリニダードトバゴ,-61.5170309,10.6519971
+16,Kigali,Rwanda,RWA,RW,キガリ,ルワンダ,30.0585859,-1.9516442
+17,Mbabane,eSwatini,SWZ,SZ,ムババーネ,エスワティニ,31.1333345,-26.3166508
+18,Juba,South Sudan,SSD,SS,ジュバ,南スーダン,31.5800256,4.8299752
+19,Ljubljana,Slovenia,SVN,SI,リュブリャナ,スロベニア,14.514969,46.0552883
+20,Bratislava,Slovakia,SVK,SK,ブラチスラバ,スロバキア,17.1169808,48.1500183
+21,Doha,Qatar,QAT,QA,ドーハ,カタール,51.5329679,25.286556
+22,Podgorica,Montenegro,MNE,ME,ポドゴリツァ,モンテネグロ,19.2663069,42.4659725
+23,Bern,Switzerland,CHE,CH,ベルン,スイス,7.4669755,46.9166828
+24,Pristina,Kosovo,KOS,-99,プリシュティナ,コソボ,21.1659843,42.6667096
+25,Roseau,Dominica,DMA,DM,ロゾー,ドミニカ,-61.387013,15.3010156
+26,Djibouti,Djibouti,DJI,DJ,ジブチ,ジブチ,43.1480017,11.5950145
+27,Banjul,The Gambia,GMB,GM,バンジュール,ガンビア,-16.5917015,13.4538765
+28,Skopje,North Macedonia,MKD,MK,スコピエ,北マケドニア,21.4334615,42.0000061
+29,Bridgetown,Barbados,BRB,BB,ブリッジタウン,バルバドス,-59.6165267,13.1020026
+30,Bujumbura,Burundi,BDI,BI,ブジュンブラ,ブルンジ,29.3600061,-3.3760872
+31,Kingstown,Saint Vincent and the Grenadines,VCT,VC,キングスタウン,セントビンセント及びグレナディーン諸島,-61.2120624,13.1482788
+32,Castries,Saint Lucia,LCA,LC,カストリーズ,セントルシア,-61.0000082,14.0019735
+33,Basseterre,Saint Kitts and Nevis,KNA,KN,バセテール,セントクリストファー・ネービス,-62.7170093,17.3020305
+34,Port Louis,Mauritius,MUS,MU,ポートルイス,モーリシャス,57.4999939,-20.1666386
+35,Saint George's,Grenada,GRD,GD,セントジョージズ,グレナダ,-61.7416432,12.0526334
+36,Manama,Bahrain,BHR,BH,マナーマ,バーレーン,50.5830517,26.2361363
+37,Saint John's,Antigua and Barbuda,ATG,AG,セントジョンズ,アンティグア・バーブーダ,-61.8500338,17.1180365
+38,Montevideo,Uruguay,URY,UY,モンテビデオ,ウルグアイ,-56.1729981,-34.8560957
+39,Lom?,Togo,TGO,TG,ロメ,トーゴ,1.2208113,6.1338829
+40,Tunis,Tunisia,TUN,TN,チュニス,チュニジア,10.1796781,36.8027781
+41,Abu Dhabi,United Arab Emirates,ARE,AE,アブダビ,アラブ首長国連邦,54.3665934,24.4666836
+42,Ashgabat,Turkmenistan,TKM,TM,アシガバット,トルクメニスタン,58.3832991,37.9499949
+43,Lusaka,Zambia,ZMB,ZM,ルサカ,ザンビア,28.2813817,-15.4146984
+44,Harare,Zimbabwe,ZWE,ZW,ハラレ,ジンバブエ,31.0427636,-17.8158438
+45,Dili,East Timor,TLS,TL,ディリ,東ティモール,125.5794559,-8.5593884
+46,Port Vila,Vanuatu,VUT,VU,ポートビラ,バヌアツ,168.3166406,-17.7333504
+47,Tegucigalpa,Honduras,HND,HN,テグシガルパ,ホンジュラス,-87.2194752,14.1039908
+48,Georgetown,Guyana,GUY,GY,ジョージタウン,ガイアナ,-58.1670286,6.8019737
+49,Reykjav?k,Iceland,ISL,IS,レイキャビク,アイスランド,-21.9500145,64.1500236
+50,Port-au-Prince,Haiti,HTI,HT,ポルトープランス,ハイチ,-72.3379804,18.5429705
+51,Kampala,Uganda,UGA,UG,カンパラ,ウガンダ,32.5813777,0.3186048
+52,Paramaribo,Suriname,SUR,SR,パラマリポ,スリナム,-55.1670309,5.8350301
+53,Niamey,Niger,NER,NE,ニアメ,ニジェール,2.1147102,13.5186518
+54,Dushanbe,Tajikistan,TJK,TJ,ドゥシャンベ,タジキスタン,68.7738794,38.5600352
+55,Asunci?n,Paraguay,PRY,PY,アスンシオン,パラグアイ,-57.643451,-25.2944571
+56,Managua,Nicaragua,NIC,NI,マナグア,ニカラグア,-86.2704375,12.1549624
+57,Freetown,Sierra Leone,SLE,SL,フリータウン,シエラレオネ,-13.2361616,8.4719573
+58,Islamabad,Pakistan,PAK,PK,イスラマバード,パキスタン,73.08063018,33.68936848
+59,Kathmandu,Nepal,NPL,NP,カトマンズ,ネパール,85.3146964,27.7186378
+60,Pretoria,South Africa,ZAF,ZA,プレトリア,南アフリカ共和国,28.2274832,-25.7049747
+61,Port Moresby,Papua New Guinea,PNG,PG,ポートモレスビー,パプアニューギニア,147.1925036,-9.4647078
+62,Honiara,Solomon Islands,SLB,SB,ホニアラ,ソロモン諸島,159.9497657,-9.4379943
+63,Panama City,Panama,PAN,PA,パナマシティ,パナマ,-79.534983,8.969963
+64,Rabat,Morocco,MAR,MA,ラバト,モロッコ,-6.8364082,34.0253073
+65,Chi?in?u,Moldova,MDA,MD,キシナウ,モルドバ,28.8577111,47.0050236
+66,Maputo,Mozambique,MOZ,MZ,マプト,モザンビーク,32.5872171,-25.9533316
+67,Mogadishu,Somalia,SOM,SO,モガディシュ,ソマリア,45.3647318,2.0686272
+68,Muscat,Oman,OMN,OM,マスカット,オマーン,58.5933121,23.6133248
+69,Sri Jayawardenepura Kotte,Sri Lanka,LKA,LK,スリジャヤワルダナプラコッテ,スリランカ,79.89784844,6.885989744
+70,Ulaanbaatar,Mongolia,MNG,MN,ウランバートル,モンゴル,106.9146699,47.9186193
+71,Windhoek,Namibia,NAM,NA,ウィントフック,ナミビア,17.0835461,-22.5700061
+72,Abuja,Nigeria,NGA,NG,アブジャ,ナイジェリア,7.5313821,9.085279
+73,Bissau,Guinea Bissau,GNB,GW,ビサウ,ギニアビサウ,-15.5983608,11.8650238
+74,Amman,Jordan,JOR,JO,アンマン,ヨルダン,35.9313541,31.9519711
+75,Vilnius,Lithuania,LTU,LT,ビリニュス,リトアニア,25.3166353,54.6833663
+76,Riga,Latvia,LVA,LV,リガ,ラトビア,24.0999654,56.9500238
+77,Bishkek,Kyrgyzstan,KGZ,KG,ビシュケク,キルギス,74.5832584,42.8750253
+78,Maseru,Lesotho,LSO,LS,マセル,レソト,27.4832731,-29.3166744
+79,Antananarivo,Madagascar,MDG,MG,アンタナナリボ,マダガスカル,47.514678,-18.9146915
+80,Quito,Ecuador,ECU,EC,キト,エクアドル,-78.501997,-0.2130423
+81,San Jos?,Costa Rica,CRI,CR,サンホセ,コスタリカ,-84.0859972,9.9369583
+82,San Salvador,El Salvador,SLV,SV,サンサルバドル,エルサルバドル,-89.2049871,13.7119475
+83,Kingston,Jamaica,JAM,JM,キングストン,ジャマイカ,-76.7674337,17.9770766
+84,Ndjamena,Chad,TCD,TD,ンジャメナ,チャド,15.0472025,12.1150424
+85,Malabo,Equatorial Guinea,GNQ,GQ,マラボ,赤道ギニア,8.7832775,3.7500153
+86,Asmara,Eritrea,ERI,ER,アスマラ,エリトリア,38.9333235,15.3333393
+87,Zagreb,Croatia,HRV,HR,ザグレブ,クロアチア,15.9999947,45.8000067
+88,Tallinn,Estonia,EST,EE,タリン,エストニア,24.7280407,59.4338774
+89,Lilongwe,Malawi,MWI,MW,リロングウェ,マラウイ,33.783302,-13.9832951
+90,Guatemala,Guatemala,GTM,GT,グアテマラシティ,グアテマラ,-90.5289114,14.6230805
+91,Libreville,Gabon,GAB,GA,リーブルビル,ガボン,9.457965,0.3853886
+92,Suva,Fiji,FJI,FJ,スバ,フィジー,178.4417073,-18.1330159
+93,Nouakchott,Mauritania,MRT,MR,ヌアクショット,モーリタニア,-15.9753404,18.086427
+94,Bamako,Mali,MLI,ML,バマコ,マリ,-8.001985,12.6519605
+95,Beirut,Lebanon,LBN,LB,ベイルート,レバノン,35.5077624,33.873921
+96,Tbilisi,Georgia,GEO,GE,トビリシ,ジョージア,44.7888496,41.7269558
+97,Astana,Kazakhstan,KAZ,KZ,アスタナ,カザフスタン,71.4277742,51.1811253
+98,Vientiane,Laos,LAO,LA,ビエンチャン,ラオス,102.59998,17.9666927
+99,Brazzaville,Congo (Brazzaville),COG,CG,ブラザビル,コンゴ共和国,15.2827436,-4.2572399
+100,Conakry,Guinea,GIN,GN,コナクリ,ギニア,-13.6821809,9.5334687
+101,Yamoussoukro,Ivory Coast,CIV,CI,ヤムスクロ,コートジボワール,-5.2755026,6.818381
+102,Ottawa,Canada,CAN,CA,オタワ,カナダ,-75.7019612,45.4186427
+103,Belgrade,Serbia,SRB,RS,ベオグラード,セルビア,20.4660448,44.8205913
+104,Bandar Seri Begawan,Brunei,BRN,BN,バンダルスリブガワン,ブルネイ,114.9332841,4.8833311
+105,Belmopan,Belize,BLZ,BZ,ベルモパン,ベリーズ,-88.767073,17.2520335
+106,Bangui,Central African Republic,CAF,CF,バンギ,中央アフリカ,18.5582881,4.3666443
+107,Yaounde,Cameroon,CMR,CM,ヤウンデ,カメルーン,11.5147049,3.8686465
+108,Tirana,Albania,ALB,AL,ティラナ,アルバニア,19.818883,41.3275407
+109,Yerevan,Armenia,ARM,AM,エレバン,アルメニア,44.5116055,40.1830966
+110,Baku,Azerbaijan,AZE,AZ,バクー,アゼルバイジャン,49.8602713,40.3972179
+111,Phnom Penh,Cambodia,KHM,KH,プノンペン,カンボジア,104.9146886,11.551976
+112,La Paz,Bolivia,BOL,BO,ラパス,ボリビア,-68.151931,-16.4960278
+113,Porto-Novo,Benin,BEN,BJ,ポルトノボ,ベナン,2.615622773,6.487947861
+114,Sofia,Bulgaria,BGR,BG,ソフィア,ブルガリア,23.3147082,42.6852953
+115,Minsk,Belarus,BLR,BY,ミンスク,ベラルーシ,27.5646813,53.9019233
+116,Thimphu,Bhutan,BTN,BT,ティンプー,ブータン,89.639014,27.4729859
+117,Gaborone,Botswana,BWA,BW,ハボローネ,ボツワナ,25.9119478,-24.6463135
+118,Canberra,Australia,AUS,AU,キャンベラ,オーストラリア,149.1290262,-35.2830285
+119,Ouagadougou,Burkina Faso,BFA,BF,ワガドゥグー,ブルキナファソ,-1.5266696,12.3722618
+120,Sarajevo,Bosnia and Herzegovina,BIH,BA,サラエボ,ボスニアヘルツェゴビナ,18.3830017,43.8500224
+121,Naypyidaw,Myanmar,MMR,MM,ネーピードー,ミャンマー,96.1166727,19.7685029
+122,Nukualofa,Tonga,TON,TO,ヌクアロファ,トンガ,-175.2205645,-21.1385124
+123,Victoria,Seychelles,SYC,SC,ビクトリア,セーシェル,55.4499898,-4.6166317
+124,S?o Tom?,Sao Tome and Principe,STP,ST,サントメ,サントメ・プリンシペ,6.7333252,0.3334021
+125,Apia,Samoa,WSM,WS,アピア,サモア,-171.7386416,-13.841545
+126,Valletta,Malta,MLT,MT,バレッタ,マルタ,14.5147107,35.8997325
+127,Mal?,Maldives,MDV,MV,マレ,モルディブ,73.4999475,4.1667082
+128,Jerusalem,Israel,ISR,IL,エルサレム,イスラエル,35.2066259,31.7784078
+129,Praia,Cape Verde,CPV,CV,プライア,カーボベルデ,-23.5166889,14.916698
+130,Nassau,The Bahamas,BHS,BS,ナッソー,バハマ,-77.3500438,25.0833901
+131,Nicosia,Cyprus,CYP,CY,ニコシア,キプロス,33.3666349,35.1666765
+132,Wellington,New Zealand,NZL,NZ,ウェリントン,ニュージーランド,174.7832659,-41.2999879
+133,Hanoi,Vietnam,VNM,VN,ハノイ,ベトナム,105.8480683,21.0352731
+134,Ankara,Turkey,TUR,TR,アンカラ,トルコ,32.8624458,39.9291844
+135,Budapest,Hungary,HUN,HU,ブダペスト,ハンガリー,19.0813748,47.5019522
+136,Sanaa,Yemen,YEM,YE,サヌア,イエメン,44.2046475,15.3566792
+137,Bucharest,Romania,ROU,RO,ブカレスト,ルーマニア,26.0980008,44.4353177
+138,Damascus,Syria,SYR,SY,ダマスカス,シリア,36.29805,33.5019799
+139,Lisbon,Portugal,PRT,PT,リスボン,ポルトガル,-9.1468122,38.7246687
+140,Khartoum,Sudan,SDN,SD,ハルツーム,スーダン,32.5322334,15.5900241
+141,Oslo,Norway,NOR,NO,オスロ,ノルウェー,10.7480333,59.9186361
+142,Warsaw,Poland,POL,PL,ワルシャワ,ポーランド,21.00534674,52.23087197
+143,Pyongyang,North Korea,PRK,KP,ピョンヤン,朝鮮民主主義人民共和国,125.7527449,39.0213846
+144,Dar es Salaam,Tanzania,TZA,TZ,ダルエスサラーム,タンザニア,39.266396,-6.7980667
+145,Dublin,Ireland,IRL,IE,ダブリン,アイルランド,-6.256979517,53.34673125
+146,Monrovia,Liberia,LBR,LR,モンロビア,リベリア,-10.7996604,6.3145816
+147,Kuala Lumpur,Malaysia,MYS,MY,クアラルンプール,マレーシア,101.6980374,3.1686117
+148,Havana,Cuba,CUB,CU,ハバナ,キューバ,-82.366128,23.1339047
+149,Prague,Czechia,CZE,CZ,プラハ,チェコ,14.4640339,50.0852829
+150,Kuwait City,Kuwait,KWT,KW,クウェート,クウェート,47.9763553,29.3716635
+151,Santo Domingo,Dominican Republic,DOM,DO,サントドミンゴ,ドミニカ共和国,-69.9020309,18.4720187
+152,Accra,Ghana,GHA,GH,アクラ,ガーナ,-0.2186616,5.5519805
+153,Tripoli,Libya,LBY,LY,トリポリ,リビア,13.1800118,32.8925
+154,Helsinki,Finland,FIN,FI,ヘルシンキ,フィンランド,24.93245691,60.16380385
+155,K?benhavn,Denmark,DNK,DK,コペンハーゲン,デンマーク,12.5615399,55.68051
+156,Bras?lia,Brazil,BRA,BR,ブラジリア,ブラジル,-47.9179981,-15.7813944
+157,Brussels,Belgium,BEL,BE,ブリュッセル,ベルギー,4.3313707,50.8352629
+158,Dhaka,Bangladesh,BGD,BD,ダッカ,バングラデシュ,90.4066336,23.7250056
+159,Luanda,Angola,AGO,AO,ルアンダ,アンゴラ,13.2324812,-8.8363403
+160,Algiers,Algeria,DZA,DZ,アルジェ,アルジェリア,3.0486067,36.7650107
+161,Caracas,Venezuela,VEN,VE,カラカス,ベネズエラ,-66.9189831,10.5029444
+162,Kiev,Ukraine,UKR,UA,キーウ,ウクライナ,30.5146821,50.4353132
+163,Tashkent,Uzbekistan,UZB,UZ,タシケント,ウズベキスタン,69.292987,41.3136477
+164,Madrid,Spain,ESP,ES,マドリード,スペイン,-3.6852975,40.4019721
+165,Stockholm,Sweden,SWE,SE,ストックホルム,スウェーデン,18.06630017,59.3241272
+166,Bangkok,Thailand,THA,TH,バンコク,タイ,100.5146988,13.7519451
+167,Lima,Peru,PER,PE,リマ,ペルー,-77.052008,-12.0460668
+168,Dakar,Senegal,SEN,SN,ダカール,セネガル,-17.475076,14.7177776
+169,Amsterdam,Netherlands,NLD,NL,アムステルダム,オランダ,4.9146943,52.3519145
+170,Seoul,South Korea,KOR,KR,ソウル,大韓民国,126.9977851,37.568295
+171,Manila,Philippines,PHL,PH,マニラ,フィリピン,120.9802713,14.6061048
+172,Berlin,Germany,DEU,DE,ベルリン,ドイツ,13.3996028,52.5237645
+173,Kinshasa,Congo (Kinshasa),COD,CD,キンシャサ,コンゴ民主共和国,15.313026,-4.3277782
+174,New Delhi,India,IND,IN,デリー,インド,77.19998,28.600023
+175,Athens,Greece,GRC,GR,アテネ,ギリシャ,23.7313752,37.9852721
+176,Baghdad,Iraq,IRQ,IQ,バグダッド,イラク,44.3919229,33.3405944
+177,Addis Ababa,Ethiopia,ETH,ET,アディスアベバ,エチオピア,38.6980586,9.0352562
+178,Tehran,Iran,IRN,IR,テヘラン,イラン,51.4223982,35.6738886
+179,Buenos Aires,Argentina,ARG,AR,ブエノスアイレス,アルゼンチン,-58.43251269,-34.61071459
+180,Kabul,Afghanistan,AFG,AF,カブール,アフガニスタン,69.1813142,34.5186361
+181,Vienna,Austria,AUT,AT,ウィーン,オーストリア,16.3646931,48.2019611
+182,WashingtonD.C.,United States of America,USA,US,ワシントンD.C.,アメリカ合衆国,-77.0113644,38.9014952
+183,London,United Kingdom,GBR,GB,ロンドン,イギリス,-0.1186677,51.5019406
+184,Riyadh,Saudi Arabia,SAU,SA,リヤド,サウジアラビア,46.7707958,24.642779
+185,Moscow,Russia,RUS,RU,モスクワ,ロシア連邦,37.613577,55.75411
+186,Mexico City,Mexico,MEX,MX,メキシコシティ,メキシコ,-99.1329341,19.4443883
+187,Rome,Italy,ITA,IT,ローマ,イタリア,12.4813126,41.8979015
+188,Beijing,China,CHN,CN,ペキン,中華人民共和国,116.3942009,39.90172031
+189,Nairobi,Kenya,KEN,KE,ナイロビ,ケニア,36.814711,-1.2814009
+190,Jakarta,Indonesia,IDN,ID,ジャカルタ,インドネシア,106.8274918,-6.1724718
+191,Bogota,Colombia,COL,CO,ボゴタ,コロンビア,-74.0852898,4.5983694
+192,Cairo,Egypt,EGY,EG,カイロ,エジプト,31.2480224,30.0519062
+193,Tokyo,Japan,JPN,JP,東京,日本国,139.7494616,35.6869628
+194,Paris,France,FRA,FR,パリ,フランス,2.352992462,48.85809232
+195,Santiago,Chile,CHL,CL,サンティアゴ,チリ,-70.6689867,-33.448068
+196,Singapore,Singapore,SGP,SG,シンガポール,シンガポール,103.8538748,1.2949793
+197,Yaren,Nauru,NRU,NR,ヤレン,ナウル,166.9210079,-0.544730303

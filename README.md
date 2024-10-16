@@ -627,6 +627,22 @@ GeoJSONは点と点を線で繋いでいく形式なので、LineSegmentsで表�
 
 <br>
 
+## Load GeoJSON (Part 4) GPGPU
+
+GPGPUで線を動かしたもの。あまり美しくできなかった・・・
+
+GPGPUでパーティクルを動かしている部分は難易度が高いので、時間をおいたら自分でもわからなくなること請け合い。
+
+[![ScreenImage](./asset/index-load-geojson4.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-geojson4.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-geojson4.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-geojson4.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-geojson4.js)
+
+<br>
+
 ## Move along path
 
 オブジェクトをパスに沿って移動させる例。
