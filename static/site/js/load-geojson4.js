@@ -80,8 +80,8 @@ export class Main {
     autoRotateSpeed: 2.0,
 
     // カーブの高度の最小値と最大値
-    minAltitude: 32,
-    maxAltitude: 96,
+    minAltitude: 48,
+    maxAltitude: 112,
 
     // カーブを生成するCubicBezierCurve3()インスタンス
     curve: new THREE.CubicBezierCurve3(
@@ -104,16 +104,17 @@ export class Main {
 
     // パーティクルの数
     // 16384を超えないこと！
-    // これを大きくすると、コンパイルに時間がかかる！
-    particleNum: 2048,
+    // これを大きくすると、シェーダーのコンパイルに時間がかかる！
+    particleNum: 1024,
 
     // パーティクルを使って表現する線の長さ（1本の線におけるパーティクルの数）
     // これを1/fractionStepにすると、いい具合になる
-    particleLen: 100,
+    particleLen: 90,
   }
 
   // パーティクルを動かすためのGPUComputationRenderer
   computationRenderer;
+
 
   // パーティクルを描画するシェーダーに渡すuniforms
   uniforms = {
@@ -172,6 +173,7 @@ export class Main {
     // フレーム毎の処理
     this.render();
   }
+
 
   async loadData() {
     const loadingContainer = document.getElementById('loadingContainer');
@@ -236,6 +238,7 @@ export class Main {
       loadingContainer.appendChild(p);
     }
   }
+
 
   initThreejs = () => {
     // コンテナ
@@ -321,7 +324,6 @@ export class Main {
 
 
   initGui = () => {
-
     const gui = new GUI({ width: 300 });
 
     gui
@@ -347,7 +349,6 @@ export class Main {
       .onChange((value) => {
         this.params.geoTextureMesh.visible = value;
       });
-
   }
 
 
@@ -433,7 +434,6 @@ export class Main {
       // メッシュ化してシーンに追加
       this.scene.add(new THREE.Line(clonedGeometry, material));
     }
-
 
     // 水平の円を作成するためのカーブ
     const horizontalCurve = new THREE.EllipseCurve(
@@ -759,7 +759,6 @@ export class Main {
         // カーブ上の各ポイントの位置を取得
         let fraction = 0.0;
         for (let p = 0; p < numPoints; p++) {
-
           const point = this.params.curve.getPointAt(fraction);
 
           // テクスチャとして保存する用のインデックス
@@ -929,11 +928,8 @@ export class Main {
 
         } else {
 
-          // 一番左のuv座標を取得
-          vec2 leftMostUv = vec2(0.0, gl_FragCoord.y) / resolution.xy;
-
           // 一番左のピクセルの情報を取り出す
-          vec4 leftMostValue = texture2D( texturePosition, leftMostUv );
+          vec4 leftMostValue = texture2D( texturePosition, vec2(0.0, uv.y) );
 
           // カーブの番号が違っていたら、一番左のピクセルは新しい場所に飛んだ、ということ
           if (leftMostValue.x != textureValue.x) {
@@ -1040,26 +1036,25 @@ export class Main {
         // 左下が原点なので(0, 0)、右上が(1, 1)になるようにUV座標を設定する
         // 座標は0始まりなので、i / (particleLen - 1) としないと、一番右が1.0にならない
 
-        // index = 0 のとき、i = 0, j = 0 なので、uv[0] = 0, uv[1] = 0 になる
-        // index = 1 のとき、i = 0, j = 1 なので、uv[2] = 0, uv[3] = 1 / (particleLen - 1) になる
-        // index = 2 のとき、i = 0, j = 2 なので、uv[4] = 0, uv[5] = 2 / (particleLen - 1) になる
-
         uv[index * 2 + 0] = j / (this.params.particleLen - 1);
         uv[index * 2 + 1] = i / (this.params.particleNum - 1);
 
         // indexを作成してポリゴンを構成する
-
-        // 三角形のポリゴンは、先頭の頂点とそれに続く尻尾で構成しなければならない
-        // つまり行をまたいでポリゴンを作るとおかしなことになるので、一つの行で完結させる必要がある
+        // ポリゴンは先頭の頂点とそれに続く尻尾で構成しなければならない
+        // 行をまたいでポリゴンを作るとおかしなことになるので、一つの行で完結させる必要がある
 
         // 頂点1
         indices[index * 3 + 0] = index;
 
         // 頂点2 同じ行内の次の頂点を指定したいが、右に振り切れないように配慮する
-        indices[index * 3 + 1] = Math.min(index + 1, i * this.params.particleLen + this.params.particleLen - 1);
+        if (j < this.params.particleLen - 1) {
+          indices[index * 3 + 1] = index + 1;
+        } else {
+          indices[index * 3 + 1] = index;
+        }
 
         // 頂点3 これは頂点2と同じものを指定する。三角形のポリゴンにならないが、描画したいのは線なので問題ない
-        indices[index * 3 + 2] = Math.min(index + 1, i * this.params.particleLen + this.params.particleLen - 1);
+        indices[index * 3 + 2] = indices[index * 3 + 1];
       }
     }
 
@@ -1079,10 +1074,11 @@ export class Main {
 
     // シェーダーマテリアルを作成
     const material = new THREE.ShaderMaterial({
+      uniforms: this.uniforms,
+
       wireframe: true,
       transparent: true,
-      uniforms: this.uniforms,
-      vertexColors: true,
+
       vertexShader: /* glsl */`
 
         uniform sampler2D u_texture_position;
@@ -1145,6 +1141,24 @@ export class Main {
 // https://note.com/kentoide/n/n16354c4b3458
 //
 // 数が多すぎるので、適当に間引いて n * (n-1) / 2 < 16384 になるようにする
+
+export const _capitalCities = [
+  {
+    "cptl_name": "Tokyo",
+    "x": 139.7494616,
+    "y": 35.6869628
+  },
+  {
+    "cptl_name": "WashingtonD.C.",
+    "x": -77.0113644,
+    "y": 38.9014952
+  },
+  {
+    "cptl_name": "Beijing",
+    "x": 116.3942009,
+    "y": 39.90172031
+  },
+];
 
 export const capitalCities = [
   {
