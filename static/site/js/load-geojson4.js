@@ -896,6 +896,13 @@ export class Main {
           if (countDown <= 0.0) {
             // 新しいカーブに飛ぶ
             curveIndex = floor(rand(uv * u_rand_seed) * (${this.params.numCurves}.0 - 1.0));
+            if (curveIndex == textureValue.x) {
+              curveIndex += 1.0;
+              if (curveIndex >= ${this.params.numCurves}.0 - 1.0) {
+                curveIndex = 0.0;
+              }
+            }
+
             direction = step(0.5, rand(uv * u_rand_seed));
             fraction = direction;
             countDown = ${this.params.particleLen}.0 + rand(uv * u_rand_seed) * 90.0;

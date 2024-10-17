@@ -633,9 +633,9 @@ GPGPUで線を動かしたもの。あまり美しくできなかった・・・
 
 GPGPUでパーティクルを動かしている部分は難解なので、時間をおいたら自分でもわからなくなる。
 
-現状でおかしいところ
+既知の不具合
 
-- 新しい場所にパーティクルを飛ばしたときに直線が描画される（ワイヤフレームだけにすると分かる）
+- 新しい場所にパーティクルを飛ばしたときに直線が描画されてしまう（ワイヤフレームだけにすると分かる）
 
 [![ScreenImage](./asset/index-load-geojson4.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-geojson4.html)
 
