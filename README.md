@@ -635,8 +635,7 @@ GPGPUでパーティクルを動かしている部分は難解なので、時間
 
 現状でおかしいところ
 
-- 線の開始点、到着点が首都の位置とぴったり一致しない
-- 新しい場所にパーティクルを飛ばしたときに直線が描画される
+- 新しい場所にパーティクルを飛ばしたときに直線が描画される（ワイヤフレームだけにすると分かる）
 
 [![ScreenImage](./asset/index-load-geojson4.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-geojson4.html)
 
@@ -645,6 +644,8 @@ GPGPUでパーティクルを動かしている部分は難解なので、時間
 [HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-geojson4.html)
 
 [JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-geojson4.js)
+
+世界の首都の座標は[ここ](https://note.com/kentoide/n/n16354c4b3458)から頂戴した。
 
 <br>
 

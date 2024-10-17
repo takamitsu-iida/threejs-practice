@@ -91,7 +91,7 @@ export class Main {
       new THREE.Vector3(0, 0, 0)  // end point
     ),
 
-    // カーブを表現する点の数（カーブの解像度）
+    // カーブを表現する点の間隔（解像度）
     fractionStep: 0.01,
 
     // 都市間を接続するカーブの座標を格納するデータテクスチャ
@@ -108,13 +108,12 @@ export class Main {
     particleNum: 1024,
 
     // パーティクルを使って表現する線の長さ（1本の線におけるパーティクルの数）
-    // これを1/fractionStepにすると、いい具合になる
-    particleLen: 90,
+    // これを1/fractionStep + 1にすると、いい具合になる
+    particleLen: 100 + 1,
   }
 
   // パーティクルを動かすためのGPUComputationRenderer
   computationRenderer;
-
 
   // パーティクルを描画するシェーダーに渡すuniforms
   uniforms = {
@@ -654,6 +653,24 @@ export class Main {
 
 
   initCapitalCities = () => {
+    const geometry = new THREE.SphereGeometry(1.0, 8, 8);
+    const material = new THREE.MeshBasicMaterial({
+      color: 0x00ff00,
+      transparent: true,
+      opacity: 0.8,
+    });
+
+    for (let i = 0; i < capitalCities.length; i++) {
+      const city = capitalCities[i];
+      const p = this.geo_to_vec3(city.x, city.y, this.params.radius);
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.set(p.x, p.y, p.z);
+      this.scene.add(mesh);
+    }
+  }
+
+
+  _initCapitalCities = () => {
 
     const positions = new Float32Array(capitalCities.length * 3);
     const colors = new Float32Array(capitalCities.length * 3);
@@ -726,7 +743,8 @@ export class Main {
     this.params.numCurves = numCurves;
 
     // カーブの解像度fractionStepから、カーブを表現する点の数を計算する
-    const numPoints = 1 / this.params.fractionStep;
+    // fractionStepは間隔なので、1/fractionStep + 1が点の数になる（+1するのを忘れないように！）
+    const numPoints = 1 / this.params.fractionStep +1;
 
     // 1. GPUComputationRendererを初期化
     const computationRenderer = new GPUComputationRenderer(
@@ -759,6 +777,8 @@ export class Main {
         // カーブ上の各ポイントの位置を取得
         let fraction = 0.0;
         for (let p = 0; p < numPoints; p++) {
+
+          // fractionの位置に相当するカーブ上の座標を取得
           const point = this.params.curve.getPointAt(fraction);
 
           // テクスチャとして保存する用のインデックス
@@ -770,7 +790,11 @@ export class Main {
           initialTexture.image.data[index + 2] = point.z;
           initialTexture.image.data[index + 3] = 0.0;  // 未使用
 
+          // fractionを進める
           fraction += this.params.fractionStep;
+
+          // floatの誤差で1.0を超えないようにする
+          fraction = Math.min(1.0, fraction);
         }
 
         curveIndex++;
@@ -1142,7 +1166,7 @@ export class Main {
 //
 // 数が多すぎるので、適当に間引いて n * (n-1) / 2 < 16384 になるようにする
 
-export const _capitalCities = [
+const _capitalCities = [
   {
     "cptl_name": "Tokyo",
     "x": 139.7494616,
@@ -1160,7 +1184,7 @@ export const _capitalCities = [
   },
 ];
 
-export const capitalCities = [
+const capitalCities = [
   {
     "OBJECTID": 1,
     "cptl_name": "Vatican City",
