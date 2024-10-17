@@ -80,8 +80,8 @@ export class Main {
     autoRotateSpeed: 2.0,
 
     // カーブの高度の最小値と最大値
-    minAltitude: 16,
-    maxAltitude: 64,
+    minAltitude: 32,
+    maxAltitude: 96,
 
     // カーブを生成するCubicBezierCurve3()インスタンス
     curve: new THREE.CubicBezierCurve3(
@@ -1230,8 +1230,6 @@ export const capitalCities = [
     "x": 171.3800002,
     "y": 7.1030043
   },
-  */
-
   {
     "OBJECTID": 8,
     "cptl_name": "Funafuti",
@@ -1265,8 +1263,6 @@ export const capitalCities = [
     "x": 7.4069132,
     "y": 43.7396457
   },
-
-  /*
   {
     "OBJECTID": 11,
     "cptl_name": "Tarawa",
@@ -1311,8 +1307,6 @@ export const capitalCities = [
     "x": -159.7854367,
     "y": -21.1962256
   },
-  */
-
   {
     "OBJECTID": 15,
     "cptl_name": "Port-of-Spain",
@@ -1346,8 +1340,6 @@ export const capitalCities = [
     "x": 31.1333345,
     "y": -26.3166508
   },
-
-  /*
   {
     "OBJECTID": 18,
     "cptl_name": "Juba",
@@ -1618,6 +1610,7 @@ export const capitalCities = [
     "x": 54.3665934,
     "y": 24.4666836
   },
+  /*
   {
     "OBJECTID": 42,
     "cptl_name": "Ashgabat",
@@ -1728,8 +1721,6 @@ export const capitalCities = [
     "x": 32.5813777,
     "y": 0.3186048
   },
-
-  /*
   {
     "OBJECTID": 52,
     "cptl_name": "Paramaribo",
