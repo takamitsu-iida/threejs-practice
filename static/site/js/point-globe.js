@@ -416,7 +416,7 @@ export class Main {
     // const pixelA = imageData[(y * imageWidth + x) * 4 + 3];
 
     // console.log(`x: ${x}, y: ${y}, R: ${pixelR}, G: ${pixelG}, B: ${pixelB}, A: ${pixelA}`);
-    if (pixelR === 0 && pixelG === 0 && pixelB === 0) {
+    if (pixelR < 128 && pixelG < 128 && pixelB <128) {
       return true;
     }
     return false;
@@ -426,10 +426,10 @@ export class Main {
 
   initPoints = () => {
     const DEG2RAD = Math.PI / 180;
-    const rows = 180 * 4;
-    const dotDensity = 1.4;
+    const rows = 180 * 2;
+    const dotDensity = 1.0;
 
-    const geometry = new THREE.SphereGeometry(0.3, 8, 8);
+    const geometry = new THREE.SphereGeometry(0.5, 8, 8);
 
     const material = new THREE.MeshBasicMaterial({
       color: 0x00ff00,
@@ -452,6 +452,8 @@ export class Main {
         }
       }
     }
+
+    console.log(`create ${points.length} points`);
 
     const pointCloud = new THREE.InstancedMesh(geometry, material, points.length);
 
