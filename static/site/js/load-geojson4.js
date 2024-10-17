@@ -652,6 +652,7 @@ export class Main {
   }
 
 
+  // 首都の位置に◯を表示
   initCapitalCities = () => {
     const geometry = new THREE.SphereGeometry(1.0, 8, 8);
     const material = new THREE.MeshBasicMaterial({
@@ -667,53 +668,6 @@ export class Main {
       mesh.position.set(p.x, p.y, p.z);
       this.scene.add(mesh);
     }
-  }
-
-
-  _initCapitalCities = () => {
-
-    const positions = new Float32Array(capitalCities.length * 3);
-    const colors = new Float32Array(capitalCities.length * 3);
-
-    for (let i = 0; i < capitalCities.length; i++) {
-      const city = capitalCities[i];
-      const index = i * 3;
-
-      const v3 = this.geo_to_vec3(city.x, city.y, this.params.radius);
-      positions[index + 0] = v3.x;
-      positions[index + 1] = v3.y;
-      positions[index + 2] = v3.z;
-
-      colors[index + 0] = 1.0;
-      colors[index + 1] = 0.0;
-      colors[index + 2] = 0.0;
-    }
-
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-
-    const material = new THREE.ShaderMaterial({
-      vertexShader: `
-        attribute vec3 color;
-        varying vec3 vColor;
-        void main() {
-          vColor = color;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = 10.0;
-        }
-      `,
-      fragmentShader: `
-        varying vec3 vColor;
-        void main() {
-          gl_FragColor = vec4(vColor, 1.0);
-        }
-      `,
-      transparent: true,
-    });
-
-    const points = new THREE.Points(geometry, material);
-    this.scene.add(points);
   }
 
 
