@@ -105,7 +105,7 @@ export class Main {
     // パーティクルの数
     // 16384を超えないこと！
     // これを大きくすると、シェーダーのコンパイルに時間がかかる！
-    particleNum: 1024,
+    particleNum: 512,
 
     // パーティクルを使って表現する線の長さ（1本の線におけるパーティクルの数）
     // これを1/fractionStep + 1にすると、いい具合になる
@@ -327,14 +327,14 @@ export class Main {
 
     gui
       .add(this.params, "autoRotate")
-      .name("回転して表示")
+      .name(navigator.language.startsWith("ja") ? "回転して表示" : "Auto Rotate")
       .onChange((value) => {
         this.controller.autoRotate = value;
       });
 
     gui
       .add(this.params, "autoRotateSpeed")
-      .name("回転速度")
+      .name(navigator.language.startsWith("ja") ? "回転速度" : "Auto Rotate Speed")
       .min(1.0)
       .max(10.0)
       .step(0.1)
@@ -344,7 +344,7 @@ export class Main {
 
     gui
       .add(this.params, "showGeoTexture")
-      .name("テクスチャを表示")
+      .name(navigator.language.startsWith("ja") ? "テクスチャを表示" : "Show Texture")
       .onChange((value) => {
         this.params.geoTextureMesh.visible = value;
       });
@@ -988,7 +988,7 @@ export class Main {
 
     // 画面上に存在するパーティクル（頂点）の個数は particleNum * particleLen なので、
     // その数だけvec3を格納できるFloat32Arrayを準備する
-    const vertices = new Float32Array(this.params.particleNum * this.params.particleLen * 3);
+    const positions = new Float32Array(this.params.particleNum * this.params.particleLen * 3);
 
     // UVは、その数だけvec2を格納できるFloat32Arrayを準備する
     const uv = new Float32Array(this.params.particleNum * this.params.particleLen * 2);
@@ -1006,9 +1006,9 @@ export class Main {
         const index = i * this.params.particleLen + j;
 
         // 頂点のxyz座標を0で初期化
-        vertices[index * 3 + 0] = 0;  // X座標
-        vertices[index * 3 + 1] = 0;  // Y座標
-        vertices[index * 3 + 2] = 0;  // Z座標
+        positions[index * 3 + 0] = 0;  // X座標
+        positions[index * 3 + 1] = 0;  // Y座標
+        positions[index * 3 + 2] = 0;  // Z座標
 
         // ★★★ ここ超重要！ ★★★
 
@@ -1044,12 +1044,11 @@ export class Main {
     }
 
     //
-    // アトリビュート position と uv と inddex を設定する
+    // アトリビュートを設定する
     //
 
-    // positionはバーテックスシェーダーで参照しているものの、
-    // 計算で使うときには常時vec3(0.0)なので設定しなくても表示できてしまう
-    geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
+    // positionは使ってないので実は設置しなくても表示できてしまう
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
 
     // uvはバーテックスシェーダーで参照しているので必須
     geometry.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
@@ -1062,13 +1061,20 @@ export class Main {
       uniforms: this.uniforms,
 
       wireframe: true,
+
+      vertexColors: true,
+
       transparent: true,
+
+      // 高い確率で同じカーブに飛ぶので、その線が白くなってしまう
+      // blending: THREE.AdditiveBlending,
 
       vertexShader: /* glsl */`
 
         uniform sampler2D u_texture_position;
         uniform sampler2D u_texture_curve;
 
+        varying vec3 vColor;
         varying vec2 vUv;
 
         void main() {
@@ -1091,21 +1097,18 @@ export class Main {
           // 現在位置をその値で更新
           gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
 
-          // uvをフラグメントシェーダーに渡す
+          // フラグメントシェーダーに渡す
           vUv = uv;
+          vColor = vec3(0.5 + curveUv.y / 10.0, 0.5 + curveUv.y / 2.0, 0.5 + curveUv.y / 10.0);
         }
       `,
 
       fragmentShader: /* glsl */`
         varying vec2 vUv;
+        varying vec3 vColor;
 
         void main() {
-          // 座標に応じて色を変える？
-          gl_FragColor = vec4(vUv.x, vUv.y, (vUv.x + vUv.y) / 2.0, 0.5);
-          // gl_FragColor = vec4(0.89, 0.23, 0.34, vUv.y);
-          // gl_FragColor = vec4(0.0, 1.0, 0.0, 0.5);
-          // gl_FragColor = vec4(0.89, 0.23, 0.34, 0.5);
-          // gl_FragColor = vec4(0.89, 0.23, 0.34, vUv.x);
+          gl_FragColor = vec4(vColor, 0.3);
         }
       `,
 
