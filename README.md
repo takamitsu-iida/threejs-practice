@@ -631,7 +631,11 @@ GeoJSONは点と点を線で繋いでいく形式なので、LineSegmentsで表�
 
 GPGPUで線を動かしたもの。あまり美しくできなかった・・・
 
-GPGPUでパーティクルを動かしている部分は難易度が高いので、時間をおいたら自分でもわからなくなること請け合い。
+GPGPUでパーティクルを動かしている部分は難解なので、時間をおいたら自分でもわからなくなる。
+
+思ったよりも美しくないのはいくつか心当たりがある。
+
+compute()するたびに0～1の値をとるfractionを進めているので、長い距離の線は移動速度が早く、短い距離の線は遅くなって速度がバラバラに表示されるのが主な原因かな。
 
 [![ScreenImage](./asset/index-load-geojson4.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-geojson4.html)
 

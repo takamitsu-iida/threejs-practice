@@ -51,12 +51,24 @@ export class Main {
 
     // 地球のテクスチャのパス
     geoTexturePath: "./static/site/img/geo_ground.jpg",
+
+    // 地球のテクスチャ
     geoTexture: null,
 
     // 地球のバンプマップのパス
     geoBumpTexturePath: "./static/site/img/geo_bump.jpg",
+
+    // バンプマップのテクスチャ
     geoBumpTexture: null,
-    geoBumpScale: 0.05,
+
+    // バンプマップの強さ
+    geoBumpScale: 0.1,
+
+    // テクスチャを貼った地球のメッシュ
+    geoTextureMesh: null,
+
+    // テクスチャを貼った地球のメッシュを表示するかどうか
+    showGeoTexture: true,
 
     // 画面上の半径
     radius: 128,
@@ -68,7 +80,7 @@ export class Main {
     autoRotateSpeed: 2.0,
 
     // カーブの高度の最小値と最大値
-    minAltitude: 8,
+    minAltitude: 16,
     maxAltitude: 64,
 
     // カーブを生成するCubicBezierCurve3()インスタンス
@@ -83,17 +95,17 @@ export class Main {
     fractionStep: 0.01,
 
     // 都市間を接続するカーブの座標を格納するデータテクスチャ
-    // createCurveTexture()で初期化する
+    // createCurvePositionTexture()で初期化する
     curveTexture: null,
 
     // 都市間を接続するカーブの本数
-    // createCurveTexture()の中で都市の数から自動計算する
+    // createCurvePositionTexture()の中で都市の数から自動計算する
     numCurves: 0,
 
     // パーティクルの数
     // 16384を超えないこと！
     // これを大きくすると、コンパイルに時間がかかる！
-    particleNum: 4096,
+    particleNum: 2048,
 
     // パーティクルを使って表現する線の長さ（1本の線におけるパーティクルの数）
     // これを1/fractionStepにすると、いい具合になる
@@ -105,11 +117,11 @@ export class Main {
 
   // パーティクルを描画するシェーダーに渡すuniforms
   uniforms = {
-    // createCurveTexture()の中で値をセットする
-    u_texture_curve: {value: null },
+    // createCurvePositionTexture()の中で値をセットする
+    u_texture_curve: { value: null },
 
     // initComputationRenderer()の中で値をセットする
-    u_texture_position: {value: null },
+    u_texture_position: { value: null },
   }
 
 
@@ -144,6 +156,9 @@ export class Main {
 
     // 世界地図を初期化
     this.initWireframeGlobe();
+
+    // 首都の場所に◯を表示
+    this.initCapitalCities();
 
     // カーブのテクスチャを作成
     this.createCurvePositionTexture();
@@ -306,23 +321,33 @@ export class Main {
 
 
   initGui = () => {
-    // lil-gui
+
     const gui = new GUI({ width: 300 });
+
     gui
       .add(this.params, "autoRotate")
-      .name("rotation")
+      .name("回転して表示")
       .onChange((value) => {
         this.controller.autoRotate = value;
       });
+
     gui
       .add(this.params, "autoRotateSpeed")
-      .name("autoRotateSpeed")
+      .name("回転速度")
       .min(1.0)
       .max(10.0)
       .step(0.1)
       .onChange((value) => {
         this.controller.autoRotateSpeed = value;
       });
+
+    gui
+      .add(this.params, "showGeoTexture")
+      .name("テクスチャを表示")
+      .onChange((value) => {
+        this.params.geoTextureMesh.visible = value;
+      });
+
   }
 
 
@@ -448,6 +473,7 @@ export class Main {
     geoTexture.colorSpace = THREE.SRGBColorSpace
 
     const geoBumpTexture = new THREE.TextureLoader().load(this.params.geoBumpTexture);
+    geoBumpTexture.colorSpace = THREE.SRGBColorSpace
 
     // 地球の球体
     const geometry = new THREE.SphereGeometry(this.params.radius, 60, 60);
@@ -463,7 +489,16 @@ export class Main {
     const mesh = new THREE.Mesh(geometry, material);
 
     // 影を受け取る
-    mesh.receiveShadow = true;
+    // mesh.receiveShadow = true;
+
+    // 影を投影する
+    // mesh.castShadow = true;
+
+    // 表示する？
+    mesh.visible = this.params.showGeoTexture;
+
+    // 作成したメッシュを保存する（表示・非表示をlil-guiで切り替えるため）
+    this.params.geoTextureMesh = mesh;
 
     this.scene.add(mesh);
   }
@@ -618,6 +653,53 @@ export class Main {
   }
 
 
+  initCapitalCities = () => {
+
+    const positions = new Float32Array(capitalCities.length * 3);
+    const colors = new Float32Array(capitalCities.length * 3);
+
+    for (let i = 0; i < capitalCities.length; i++) {
+      const city = capitalCities[i];
+      const index = i * 3;
+
+      const v3 = this.geo_to_vec3(city.x, city.y, this.params.radius);
+      positions[index + 0] = v3.x;
+      positions[index + 1] = v3.y;
+      positions[index + 2] = v3.z;
+
+      colors[index + 0] = 1.0;
+      colors[index + 1] = 0.0;
+      colors[index + 2] = 0.0;
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+    const material = new THREE.ShaderMaterial({
+      vertexShader: `
+        attribute vec3 color;
+        varying vec3 vColor;
+        void main() {
+          vColor = color;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = 10.0;
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vColor;
+        void main() {
+          gl_FragColor = vec4(vColor, 1.0);
+        }
+      `,
+      transparent: true,
+    });
+
+    const points = new THREE.Points(geometry, material);
+    this.scene.add(points);
+  }
+
+
   createCurvePositionTexture = () => {
 
     // 想定しているテクスチャの構造
@@ -702,9 +784,9 @@ export class Main {
 
     // 5. computationRenderer.addVariable();
     const variable = computationRenderer.addVariable(
-      "textureCurve",  // シェーダーの中で参照する名前（未使用なので何でも良い）
-      shader,          // シェーダーコード
-      initialTexture   // 最初に作ったテクスチャを渡す
+      "texture",      // シェーダーの中で参照する名前（未使用なので何でも良い）
+      shader,         // シェーダーコード
+      initialTexture  // 最初に作ったテクスチャを渡す
     );
 
     // 6. computationRenderer.setVariableDependencies();
@@ -716,7 +798,7 @@ export class Main {
     // 8. テクスチャを取り出して保存しておく
     this.params.curveTexture = computationRenderer.getCurrentRenderTarget(variable).texture;
 
-    // パーティクルを描画するときもこのテクスチャを参照するのでuniformsに値をセットしておく
+    // パーティクルを描画するときにこのテクスチャを参照するのでuniformsに値をセットしておく
     this.uniforms.u_texture_curve.value = this.params.curveTexture;
   }
 
@@ -759,14 +841,15 @@ export class Main {
     // テクスチャに情報を埋め込む、
     for (let i = 0; i < this.params.particleNum; i++) {
       // 先頭パーティクルをランダムな位置（ランダムなカーブ）に飛ばす
-      const curveIndex = Math.random() * (this.params.numCurves - 1);
+      const curveIndex = Math.floor(Math.random() * (this.params.numCurves - 1));
+      const countDown = Math.floor(Math.random() * 90);
 
       for (let j = 0; j < this.params.particleNum; j++) {
         const index = (i * this.params.particleNum + j) * 4;
         initialTexture.image.data[index + 0] = curveIndex;  // 何番目のカーブにいるか
-        initialTexture.image.data[index + 1] = 0.0;         // 何番目のfractionにいるか
+        initialTexture.image.data[index + 1] = 1.0;         // 何番目のfractionにいるか
         initialTexture.image.data[index + 2] = 0.0;         // 順向きは0.0、逆向きは1.0
-        initialTexture.image.data[index + 3] = 0.0;         // 新しい場所に飛ぶまでの待ち時間
+        initialTexture.image.data[index + 3] = countDown;   // 新しい場所に飛ぶまでのカウントダウン
       }
     }
 
@@ -794,15 +877,14 @@ export class Main {
 
       void main() {
 
+        // UV座標を計算して
+        vec2 uv = gl_FragCoord.xy / resolution.xy;
+
+        // テクスチャから情報を取り出す(texturePositionという名前はこの後、変数の定義で作成する)
+        vec4 textureValue = texture2D( texturePosition, uv );
+
         if (gl_FragCoord.x < 1.0) {
-
           // X座標が1.0未満、ということはデータテクスチャにおける左端ということ
-
-          // UV座標を計算
-          vec2 uv = gl_FragCoord.xy / resolution.xy;
-
-          // 情報をテクスチャから取り出す(texturePositionという名前はこの後、変数の定義で作成する)
-          vec4 textureValue = texture2D( texturePosition, uv );
 
           // どのカーブ上にいるかを取得
           float curveIndex = textureValue.x;
@@ -814,45 +896,56 @@ export class Main {
           float direction = textureValue.z;
 
           // 新しい場所に飛ぶまでの待ち時間を取得
-          float wait = textureValue.w;
+          float countDown = textureValue.w;
 
           if (direction == 0.0) {
             // 順方向に進む場合
             fraction += ${this.params.fractionStep};
             fraction = min(fraction, 1.0);
+            // 最終地点に到着していたら新しい場所に飛ぶまでのカウントダウンを減らす
+            if (fraction == 1.0) {
+              countDown -= 1.0;
+            }
           } else {
             // 逆方向の場合
             fraction -= ${this.params.fractionStep};
             fraction = max(fraction, 0.0);
+            // 最終地点に到着していたら新しい場所に飛ぶまでのカウントダウンを減らす
+            if (fraction == 0.0) {
+              countDown -= 1.0;
+            }
           }
 
-          if (fraction == 1.0 || fraction == 0.0) {
-            wait += 1.0;
-          }
-
-          if (wait > ${this.params.particleLen}.0 + rand(uv * u_rand_seed) * 100.0) {
+          if (countDown <= 0.0) {
             // 新しいカーブに飛ぶ
-            curveIndex = rand(uv * u_rand_seed) * (${this.params.numCurves}.0 - 1.0);
-            direction = rand(uv * u_rand_seed) > 0.5 ? 0.0 : 1.0;
+            curveIndex = floor(rand(uv * u_rand_seed) * (${this.params.numCurves}.0 - 1.0));
+            direction = step(0.5, rand(uv * u_rand_seed));
             fraction = direction;
-            wait = 0.0;
+            countDown = ${this.params.particleLen}.0 + rand(uv * u_rand_seed) * 90.0;
           }
 
           // 更新した値を書き込む
-          gl_FragColor = vec4(curveIndex, fraction, direction, wait);
+          gl_FragColor = vec4(curveIndex, fraction, direction, countDown);
 
         } else {
 
-          // 先頭以外のピクセルは、左隣すなわちX座標が一つ小さいピクセルの値を使う
-          // こうすることで移動の軌跡を作ることができる
-          vec2 leftUv = (gl_FragCoord.xy - vec2(1.0, 0.0)) / resolution.xy;
+          // 一番左のuv座標を取得
+          vec2 leftMostUv = vec2(0.0, gl_FragCoord.y) / resolution.xy;
 
-          // 左隣のピクセルの情報を取り出して、それを自分の情報にする
-          // 全ピクセルが同じプログラムを同時に実行するので、この値はまだ更新されていない
-          vec4 leftValue = texture2D( texturePosition, leftUv );
+          // 一番左のピクセルの情報を取り出す
+          vec4 leftMostValue = texture2D( texturePosition, leftMostUv );
 
-          // 保存
-          gl_FragColor = leftValue;
+          // カーブの番号が違っていたら、一番左のピクセルは新しい場所に飛んだ、ということ
+          if (leftMostValue.x != textureValue.x) {
+            // 一番左のピクセルの値をそのままコピー
+            gl_FragColor = leftMostValue;
+          } else {
+            // 自分の左隣のピクセルの値をそのままコピー
+            vec2 leftUv = (gl_FragCoord.xy - vec2(1.0, 0.0)) / resolution.xy;
+            vec4 leftValue = texture2D( texturePosition, leftUv );
+            gl_FragColor = leftValue;
+          }
+
         }
       }
     `;
@@ -951,8 +1044,8 @@ export class Main {
         // index = 1 のとき、i = 0, j = 1 なので、uv[2] = 0, uv[3] = 1 / (particleLen - 1) になる
         // index = 2 のとき、i = 0, j = 2 なので、uv[4] = 0, uv[5] = 2 / (particleLen - 1) になる
 
-        uv[index * 2 + 0] = j / (this.params.particleLen -1);
-        uv[index * 2 + 1] = i / (this.params.particleNum -1);
+        uv[index * 2 + 0] = j / (this.params.particleLen - 1);
+        uv[index * 2 + 1] = i / (this.params.particleNum - 1);
 
         // indexを作成してポリゴンを構成する
 
@@ -986,14 +1079,10 @@ export class Main {
 
     // シェーダーマテリアルを作成
     const material = new THREE.ShaderMaterial({
-
-      uniforms: this.uniforms,
-
       wireframe: true,
       transparent: true,
+      uniforms: this.uniforms,
       vertexColors: true,
-      // blending: THREE.AdditiveBlending,
-
       vertexShader: /* glsl */`
 
         uniform sampler2D u_texture_position;
@@ -1009,8 +1098,7 @@ export class Main {
           float curveIndex = textureValue.x;
           float fraction = textureValue.y;
 
-          float numPoints = 1.0 / ${this.params.fractionStep};
-
+          // カーブの座標を格納したテクスチャを参照するためのuvを計算
           vec2 curveUv = vec2(fraction, curveIndex / (${this.params.numCurves}.0 - 1.0));
 
           // そのラインの位置情報を取得
@@ -1032,11 +1120,11 @@ export class Main {
 
         void main() {
           // 座標に応じて色を変える？
-          // gl_FragColor = vec4(vUv.x, vUv.y, (vUv.x + vUv.y) / 2.0, 0.5);
+          gl_FragColor = vec4(vUv.x, vUv.y, (vUv.x + vUv.y) / 2.0, 0.5);
           // gl_FragColor = vec4(0.89, 0.23, 0.34, vUv.y);
           // gl_FragColor = vec4(0.0, 1.0, 0.0, 0.5);
           // gl_FragColor = vec4(0.89, 0.23, 0.34, 0.5);
-          gl_FragColor = vec4(0.89, 0.23, 0.34, vUv.x);
+          // gl_FragColor = vec4(0.89, 0.23, 0.34, vUv.x);
         }
       `,
 
