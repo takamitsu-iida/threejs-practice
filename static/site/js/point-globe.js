@@ -208,7 +208,7 @@ export class Main {
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
-      // alpha: true
+      alpha: false,
     });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.setSize(this.sizes.width, this.sizes.height);
@@ -316,6 +316,8 @@ export class Main {
     // 経緯線のマテリアル
     const material = new THREE.LineBasicMaterial({
       color: 0xcccccc,
+      transparent: true,
+      opacity: 0.5,
     });
 
     const startAngle = 90 - interval;
@@ -429,7 +431,8 @@ export class Main {
     const rows = 180 * 2;
     const dotDensity = 1.0;
 
-    const geometry = new THREE.SphereGeometry(0.5, 8, 8);
+    // const geometry = new THREE.SphereGeometry(0.5, 8, 8);
+    const geometry = new THREE.CircleGeometry(0.5, 8);
 
     const material = new THREE.MeshBasicMaterial({
       color: 0x00ff00,
@@ -457,10 +460,22 @@ export class Main {
 
     const pointCloud = new THREE.InstancedMesh(geometry, material, points.length);
 
+    /*
     points.forEach((point, index) => {
       const matrix = new THREE.Matrix4();
       matrix.setPosition(point);
       pointCloud.setMatrixAt(index, matrix);
+    });
+    */
+
+    // ダミーのオブジェクトを使って位置と向きを設定して、そのマトリックスを使う
+    const dummy = new THREE.Object3D();
+
+    points.forEach((point, index) => {
+      dummy.position.copy(point);
+      dummy.lookAt(0, 0, 0);
+      dummy.updateMatrix();
+      pointCloud.setMatrixAt(index, dummy.matrix);
     });
 
     this.scene.add(pointCloud);
