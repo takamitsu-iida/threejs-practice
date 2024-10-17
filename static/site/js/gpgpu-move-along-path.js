@@ -232,7 +232,8 @@ export class Main {
     // GPUComputationRendererを初期化
     //
 
-    const numFractions = Math.floor(1 / this.params.fractionStep);
+    // fractionStepは間隔なので、ポイントの数は1/fractionStep +1になる（+1を忘れないように！）
+    const numFractions = Math.floor(1 / this.params.fractionStep) +1;
 
     const computationRenderer = new GPUComputationRenderer(
       numFractions,  // width
@@ -269,6 +270,7 @@ export class Main {
         positionArray[i + 3] = 0.0;      // W座標(未使用)
 
         fraction += this.params.fractionStep;
+        fraction = Math.min(fraction, 1.0);  // floatの誤差で1.0を超えないようにする
       }
     }
 

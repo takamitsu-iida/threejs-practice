@@ -218,7 +218,10 @@ export class Main {
     // GPUComputationRendererを初期化
     //
 
+    // fractionStepは間隔を示すので、ポイント数は1/fractionStep+1になる（+1するのを忘れないように！）
     const numFractions = Math.floor(1 / this.params.fractionStep);
+
+    // カーブの数
     const numCurves = this.params.numCurves;
 
     const computationRenderer = new GPUComputationRenderer(
@@ -256,7 +259,8 @@ export class Main {
 
         for (let j = 0; j < numFractions; j++) {
           // j番目のfractionに関して、
-          const fraction = j * this.params.fractionStep;
+          let fraction = j * this.params.fractionStep;
+          fraction = Math.min(fraction, 1.0);  // floatの誤差で1.0を超えないようにする
 
           // カーブ上のfractionに相当する場所の座標を取得
           const pointAt = curve.getPointAt(fraction);
