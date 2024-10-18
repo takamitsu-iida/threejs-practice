@@ -70,7 +70,7 @@ export class Main {
       return;
     }
 
-    console.log(this.params.jsonData);
+    // console.log(this.params.jsonData);
 
     // scene, camera, renderer, controllerを初期化
     this.initThreejs();
@@ -256,13 +256,11 @@ export class Main {
 
     // topojsonのFeatureCollectionからFeatureを一つずつ取り出す
     features.forEach(feature => {
-      // console.log(feature);
-
-      // Shapeを作成
-      const shape = new THREE.Shape();
 
       // GeometryがLineStringの場合
       if (feature.geometry.type === 'LineString') {
+        const shape = new THREE.Shape();
+
         const coordinates = feature.geometry.coordinates;
         // パスを開始
         shape.moveTo(
@@ -277,13 +275,15 @@ export class Main {
             coordinates[i][1]
           );
         }
+
+        shapes.push(shape);
       }
 
-      // GeometryがPolygonまたはMultiPolygonの場合
-      else if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
-        const coordinates = feature.geometry.type === 'Polygon' ?
-          feature.geometry.coordinates[0] :
-          feature.geometry.coordinates.flat(2); // MultiPolygonの場合は全ての座標を1次元配列に
+      // GeometryがPolygonの場合
+      else if (feature.geometry.type === 'Polygon') {
+        const shape = new THREE.Shape();
+
+        const coordinates = feature.geometry.coordinates[0];
 
         shape.moveTo(
           coordinates[0][0],
@@ -296,9 +296,32 @@ export class Main {
             coordinates[i][1]
           );
         }
+
+        shapes.push(shape);
       }
 
-      shapes.push(shape);
+      // GeometryがMultiPolygonの場合
+      else if (feature.geometry.type === 'MultiPolygon') {
+        feature.geometry.coordinates.forEach(polygon => {
+          const shape = new THREE.Shape();
+          const coordinates = polygon[0];
+
+          shape.moveTo(
+            coordinates[0][0],
+            coordinates[0][1]
+          );
+
+          for (let i = 1; i < coordinates.length; i++) {
+            shape.lineTo(
+              coordinates[i][0],
+              coordinates[i][1]
+            );
+          }
+
+
+          shapes.push(shape);
+        });
+      }
 
     });
 
@@ -327,7 +350,6 @@ export class Main {
     // BoundingBoxを計算して中心を調べる
     geometry.computeBoundingBox();
     const boundingBox = geometry.boundingBox;
-    console.log(boundingBox);
 
     // BoundingBoxの中心を原点に寄せる
     geometry.translate(

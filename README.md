@@ -572,6 +572,26 @@ Topojsonは手持ちで持っていた神奈川県三浦市のものを利用。
 
 <br>
 
+## ShapeGeometry with Topojson
+
+Topojsonを読み込んでパスシェイプを作り、ShapeGeometryで表示した例。
+
+日本地図のTopojsonは[ここ](https://github.com/dataofjapan/land)から頂いた。
+
+県単位でFeatureが格納されているので、メッシュ化も県単位。
+
+そのおかげでレイキャスターを使えばマウスオーバーで県の色を変えることくらいは容易にできるはず。
+
+[![ScreenImage](./asset/index-load-topojson.html2.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-topojson2.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-topojson2.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-topojson2.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-topojson2.js)
+
+<br>
+
 ## Load GeoJSON (Part 1)
 
 GeoJSONを読み込んでTHREE.LineSegmentsでワイヤーフレームを表示した例。
