@@ -52,6 +52,10 @@ export class Main {
   }
 
 
+  // 地球をグループ化しておく
+  globe = new THREE.Group();
+
+
   constructor(params = {}) {
     this.params = Object.assign(this.params, params);
     this.init();
@@ -84,10 +88,8 @@ export class Main {
     // lil-guiを初期化
     this.initGui();
 
-    // 経緯線を描画
-    this.initGraticule(15);
-
-    this.initPoints();
+    // 地球を作成
+    this.initGlobe();
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
@@ -231,6 +233,16 @@ export class Main {
     const axesHelper = new THREE.AxesHelper(this.params.radius);
     this.scene.add(axesHelper);
 
+    // 環境光をシーンに追加
+    // 環境光がないと地球の夜の部分が真っ黒になってしまう
+    // ただし、色に注意が必要
+    // 0xffffffだと全体に強い光があたって影ができない
+    this.scene.add(new THREE.AmbientLight(0xa0a0a0));
+
+    // ディレクショナルライト
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    dirLight.position.set(-this.params.radius * 3, 0, this.params.radius * 1.5)
+    this.scene.add(dirLight)
   }
 
 
@@ -307,17 +319,111 @@ export class Main {
   };
 
 
+  initGlobe = () => {
+
+    // 球体を作成
+    this.initSphere();
+
+    // 大気を表現するためのシェーダーを追加
+    this.initAtmosphere();
+
+    // 経緯線を描画
+    this.initGraticule(15);
+
+    // 陸地の点を描画
+    this.initPoints();
+
+    // Y軸を中心に回転させてタイムゾーンが正面に来るようにする
+    // （カメラを東京上空にしたのでこれは不要）
+    // this.setRoteteToTimezone();
+
+    // シーンに追加
+    this.scene.add(this.globe);
+  }
+
+
+  initSphere = () => {
+    // 青い球体を作成
+    const geometry = new THREE.SphereGeometry(this.params.radius, 64, 64);
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x0000ff,
+    });
+    const sphere = new THREE.Mesh(geometry, material);
+
+    // グループに追加
+    this.globe.add(sphere);
+  }
+
+
+  initAtmosphere = () => {
+
+    // 大気を表現するためのシェーダーを追加
+    // https://franky-arkon-digital.medium.com/make-your-own-earth-in-three-js-8b875e281b1e
+    let atmosGeometry = new THREE.SphereGeometry(this.params.radius * 1.2, 64, 64)
+
+    let atmosMaterial = new THREE.ShaderMaterial({
+      vertexShader: /*GLSL*/`
+        varying vec3 vNormal;
+        varying vec3 eyeVector;
+
+        void main() {
+          // modelMatrix transforms the coordinates local to the model into world space
+          vec4 mvPos = modelViewMatrix * vec4( position, 1.0 );
+
+          // normalMatrix is a matrix that is used to transform normals from object space to view space.
+          vNormal = normalize( normalMatrix * normal );
+
+          // vector pointing from camera to vertex in view space
+          eyeVector = normalize(mvPos.xyz);
+
+          gl_Position = projectionMatrix * mvPos;
+        }
+      `,
+      fragmentShader: /*GLSL*/`
+        varying vec3 vNormal;
+        varying vec3 eyeVector;
+
+        uniform float atmosOpacity;
+        uniform float atmosPowFactor;
+        uniform float atmosMultiplier;
+
+        void main() {
+          // Starting from the rim to the center at the back, dotP would increase from 0 to 1
+          float dotP = dot( vNormal, eyeVector );
+          // This factor is to create the effect of a realistic thickening of the atmosphere coloring
+          float factor = pow(dotP, atmosPowFactor) * atmosMultiplier;
+          // Adding in a bit of dotP to the color to make it whiter while the color intensifies
+          vec3 atmosColor = vec3(0.35 + dotP/4.5, 0.35 + dotP/4.5, 1.0);
+          // use atmOpacity to control the overall intensity of the atmospheric color
+          gl_FragColor = vec4(atmosColor, atmosOpacity) * factor;
+        }
+      `,
+      uniforms: {
+        atmosOpacity: { value: 0.7 },
+        atmosPowFactor: { value: 4.1 },
+        atmosMultiplier: { value: 9.5 },
+      },
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide,
+    })
+
+    const atmos = new THREE.Mesh(atmosGeometry, atmosMaterial)
+
+    this.globe.add(atmos)
+  }
+
+
   initGraticule = (interval = 15) => {
     // 縦の円弧、横の円弧を作成する
 
-    // 半径
-    const radius = this.params.radius;
+    // 経緯線が見えるように、半径を少し大きくしておく（線の太さの半分）
+    const radius = this.params.radius + 0.5;
 
     // 経緯線のマテリアル
     const material = new THREE.LineBasicMaterial({
       color: 0xcccccc,
       transparent: true,
-      opacity: 0.5,
+      opacity: 0.4,
     });
 
     const startAngle = 90 - interval;
@@ -348,7 +454,10 @@ export class Main {
       const clonedGeometry = verticalGeometry.clone().rotateY(roteteY * Math.PI / 180);
 
       // メッシュ化してシーンに追加
-      this.scene.add(new THREE.Line(clonedGeometry, material));
+      // this.scene.add(new THREE.Line(clonedGeometry, material));
+
+      // グループに追加
+      this.globe.add(new THREE.Line(clonedGeometry, material));
     }
 
 
@@ -380,7 +489,10 @@ export class Main {
       geometry.translate(0, radius * Math.cos(theta * Math.PI / 180), 0);
 
       // メッシュ化してシーンに追加
-      this.scene.add(new THREE.Line(geometry, material));
+      // this.scene.add(new THREE.Line(geometry, material));
+
+      // グループに追加
+      this.globe.add(new THREE.Line(geometry, material));
     }
   }
 
@@ -401,6 +513,23 @@ export class Main {
   }
 
 
+  setRoteteToTimezone = () => {
+    const date = new Date();
+    const timeZoneOffset = date.getTimezoneOffset() || -540;  // minutes
+    const timeZoneMaxOffset = 60 * 12;
+    const rotationOffsetY = Math.PI * (timeZoneOffset / timeZoneMaxOffset);
+    console.log(`timeZoneOffset: ${timeZoneOffset}, rotationOffsetY: ${rotationOffsetY}`);
+    this.globe.rotation.y = -rotationOffsetY;
+  }
+
+
+  setRoteteToCoordinate = (longitude, latitude) => {
+    const point = this.geo_to_vec3(longitude, latitude, this.params.radius);
+    const angle = Math.atan2(point.x, point.z);
+    this.globe.rotation.y = -angle;
+  }
+
+
   isLand = (longitude, latitude) => {
     // 地図上のピクセルを参照して、黒なら陸地と判定
     const imageData = this.params.specularMapData;
@@ -418,12 +547,11 @@ export class Main {
     // const pixelA = imageData[(y * imageWidth + x) * 4 + 3];
 
     // console.log(`x: ${x}, y: ${y}, R: ${pixelR}, G: ${pixelG}, B: ${pixelB}, A: ${pixelA}`);
-    if (pixelR < 128 && pixelG < 128 && pixelB <128) {
+    if (pixelR < 128 && pixelG < 128 && pixelB < 128) {
       return true;
     }
     return false;
   }
-
 
 
   initPoints = () => {
@@ -431,9 +559,10 @@ export class Main {
     const rows = 180 * 2;
     const dotDensity = 1.0;
 
-    // const geometry = new THREE.SphereGeometry(0.5, 8, 8);
-    const geometry = new THREE.CircleGeometry(0.5, 8);
+    // 六角形のジオメトリを作成
+    const geometry = new THREE.CircleGeometry(0.5, 6);
 
+    // マテリアルを作成
     const material = new THREE.MeshBasicMaterial({
       color: 0x00ff00,
       transparent: true,
@@ -441,44 +570,39 @@ export class Main {
       side: THREE.DoubleSide,
     });
 
+    // 緯度経度のグリッドを走査して、陸地ならそこに円を作成する
     const points = [];
-    for (let lat = -90; lat <= 90; lat += 180/rows) {
+    for (let lat = -90; lat <= 90; lat += 180 / rows) {
       const radius = Math.cos(Math.abs(lat) * DEG2RAD) * this.params.radius;
       const circumference = radius * Math.PI * 2;
       const dotsForLat = circumference * dotDensity;
 
       for (let x = 0; x < dotsForLat; x++) {
-        const long = -180 + x*360/dotsForLat;
+        const long = -180 + x * 360 / dotsForLat;
         if (this.isLand(long, lat)) {
           const point = this.geo_to_vec3(long, lat, this.params.radius);
           points.push(point);
         }
       }
     }
-
     console.log(`create ${points.length} points`);
 
-    const pointCloud = new THREE.InstancedMesh(geometry, material, points.length);
-
-    /*
-    points.forEach((point, index) => {
-      const matrix = new THREE.Matrix4();
-      matrix.setPosition(point);
-      pointCloud.setMatrixAt(index, matrix);
-    });
-    */
+    // InstancedMeshを使ってひとつのメッシュをGPUで必要な数だけ複製する
+    const instancedMesh = new THREE.InstancedMesh(geometry, material, points.length);
 
     // ダミーのオブジェクトを使って位置と向きを設定して、そのマトリックスを使う
     const dummy = new THREE.Object3D();
 
+    // setMatrixAtで位置と向きを変える
     points.forEach((point, index) => {
       dummy.position.copy(point);
       dummy.lookAt(0, 0, 0);
       dummy.updateMatrix();
-      pointCloud.setMatrixAt(index, dummy.matrix);
+      instancedMesh.setMatrixAt(index, dummy.matrix);
     });
 
-    this.scene.add(pointCloud);
+    // this.scene.add(instancedMesh);
+    this.globe.add(instancedMesh);
   }
 
 

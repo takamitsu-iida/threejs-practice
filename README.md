@@ -649,6 +649,30 @@ GPGPUでパーティクルを動かしている部分は難解なので、時間
 
 <br>
 
+## Point Globe (InstancedMesh)
+
+地図っぽいテクスチャがある便利なんだけど、探しても見つからない。
+
+手持ちの地図にgeo_specular.pngというファイルがあって、本来の目的は光の反射率を計算するためのものらしいけど、
+いい具合に白黒で表現されてるので海なのか地面なのかの判定に使ってみた。
+
+緯度経度のグリッドを走査して、その座標が地面なら六角形を描画する。
+
+この例だと53,388個の六角形を描画しているが、六角形を個別にメッシュ化してしまうとさすがに重たくなるので、
+InstancedMeshを使ってGPU側で複製するようにしている。
+
+地球の球体の周りがぼんやりとしているのは大気を表現したもので、シェーダーのコードは[ここ](https://franky-arkon-digital.medium.com/make-your-own-earth-in-three-js-8b875e281b1e)から頂戴した。
+
+[![ScreenImage](./asset/index-point-globe.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-point-globe.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-point-globe.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-point-globe.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/point-globe.js)
+
+<br>
+
 ## Move along path
 
 オブジェクトをパスに沿って移動させる例。
