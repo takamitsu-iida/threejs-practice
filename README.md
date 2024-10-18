@@ -582,7 +582,7 @@ Topojsonを読み込んでパスシェイプを作り、ShapeGeometryで表示�
 
 そのおかげでレイキャスターを使えばマウスオーバーで県の色を変えることくらいは容易にできるはず。
 
-[![ScreenImage](./asset/index-load-topojson.html2.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-topojson2.html)
+[![ScreenImage](./asset/index-load-topojson2.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-topojson2.html)
 
 [Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-topojson2.html)
 
