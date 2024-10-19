@@ -227,7 +227,9 @@ export class Main {
 
     const topoData = topojson.feature(jsonData, jsonData.objects[objectName]);
     const features = topoData.features;
+
     // console.log(features);
+    // console.log(topojson.mesh(jsonData, jsonData.objects[objectName]));
 
     // topojsonのFeatureCollectionからFeatureを一つずつ取り出す
     // featureには一つの県の情報が格納されている

@@ -963,6 +963,24 @@ GPGPUを簡単に使えるようにするヘルパー GPUComputationRenderer.js 
 
 [JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/transform-shader.js)
 
+<br>
+
+## Directional line using shader
+
+シェーダーでラインの方向を表現した例。
+
+ジオメトリの頂点に0～1で正規化した長さ情報をアトリビュートで仕込んでおいて、シェーダーでそれを利用する。
+
+直線の場合は始点と終点の2点しか存在しないが、シェーダーに渡るときにはいい具合に補間される。
+
+[![ScreenImage](./asset/index-line-shader.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-line-shader.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-line-shader.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-line-shader.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/line-shader.js)
+
 
 <!--
 

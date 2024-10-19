@@ -8,7 +8,7 @@
 
   <link rel="shortcut icon" type="image/x-icon" href="./static/site/img/favicon.ico">
 
-  <title>Load GeoJSON Example</title>
+  <title>Line shader</title>
 
   <style type="text/css">
     * {
@@ -55,71 +55,15 @@
       border: 0px;
     }
 
-   /*
-    ネットワーク経由でデータを取得する場合にロード中を表示
-    <div id="loadingContainer">
-      <div id="loading"></div>
-    </div>
-    */
-    #loadingContainer {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: #000000;
-      opacity: 1;
-      transition: 0.5s opacity;
-      z-index: 1;
-    }
-
-    #loadingContainer.fadeout {
-      opacity: 0;
-    }
-
-    /* HTML: <div id="loading"></div> */
-    #loading {
-      display: block;
-      position: relative;
-      left: 50%;
-      top: 50%;
-      width: 50px;
-      padding: 8px;
-      aspect-ratio: 1;
-      border-radius: 50%;
-      background: #25b09b;
-      --_m:
-        conic-gradient(#0000 10%, #000),
-        linear-gradient(#000 0 0) content-box;
-      -webkit-mask: var(--_m);
-      mask: var(--_m);
-      -webkit-mask-composite: source-out;
-      mask-composite: subtract;
-      animation: l3 1s infinite linear;
-    }
-
-    @keyframes l3 {
-      to {
-        transform: rotate(1turn)
-      }
-    }
   </style>
 
 </head>
 
 <body>
-  <div id="loadingContainer">
-    <div id="loading"></div>
-  </div>
   <div id="threejsContainer"></div>
   <div id="statsjsContainer"></div>
   <div id="guiContainer"></div>
 </body>
-
-
-<!-- topojson -->
-<script src="./static/libs/topojson/topojson.min.js"></script>
-
 
 <!-- three.js -->
 <script type="importmap">
@@ -134,7 +78,7 @@
 
 <script type="module">
   import WebGL from './static/libs/capabilities/WebGL.js';
-  import { Main } from "./static/site/js/load-geojson2.js";
+  import { Main } from "./static/site/js/line-shader.js";
 
   window.addEventListener("load", () => {
     if (WebGL.isWebGL2Available()) {
