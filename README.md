@@ -548,7 +548,7 @@ SelectionBoxを使うと、GPU側で作成した個々のメッシュを選択�
 
 <br>
 
-## ExtrudeGeometry with Topojson
+## Load Topojson ExtrudeGeometry
 
 Topojsonを読み込んでパスシェイプを作り、ExtrudeGeometryで立体化した例。
 
@@ -562,33 +562,33 @@ Topojsonは手持ちで持っていた神奈川県三浦市のものを利用。
 
 なお、そのままだと小さいので適当に拡大しているが、topojsonデータにはscale情報も格納されているので、うまく処理すれば画面サイズにフィットするように大きさを調整できると思う。
 
-[![ScreenImage](./asset/index-load-topojson.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-topojson.html)
+[![ScreenImage](./asset/index-load-topojson-extrudegeometry.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-topojson-extrudegeometry.html)
 
-[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-topojson.html)
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-topojson-extrudegeometry.html)
 
-[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-topojson.html)
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-topojson-extrudegeometry.html)
 
-[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-topojson.js)
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-topojson-extrudegeometry.js)
 
 <br>
 
-## ShapeGeometry with Topojson
+## Load TopoJSON ShapeGeometry
 
-Topojsonを読み込んでパスシェイプを作り、ShapeGeometryで表示した例。
+TopoJSONを読み込んでパスシェイプを作り、ShapeGeometryで表示した例。
 
-日本地図のTopojsonは[ここ](https://github.com/dataofjapan/land)から頂いた。
+日本地図のTopoJSONは[ここ](https://github.com/dataofjapan/land)から頂いた。
 
 県単位でFeatureが格納されているので、メッシュ化も県単位。
 
 そのおかげでレイキャスターを使えばマウスオーバーで県の色を変えることくらいは容易にできるはず。
 
-[![ScreenImage](./asset/index-load-topojson2.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-topojson2.html)
+[![ScreenImage](./asset/index-load-topojson-shapegeometry.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-topojson-shapegeometry.html)
 
-[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-topojson2.html)
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-topojson-shapegeometry.html)
 
-[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-topojson2.html)
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-topojson-shapegeometry.html)
 
-[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-topojson2.js)
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-topojson-shapegeometry.js)
 
 <br>
 
