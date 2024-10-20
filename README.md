@@ -572,7 +572,7 @@ Topojsonは手持ちで持っていた神奈川県三浦市のものを利用。
 
 <br>
 
-## Load TopoJSON ShapeGeometry
+## Load TopoJSON ShapeGeometry (Part 1)
 
 TopoJSONを読み込んでパスシェイプを作り、ShapeGeometryで表示した例。
 
@@ -589,6 +589,20 @@ TopoJSONを読み込んでパスシェイプを作り、ShapeGeometryで表示�
 [HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-topojson-shapegeometry.html)
 
 [JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-topojson-shapegeometry.js)
+
+<br>
+
+## Load TopoJSON ShapeGeometry (Part 2)
+
+県の上にマウスオーバーすると、県の名前が表示されるようにクイックハック。
+
+[![ScreenImage](./asset/index-load-topojson-shapegeometry2.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-topojson-shapegeometry2.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-topojson-shapegeometry2.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-topojson-shapegeometry2.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-topojson-shapegeometry2.js)
 
 <br>
 
