@@ -971,7 +971,12 @@ GPGPUを簡単に使えるようにするヘルパー GPUComputationRenderer.js 
 
 ジオメトリの頂点に0～1で正規化した長さ情報をアトリビュートで仕込んでおいて、シェーダーでそれを利用する。
 
-直線の場合は始点と終点の2点しか存在しないが、シェーダーに渡るときにはいい具合に補間される。
+直線の場合は始点と終点の2点しか存在しないが、シェーダーに渡るときにはいい具合に値が補間される。
+
+動く方向も頂点ごとにアトリビュートで仕込んでいる。
+directionアトリビュートの値が0.5を超えると逆方向になるようにしている。
+
+直線の場合、始点のdirectionアトリビュートを0、終点を1にすると、両端から進んで真ん中で合流するようになる。
 
 [![ScreenImage](./asset/index-line-shader.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-line-shader.html)
 
