@@ -1366,14 +1366,17 @@ export class Diagram {
       this.container.appendChild(container);
     }
 
-    const gui = new GUI({ container: container });
+    const gui = new GUI({
+      container: container,
+      width: 300,
+    });
 
     // ラベル表示のON/OFFを切り替える
     {
       const folder = gui.addFolder('Label');
       folder
         .add(this.labelParams, 'showLabels')
-        .name('show node label')
+        .name(navigator.language.startsWith("ja") ? "ラベルを表示" : "show node label")
         .onChange((value) => {
           // レイヤでラベルを表示するかどうかを切り替える
           this.camera.layers.toggle(LAYERS.LABEL);
@@ -1387,7 +1390,7 @@ export class Diagram {
       folder
         .add(this.labelParams, 'labelFontSize')
         .options(['Small', 'Medium', 'Large'])
-        .name('font size')
+        .name(navigator.language.startsWith("ja") ? "フォントサイズ" : "font size")
         .onChange((value) => {
           // CSS2DObjectはDIVを元にしているので、CSSクラスを変更するだけでフォントサイズを変えられる
           document.querySelectorAll('.label').forEach((label) => {
@@ -1402,7 +1405,7 @@ export class Diagram {
       const folder = gui.addFolder('AxesHelper');
       folder
         .add(this, 'axesHelperEnabled')
-        .name('show AxesHelper')
+        .name(navigator.language.startsWith("ja") ? "軸を表示" : "show AxesHelper")
         .onChange((value) => {
           this.axesHelper.visible = value;
         });
@@ -1413,7 +1416,7 @@ export class Diagram {
       const folder = gui.addFolder('OrbitControls');
       folder
         .add(this.orbitParams, 'autoRotate')
-        .name('auto rotate')
+        .name(navigator.language.startsWith("ja") ? "回転" : "auto rotate")
         .onChange((value) => {
           this.controller.autoRotate = value;
           if (value) {
@@ -1428,7 +1431,7 @@ export class Diagram {
       const folder = gui.addFolder('ObjectSelection');
       folder
         .add(this, 'selectionEnabled')
-        .name('selectionEnabled')
+        .name(navigator.language.startsWith("ja") ? "マウスで選択" : "selectionEnabled")
         .listen();
     }
 
@@ -1437,13 +1440,13 @@ export class Diagram {
       const folder = gui.addFolder('Redundunt');
       folder
         .add(this.graphParams, 'redundant_0')
-        .name('show redundant 0')
+        .name(navigator.language.startsWith("ja") ? "0系を表示" : "show redundant 0")
         .onChange(() => {
           this.camera.layers.toggle(LAYERS.REDUNDANT_0);
         });
       folder
         .add(this.graphParams, 'redundant_1')
-        .name('show redundant 1')
+        .name(navigator.language.startsWith("ja") ? "1系を表示" : "show redundant 1")
         .onChange(() => {
           this.camera.layers.toggle(LAYERS.REDUNDANT_1);
         });

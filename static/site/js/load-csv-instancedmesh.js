@@ -213,6 +213,7 @@ export class Main {
     const guiContainer = document.getElementById("guiContainer");
     const gui = new GUI({
       container: guiContainer,
+      width: 300,
     });
 
     gui

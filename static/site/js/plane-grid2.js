@@ -287,7 +287,11 @@ export class Main {
 
 
   initGui = () => {
-    const gui = new GUI({ width: 300 });
+    const guiContainer = document.getElementById("guiContainer");
+    const gui = new GUI({
+      container: guiContainer,
+      width: 300,
+    });
 
     gui
       .add(this.uniforms.uThickness, "value")

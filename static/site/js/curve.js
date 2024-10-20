@@ -152,8 +152,18 @@ export class Main {
 
 
   initGui = () => {
-    // lil-gui
-    const gui = new GUI({ width: 300 });
+    let container = document.getElementById("guiContainer");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "guiContainer";
+      this.container.appendChild(container);
+    }
+
+    const gui = new GUI({
+      container: container,
+      width: 300,
+    });
+
     gui
       .add(this.params, "pointNum")
       .min(this.pointCoordinates.length)
