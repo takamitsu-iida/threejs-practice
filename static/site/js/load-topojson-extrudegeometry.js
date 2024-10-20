@@ -159,10 +159,10 @@ export class Main {
     this.camera = new THREE.PerspectiveCamera(
       60,
       this.sizes.width / this.sizes.height,
-      1,
-      1000
+      0.1,
+      10
     );
-    this.camera.position.set(0, 0, 100);
+    this.camera.position.set(0, 0, 1);
 
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -332,7 +332,7 @@ export class Main {
   createMeshFromShapes = (shapes) => {
 
     // ExtrudeGeometryに渡すdepthパラメータ（厚み）
-    const depth = 0.1;
+    const depth = 0.01;
 
     // Shapeの配列からExtrudeGeometryを作成
     const geometry = new THREE.ExtrudeGeometry(shapes, {
@@ -340,26 +340,26 @@ export class Main {
       bevelEnabled: false,
     });
 
-    // 原点に寄せる
+    // ジオメトリの中心を原点に寄せる
     // geometry.center();
 
-    // 移動して原点に寄せる
+    // ジオメトリを移動して原点に寄せる
     // 中心を原点に寄せるためには、もう少し左、もう少し下に移動する必要がある
     geometry.translate(-this.params.translate[0], -this.params.translate[1], 0);
 
     // BoundingBoxを計算して中心を調べる
     geometry.computeBoundingBox();
     const boundingBox = geometry.boundingBox;
+    const center = new THREE.Vector3();
+    boundingBox.getCenter(center);
 
     // BoundingBoxの中心を原点に寄せる
-    geometry.translate(
-      -0.5 * (boundingBox.max.x - boundingBox.min.x),
-      -0.5 * (boundingBox.max.y - boundingBox.min.y),
-      0
-    );
+    geometry.translate(-center.x, -center.y, 0);
 
-    // 拡大する
-    geometry.scale(1000, 1000, 1);
+    // ズームを調整（適当）
+    this.camera.zoom = 10.0;
+    this.camera.updateProjectionMatrix();
+    this.camera.updateMatrix();
 
     // マテリアル、ここでは適当にMeshStandardMaterialを使う
     const material = new THREE.MeshStandardMaterial({
@@ -372,6 +372,7 @@ export class Main {
 
     // シーンに追加
     this.scene.add(mesh);
+
   }
 
 }
