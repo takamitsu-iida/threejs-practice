@@ -276,13 +276,13 @@ ICS MEDIAの [記事](https://ics.media/entry/10657/") から引用。
 
 パーティクルの場合にどう回転するのか、を確認したもの。
 
-[![ScreenImage](./asset/index-points.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-points.html)
+[![ScreenImage](./asset/index-rotate-points.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-rotate-points.html)
 
-[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-points.html)
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-rotate-points.html)
 
-[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-points.html)
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-rotate-points.html)
 
-[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/points.js)
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/rotate-points.js)
 
 <br>
 
