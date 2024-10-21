@@ -6,32 +6,6 @@ import { GUI } from "three/libs/lil-gui.module.min.js";
 
 import Stats from "three/libs/stats.module.js";
 
-
-//
-// 一度だけ実行するための関数
-//
-
-const doLater = (job, tmo) => {
-
-  // 処理が登録されているならタイマーをキャンセル
-  var tid = doLater.TID[job];
-  if (tid) {
-    window.clearTimeout(tid);
-  }
-
-  // タイムアウト登録する
-  doLater.TID[job] = window.setTimeout(() => {
-    // 実行前にタイマーIDをクリア
-    doLater.TID[job] = null;
-    // 登録処理を実行
-    job.call();
-  }, tmo);
-}
-
-// 処理からタイマーIDへのハッシュ
-doLater.TID = {};
-
-
 //
 // GPUComputationRenderer.compute()を使ってパーティクルを移動させる例
 //
@@ -199,6 +173,27 @@ export class Main {
       container: guiContainer,
       width: 300,
     });
+
+    // 一度だけ実行するための関数
+    const doLater = (job, tmo) => {
+
+      // 処理が登録されているならタイマーをキャンセル
+      var tid = doLater.TID[job];
+      if (tid) {
+        window.clearTimeout(tid);
+      }
+
+      // タイムアウト登録する
+      doLater.TID[job] = window.setTimeout(() => {
+        // 実行前にタイマーIDをクリア
+        doLater.TID[job] = null;
+        // 登録処理を実行
+        job.call();
+      }, tmo);
+    }
+
+    // 処理からタイマーIDへのハッシュ
+    doLater.TID = {};
 
     gui
       .add(this.params, "numCurves")

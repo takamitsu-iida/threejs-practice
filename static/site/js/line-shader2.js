@@ -45,6 +45,13 @@ export class Main {
   params = {
     // カーブを構成する点の数
     numPoints: 50,
+
+    // チューブの断面の半径
+    radius: 0.02,
+
+    // チューブの断面の分割数
+    radialSegments: 8,
+
   }
 
 
@@ -132,13 +139,32 @@ export class Main {
       width: 300,
     });
 
+    const doLater = (job, tmo) => {
+
+      // 処理が登録されているならタイマーをキャンセル
+      var tid = doLater.TID[job];
+      if (tid) {
+        window.clearTimeout(tid);
+      }
+
+      // タイムアウト登録する
+      doLater.TID[job] = window.setTimeout(() => {
+        // 実行前にタイマーIDをクリア
+        doLater.TID[job] = null;
+        // 登録処理を実行
+        job.call();
+      }, tmo);
+    }
+
+    // 処理からタイマーIDへのハッシュ
+    doLater.TID = {};
+
     gui
       .add(this.uniforms.u_freq_scale, "value")
       .min(1.0)
       .max(20.0)
       .step(2.0)
       .name(navigator.language.startsWith("ja") ? "周波数係数" : "Frequency Scale");
-
   }
 
 
@@ -197,51 +223,6 @@ export class Main {
   };
 
 
-
-
-  initLine = () => {
-    // 共通に用いるシェーダーマテリアルを作成
-    const material = new THREE.ShaderMaterial({
-      uniforms: this.uniforms,
-      vertexShader: this.vertexShader,
-      fragmentShader: this.fragmentShader,
-    });
-
-
-    // ジオメトリを3個作成
-    const source1 = new THREE.Vector3(-1, 0, 1.5);
-    const destination1 = new THREE.Vector3(1, 0, 1.5);
-    const geometry1 = new THREE.BufferGeometry().setFromPoints([source1, destination1]);
-
-    const source2 = new THREE.Vector3(-1, 0, 2.0);
-    const destination2 = new THREE.Vector3(1, 0, 2.0);
-    const geometry2 = new THREE.BufferGeometry().setFromPoints([source2, destination2]);
-
-    const source3 = new THREE.Vector3(-1, 0, 2.5);
-    const destination3 = new THREE.Vector3(1, 0, 2.5);
-    const geometry3 = new THREE.BufferGeometry().setFromPoints([source3, destination3]);
-
-    // 0-1に正規化した長さ情報をアトリビュートで設定
-    geometry1.setAttribute("length", new THREE.BufferAttribute(new Float32Array([0.0, 1.0]), 1));
-    geometry2.setAttribute("length", new THREE.BufferAttribute(new Float32Array([0.0, 1.0]), 1));
-    geometry3.setAttribute("length", new THREE.BufferAttribute(new Float32Array([0.0, 1.0]), 1));
-
-    // geometry2は頂点にdirectionアトリビュートを追加して動きを逆向きにする
-    // 数字は0.5よりも大きければ何でも良い
-    geometry2.setAttribute("direction", new THREE.BufferAttribute(new Float32Array([1.0, 1.0]), 1));
-
-    // geometry3は頂点ごとにdirectionアトリビュートを変えて動きを両方向にする
-    // 0.5よりも小さいと正方向、0.5以上は逆方向になるので、両端をそれぞれ0.0, 1.0にする
-    geometry3.setAttribute("direction", new THREE.BufferAttribute(new Float32Array([0.0, 1.0]), 1));
-
-    // ラインをシーンに追加
-    this.scene.add(new THREE.Line(geometry1, material));
-    this.scene.add(new THREE.Line(geometry2, material));
-    this.scene.add(new THREE.Line(geometry3, material));
-
-  }
-
-
   initCurve = () => {
 
     // 共通に使うシェーダーマテリアルを作成
@@ -268,12 +249,18 @@ export class Main {
     // curveの全体の長さ
     const totalCurveLength = cubicCurve.getLength();
 
+    // チューブの断面の半径
+    const radius = this.params.radius;
+
+    // チューブの断面の分割数
+    const radialSegments = this.params.radialSegments;
+
     const geometry1 = new THREE.TubeGeometry(
-      cubicCurve,  // Curve - A 3D path that inherits from the Curve base class. Default is a quadratic bezier curve.
-      numPoints,   // tubularSegments — Integer - The number of segments that make up the tube. Default is 64.
-      0.05,        // radius — Float - The radius of the tube. Default is 1.
-      8,           // radialSegments — Integer - The number of segments that make up the cross-section. Default is 8.
-      false        // closed — Boolean Is the tube open or closed. Default is false.
+      cubicCurve,      // Curve - A 3D path that inherits from the Curve base class. Default is a quadratic bezier curve.
+      numPoints,       // tubularSegments — Integer - The number of segments that make up the tube. Default is 64.
+      radius,          // radius — Float - The radius of the tube. Default is 1.
+      radialSegments,  // radialSegments — Integer - The number of segments that make up the cross-section. Default is 8.
+      false            // closed — Boolean Is the tube open or closed. Default is false.
     );
 
     // geometry1をコピーしてgeometry2, geometry3を作成
@@ -337,7 +324,8 @@ export class Main {
     );
 
     // 点の数は始点と終点の2点だけでよいが、両側から描画する場合は増やした方が良い
-    const numPoints = 2; // this.params.numPoints
+    // const numPoints = 2;
+    const numPoints = this.params.numPoints
 
     // 各ポイントでの長さを取得
     const lengthAtPoints = lineCurve.getLengths(numPoints);
@@ -345,17 +333,24 @@ export class Main {
     // 全体の長さ
     const totalCurveLength = lineCurve.getLength();
 
+    // チューブの断面の半径
+    const radius = this.params.radius;
+
+    // チューブの断面の分割数
+    const radialSegments = this.params.radialSegments;
+
     const geometry1 = new THREE.TubeGeometry(
       lineCurve,  // Curve - A 3D path that inherits from the Curve base class. Default is a quadratic bezier curve.
       numPoints,   // tubularSegments — Integer - The number of segments that make up the tube. Default is 64.
-      0.05,        // radius — Float - The radius of the tube. Default is 1.
-      8,           // radialSegments — Integer - The number of segments that make up the cross-section. Default is 8.
+      radius,          // radius — Float - The radius of the tube. Default is 1.
+      radialSegments,  // radialSegments — Integer - The number of segments that make up the cross-section. Default is 8.
       false        // closed — Boolean Is the tube open or closed. Default is false.
     );
 
     // geometry1をコピーしてgeometry2, geometry3を作成
     const geometry2 = geometry1.clone();
     const geometry3 = geometry1.clone();
+    const geometry4 = geometry1.clone();
 
     const numVertices = geometry1.attributes.position.count;
 
@@ -370,6 +365,7 @@ export class Main {
     geometry1.setAttribute("length", new THREE.BufferAttribute(lengthArray, 1));
     geometry2.setAttribute("length", new THREE.BufferAttribute(lengthArray, 1));
     geometry3.setAttribute("length", new THREE.BufferAttribute(lengthArray, 1));
+    geometry4.setAttribute("length", new THREE.BufferAttribute(lengthArray, 1));
 
     // geometry2はdirectionアトリビュートを追加して向きを逆にする
     const directionArray = new Float32Array(numVertices);
@@ -385,15 +381,26 @@ export class Main {
     }
     geometry3.setAttribute("direction", new THREE.BufferAttribute(directionArray2, 1));
 
+    // geometry4はdirectionアトリビュートを追加して特定の頂点だけ向きを逆にする
+    const directionArray3 = directionArray.slice();
+    for (let i = 0; i < numVertices; i++) {
+      if (i % 8 < 4) {
+        directionArray3[i] = 0.0;
+      }
+    }
+    geometry4.setAttribute("direction", new THREE.BufferAttribute(directionArray3, 1));
+
     // 位置をZ軸方向にずらす
     geometry1.translate(0, 0, 0.5);
     geometry2.translate(0, 0, 1.0);
     geometry3.translate(0, 0, 1.5);
+    geometry4.translate(0, 0, 2.0);
 
     // シーンに追加
     this.scene.add(new THREE.Mesh(geometry1, shaderMaterial));
     this.scene.add(new THREE.Mesh(geometry2, shaderMaterial));
     this.scene.add(new THREE.Mesh(geometry3, shaderMaterial));
+    this.scene.add(new THREE.Mesh(geometry4, shaderMaterial));
   }
 
   vertexShader = /* glsl */`
