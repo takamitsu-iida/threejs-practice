@@ -982,9 +982,9 @@ GPGPUを簡単に使えるようにするヘルパー GPUComputationRenderer.js 
 
 <br>
 
-## Directional line using shader
+## Directional line using shader (Part 1)
 
-シェーダーでラインに色を付けて向きを表現した例。
+シェーダーでラインに動く色を付けて向きを表現した例。
 
 ジオメトリの頂点に0～1で正規化した長さ情報をアトリビュートで仕込んでおき、シェーダーでそれをsin()して値が正の場合に色を変えている。
 
@@ -1003,6 +1003,26 @@ GPGPUを簡単に使えるようにするヘルパー GPUComputationRenderer.js 
 [HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-line-shader.html)
 
 [JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/line-shader.js)
+
+
+<br>
+
+## Directional line using shader (Part 2)
+
+THREE.TubeGeometryを使って線を太くして、シェーダーで動く色を付けて向きを表現した例。
+
+直線の場合、始点と終点の2点で表現できるけど、両端から描画する場合には点数を増やしておいた方がよい（理由は動かしてみれば分かる）
+
+[![ScreenImage](./asset/index-line-shader2.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-line-shader2.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-line-shader2.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-line-shader2.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/line-shader2.js)
+
+
+
 
 
 <!--
