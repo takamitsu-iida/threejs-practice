@@ -36,7 +36,7 @@ export class Main {
 
   uniforms = {
 
-    u_time : { value: 0.0 },
+    u_time: { value: 0.0 },
 
     // 周波数のスケール
     u_freq_scale: { value: 1.0 },
@@ -97,7 +97,11 @@ export class Main {
     this.camera.position.set(0, 4, 4);
 
     // レンダラ
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: false,
+    });
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.setSize(this.sizes.width, this.sizes.height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.container.appendChild(this.renderer.domElement);
