@@ -364,15 +364,14 @@ export class Main {
       }
 
       vec3 moveColor = vec3(0.0, 1.0, 0.0);
-      vec3 baseColor = vec3(0.5, 0.5, 0.5);
+      vec3 baseColor = vec3(0.6, 0.6, 0.6);
 
       float freq = (vLength - time) * 3.15 * u_freq_scale;
-      float drawMoveLine = step(0.0, sin(freq));  // sin()が0より大きいかどうかを判定
-      vec3 color = mix(moveColor, baseColor, drawMoveLine);
+      float drawMove = step(0.0, sin(freq));  // sin()が0より大きいかどうかを判定
+      vec3 color = mix(moveColor, baseColor, drawMove);
 
-      // gl_FragColor = vec4(color, 1.0);
-      gl_FragColor = vec4(color, drawMoveLine);
-
+      gl_FragColor = vec4(color, 1.0);
+      // gl_FragColor = vec4(color, drawMove);
     }
   `;
 
