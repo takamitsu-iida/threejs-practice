@@ -966,6 +966,22 @@ GPGPUを簡単に使えるようにするヘルパー GPUComputationRenderer.js 
 
 <br>
 
+## GPGPU PlaneGeometry
+
+前述のGPGPU Particle trailと同じ仕組みで、テクスチャを貼ったPlaneGeometryをGPGPUで移動させてみた。
+
+思ってたのと違うけど・・・まぁいいか。
+
+[![ScreenImage](./asset/index-gpgpu-planegeometry.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-planegeometry.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-planegeometry.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-gpgpu-planegeometry.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/gpgpu-planegeometry.js)
+
+<br>
+
 ## Transform using shader
 
 シェーダーでオブジェクトを移動、変形する例。
