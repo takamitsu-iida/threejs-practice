@@ -306,10 +306,10 @@ export class Main {
       for (let j = 0; j < numVertices; j++) {
         // 同じラインの頂点は全て同じ座標にして、初期状態では尻尾が存在しないようにする
         const index = (i * numVertices + j) * 4;
-        initialPositionTexture.image.data[index + 0] = x;    // X座標
-        initialPositionTexture.image.data[index + 1] = y;    // Y座標
-        initialPositionTexture.image.data[index + 2] = z;    // Z座標
-        initialPositionTexture.image.data[index + 3] = 1.0;  // W座標(未使用)
+        initialPositionTexture.image.data[index + 0] = x;      // X座標
+        initialPositionTexture.image.data[index + 1] = y;      // Y座標
+        initialPositionTexture.image.data[index + 2] = z;      // Z座標
+        initialPositionTexture.image.data[index + 3] = j % 2;  // W座標は頂点が奇数か偶数かを表す
       }
     }
 
@@ -342,7 +342,11 @@ export class Main {
 
           // 位置情報をテクスチャから取り出す
           // texturePositionはuniformで渡していないが、この後addVariable()で変数を追加すると自動的に使えるようになる
+          vec4 textureValue = texture2D( texturePosition, uv );
+
+          // 位置情報はxyzに、頂点が奇数か偶数かを表す情報はwに入っている
           vec3 pos = texture2D( texturePosition, uv ).xyz;
+          float w = textureValue.w;
 
           // 速度をテクスチャから取り出す
           // textureVelocityはuniformで渡していないが、この後addVariable()で変数を追加すると自動的に使えるようになる
@@ -352,14 +356,13 @@ export class Main {
           pos += vel * 0.001;
 
           // 計算した位置をテクスチャに保存する（この瞬間に全ピクセルの情報が一斉に更新される）
-          gl_FragColor = vec4( pos, 1.0 );
+          gl_FragColor = vec4( pos, w );
 
         } else {
           // 先頭以外のピクセルは、左隣すなわちX座標が一つ小さいピクセルの値を使う
           // こうすることで移動の軌跡を作ることができる
           vec2 leftUv = (gl_FragCoord.xy - vec2(1.0, 0.0)) / resolution.xy;
 
-          // 左隣のピクセルの情報を取り出して、それを自分の値にする
           gl_FragColor = texture2D( texturePosition, leftUv );
         }
       }
@@ -480,8 +483,8 @@ export class Main {
 
       // 頂点の数だけgpguでのuv座標を設定
       for (let j = 0; j < numVertices; j++) {
-        gpgpuUvs[j * 2 + 0] = j / (numVertices - 1);           // U方向は頂点の番号
-        gpgpuUvs[j * 2 + 1] = i / (numLines - 1);  // V方向はラインの番号
+        gpgpuUvs[j * 2 + 0] = j / (numVertices - 1);  // U方向は頂点の番号
+        gpgpuUvs[j * 2 + 1] = i / (numLines - 1);     // V方向はラインの番号
       }
 
       // gpgpuUvアトリビュートを設定
@@ -512,7 +515,16 @@ export class Main {
         varying vec2 vUv;  // フラグメントシェーダーに渡すuv座標
         void main() {
           // 位置をテクスチャから取得
-          vec3 pos = texture2D(u_texture_position, gpgpuUv).xyz;
+          vec4 textureValue = texture2D(u_texture_position, gpgpuUv);
+
+          // 位置はxyzに、頂点が奇数か偶数かを表す情報はwに入っている
+          vec3 pos = textureValue.xyz;
+          float w = textureValue.w;
+
+          // 奇数の頂点は座標を+する
+          if (w > 0.5) {
+            pos += vec3(.5);
+          }
 
           // 位置をposに更新
           gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
