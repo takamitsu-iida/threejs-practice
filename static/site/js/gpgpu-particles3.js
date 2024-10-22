@@ -4,10 +4,12 @@ import { OrbitControls } from "three/controls/OrbitControls.js";
 // stats.js
 import Stats from "three/libs/stats.module.js";
 
-// 必要な追加モジュール
-// three.js/examples/jsm/misc/GPUComputationRenderer.js
-// three.js/examples/jsm/postprocessing/Pass.js
+// 必要な追加モジュール（libsに配置するファイル）
+//   three.js/examples/jsm/misc/GPUComputationRenderer.js
+//   three.js/examples/jsm/postprocessing/Pass.js
 import { GPUComputationRenderer } from "three/libs/misc/GPUComputationRenderer.js";
+
+import { GUI } from "three/libs/lil-gui.module.min.js";
 
 /*
 
@@ -31,7 +33,6 @@ GPUComputationRenderer
 
 */
 
-
 // 参照元
 // https://qiita.com/ukonpower/items/26411c4fa588cd2e772e
 // https://github.com/ukonpower/glsl-graphics/tree/master/src/gl16/js
@@ -54,6 +55,7 @@ export class Main {
   statsjs;
 
   renderParams = {
+    animationId: null,
     clock: new THREE.Clock(),
     delta: 0,
     time: 0,
@@ -65,7 +67,23 @@ export class Main {
     particleLen: 50,
   }
 
-  constructor(params={}) {
+  // GPUComputationRendererクラスのインスタンス
+  // 毎フレーム computeRenderer.compute(); を実行するのでインスタンス変数に保存する
+  computationRenderer;
+
+  // compute()時に使うuniforms
+  computationUniforms = {
+    u_time: { value: 0.0 },
+  }
+
+  // 画面描画に使うシェーダーマテリアルに渡すuniformsオブジェクト
+  uniforms = {
+    // initComputationRenderer()の中でテクスチャをセットする
+    u_texture_position: { value: null },
+  };
+
+
+  constructor(params = {}) {
 
     this.params = Object.assign(this.params, params);
 
@@ -75,12 +93,58 @@ export class Main {
     // stats.jsを初期化
     this.initStatsjs();
 
+    // lil-guiを初期化
+    this.initGui();
+
+    // コンテンツを初期化
+    this.init();
+  }
+
+
+  init = () => {
+    // アニメーションを停止
+    this.stop();
+
+    // シーン上のメッシュを削除する
+    // this.scene.clear();
+    this.clearScene();
+
+    // 削除した状態を描画
+    this.renderer.render(this.scene, this.camera);
+
+    // GPUComputationRendererを初期化
+    this.initComputationRenderer();
+
     // パーティクルを初期化
     this.initParticles();
 
-    // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
+    // フレーム処理
     this.render();
+  }
 
+
+  clearScene = () => {
+    this.scene.children.forEach((child) => {
+      if (child.type === 'AxesHelper') {
+        return;
+      }
+      if (child.type === 'Light') {
+        return;
+      }
+
+      this.scene.remove(child);
+      if (child.geometry) {
+        child.geometry.dispose();
+      }
+      if (child.material) {
+        // マテリアルが配列の場合もあるので、配列の場合はすべて破棄
+        if (Array.isArray(child.material)) {
+          child.material.forEach(material => material.dispose());
+        } else {
+          child.material.dispose();
+        }
+      }
+    });
   }
 
 
@@ -144,9 +208,49 @@ export class Main {
   }
 
 
+  initGui = () => {
+    const guiContainer = document.getElementById("guiContainer");
+    const gui = new GUI({
+      container: guiContainer,
+      width: 300,
+    });
+
+    // 一度だけ実行するための関数
+    const doLater = (job, tmo) => {
+
+      // 処理が登録されているならタイマーをキャンセル
+      var tid = doLater.TID[job];
+      if (tid) {
+        window.clearTimeout(tid);
+      }
+
+      // タイムアウト登録する
+      doLater.TID[job] = window.setTimeout(() => {
+        // 実行前にタイマーIDをクリア
+        doLater.TID[job] = null;
+        // 登録処理を実行
+        job.call();
+      }, tmo);
+    }
+
+    // 処理からタイマーIDへのハッシュ
+    doLater.TID = {};
+
+    gui
+      .add(this.params, "particleNum")
+      .name(navigator.language.startsWith("ja") ? "ラインの数" : "number of lines")
+      .min(1)
+      .max(200)
+      .step(1)
+      .onChange((value) => {
+        doLater(this.init, 100);
+      });
+  }
+
+
   render = () => {
     // 再帰処理
-    requestAnimationFrame(this.render);
+    this.renderParams.animationId = requestAnimationFrame(this.render);
 
     const delta = this.renderParams.clock.getDelta();
     this.renderParams.time += delta;
@@ -173,6 +277,14 @@ export class Main {
   }
 
 
+  stop = () => {
+    if (this.renderParams.animationId) {
+      cancelAnimationFrame(this.renderParams.animationId);
+    }
+    this.renderParams.animationId = null;
+  }
+
+
   onWindowResize = (event) => {
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
@@ -185,97 +297,60 @@ export class Main {
   }
 
 
-  // GPUComputationRendererクラスのインスタンス
-  // 毎フレーム computeRenderer.compute(); を実行するので、
-  // 外部からアクセスできるようにしておく
-  computeRenderer;
-
-  // テクスチャを位置用と速度用で2個使うので、それらのパラメータを保存しておく
-  computeParams = {
-
-    // 位置情報用のパラメータ
-    position: {
-      // addVariable()の戻り値を保存しておく
-      // 計算後のテクスチャを取り出すのに使う
-      variable: null,
-
-      // 変数に紐づけられたシェーダーに渡すuniform
-      // 時刻情報を渡したいときに外部から uniforms.time.value = 0.0 などとして設定する
-      uniforms: null,
-    },
-
-    // 速度情報用のパラメータ
-    velocity: {
-       variable: null,  // addVariable()の戻り値を保存しておく
-       uniforms: null,  // 変数を取り出すときに使うシェーダーに渡すuniform
-    }
-
-  }
-
-  // 画面描画に使うシェーダーマテリアルに渡すuniformsオブジェクト
-  // 位置情報を格納したテクスチャはフレームごとに更新されるのでそれを渡す
-  uniforms = {
-    texturePosition: { value: null },
-  };
-
-
-  // パーティクルの初期化
-  initParticles = () => {
+  initComputationRenderer = () => {
 
     //
     // GPUComputationRendererを初期化
     //
 
     // width = particleLen,  height = particleNum として初期化する
-    // パーティクルの数だけ、ピクセルが存在することになる
-    // ここでいうパーティクルは、後ほど作るメッシュの頂点のこと
-
     //
-    //                           length
+    //                              particleLen
     //        +--+--+--+--+--+--+--+
-    // num 0  |  |  |  |  |  |  |  |
+    // num .. |  |  |  |  |  |  |  |
     //        +--+--+--+--+--+--+--+
     // num 1  |  |  |  |  |  |  |  |
     //        +--+--+--+--+--+--+--+
-    // num 2  |  |  |  |  |  |  |  |
+    // num 0  |  |  |  |  |  |  |  |
     //        +--+--+--+--+--+--+--+
 
-    this.computeRenderer = new GPUComputationRenderer(
-      this.params.particleLen,  // widthはパーティクルの尻尾の長さ
-      this.params.particleNum,  // heightは線のように移動するパーティクルの本数
-      this.renderer             // renderer
+    // パーティクルの数 = パーティクルで描く線の数
+    const particleNum = this.params.particleNum;
+
+    // パーティクルで描く尻尾の長さ
+    const particleLen = this.params.particleLen;
+
+    const computationRenderer = new GPUComputationRenderer(
+      particleLen,   // widthはパーティクルの尻尾の長さ
+      particleNum,   // heightは線のように移動するパーティクルの本数
+      this.renderer  // renderer
     );
 
+    // フレームごとにcompute()を実行するので、インスタンス変数に保存しておく
+    this.computationRenderer = computationRenderer;
     //
     // computeRenderer.createTexture();
     //
 
     // 位置用のテクスチャを作成して、
-    const initialPositionTexture = this.computeRenderer.createTexture();
+    const initialPositionTexture = this.computationRenderer.createTexture();
 
-    // 値を初期化する
-    // ランダムな場所にパーティクルを配置する
-    {
-      const initPositionArray = initialPositionTexture.image.data;
-
-      // パーティクルを分布させる範囲
-      // -range/2 ～ range/2 の範囲でランダムな初期位置を設定
+    // 各行ごと、すなわちラインごとに、
+    for (let i = 0; i < particleNum; i++) {
+      // i番目のラインに関して、-range/2 ～ range/2 の範囲でランダムな初期位置を設定
       const range = 10;
+      const x = Math.random() * range - range / 2;
+      const y = Math.random() * range - range / 2;
+      const z = Math.random() * range - range / 2;
 
-      // 各行ごと、すなわちパーティクルごとに初期化
-      for (let i = 0; i < initPositionArray.length; i += this.params.particleLen * 4) {
-        const x = Math.random() * range - range / 2;
-        const y = Math.random() * range - range / 2;
-        const z = Math.random() * range - range / 2;
-
-        // 各行の、各列の値を初期化
-        for (let j = 0; j < this.params.particleLen * 4; j += 4) {
-          // 初期状態では尻尾が存在しないように、全ての列に同じ座標を入れておく
-          initPositionArray[i + j + 0] = x;
-          initPositionArray[i + j + 1] = y;
-          initPositionArray[i + j + 2] = z;
-          initPositionArray[i + j + 3] = 1.0;
-        }
+      // 各行の、各列の値を初期化
+      for (let j = 0; j < particleLen; j++) {
+        // 同じラインの頂点は全て同じ座標にして、初期状態では尻尾が存在しないようにする
+        const index = (i * particleLen + j) * 4;
+        initialPositionTexture.image.data[index + 0] = x;    // X座標
+        initialPositionTexture.image.data[index + 1] = y;    // Y座標
+        initialPositionTexture.image.data[index + 2] = z;    // Z座標
+        initialPositionTexture.image.data[index + 3] = 1.0;  // W座標(使わないので1.0で固定)
       }
     }
 
@@ -287,20 +362,15 @@ export class Main {
     // image: {data: Float32Array(80), width: 20, height: 1}
     // という形になる
 
-
-    // 速度用のテクスチャを作成して、
-    const initialVelocityTexture = this.computeRenderer.createTexture();
+    // もう一枚、速度用のテクスチャを作成
+    const initialVelocityTexture = computationRenderer.createTexture();
 
     // console.log(initialVelocityTexture);
     // テクスチャをいくつ作成しても、同じ大きさで作られることが分かる
 
     // 初期速度0で初期化する
-    // 速度の計算は先頭ピクセルだけなので全ピクセルを初期化しなくてもいいけど念の為ゼロ埋め
-    {
-      const initVelocityArray = initialVelocityTexture.image.data;
-      for (let i = 0; i < initVelocityArray.length; i++) {
-        initVelocityArray[i] = 0;
-      }
+    for (let i = 0; i < initialVelocityTexture.image.data.length; i++) {
+      initialVelocityTexture.image.data[i] = 0;
     }
 
     // 変数名にinitialと付けて作成したテクスチャはあくまで初期値にすぎず、
@@ -309,65 +379,53 @@ export class Main {
     // 最新のテクスチャは毎回 getCurrentRenderTarget() で取り出す必要がある
 
     //
-    // 変数に紐づけるシェーダー
+    // compute()したときに走るシェーダー
     //
+
+    // 一番左のピクセルだけ計算して、残りはフレームごとにずらしてコピーする
+    //  +--+--+--+--+--+--+--+
+    //  |＊|  |  |  |  |  |  |
+    //  +--+--+--+--+--+--+--+
+    //     ->コピー
+
+
     const positionShader = /* glsl */`
-
-        // 一番左のピクセルだけ計算して、残りはフレームごとにずらしてコピーする
-        //  +--+--+--+--+--+--+--+
-        //  |＊|  |  |  |  |  |  |
-        //  +--+--+--+--+--+--+--+
-        //     ->コピー
-
       void main() {
-
-        vec2 uv;
-        vec3 pos;
-
         if (gl_FragCoord.x < 1.0) {
-
-          // gl_FragCoordは画面上のピクセルの座標を表す
-          // X座標が1.0未満、ということは画面の一番左のピクセルだけ計算するということ
+          // gl_FragCoordは(width, height)の座標系で表される当該ピクセルの位置
+          // X座標が1.0未満、ということは一番左のピクセルということ
 
           // UV座標を計算して、
-          uv = gl_FragCoord.xy / resolution.xy;
+          vec2 uv = gl_FragCoord.xy / resolution.xy;
 
           // 位置情報をテクスチャから取り出す
-          pos = texture2D( texturePosition, uv ).xyz;
+          // texturePositionはuniformで渡していないが、この後addVariable()で変数を追加すると自動的に使えるようになる
+          vec3 pos = texture2D( texturePosition, uv ).xyz;
 
-          // texturePositionというテクスチャはuniformで渡していないが、
-          // addVariable()で変数を追加すると自動的に使えるようになる
-          // textureVelocityも同様にaddVariable()で追加することで自動的に使えるようになる
-
-          // 速度速度を取り出す
+          // 速度をテクスチャから取り出す
+          // textureVelocityはuniformで渡していないが、この後addVariable()で変数を追加すると自動的に使えるようになる
           vec3 vel = texture2D( textureVelocity, uv ).xyz;
 
           // 速度に応じて位置を更新
           pos += vel * 0.01;
 
-        } else {
+          // 計算した位置をテクスチャに保存する（この瞬間に全ピクセルの情報が一斉に更新される）
+          gl_FragColor = vec4( pos, 1.0 );
 
+        } else {
           // 先頭以外のピクセルは、左隣すなわちX座標が一つ小さいピクセルの値を使う
           // こうすることで移動の軌跡を作ることができる
-          uv = (gl_FragCoord.xy - vec2(1.0, 0.0)) / resolution.xy;
+          vec2 leftUv = (gl_FragCoord.xy - vec2(1.0, 0.0)) / resolution.xy;
 
           // 左隣のピクセルの位置を取り出して、それを自分の位置にする
-          // 全ピクセルが同じプログラムを同時に実行するので、この値はまだ更新されていない
-          pos = texture2D( texturePosition, uv ).xyz;
-
+          gl_FragColor = texture2D( texturePosition, leftUv );
         }
-
-        // 計算した位置をテクスチャに保存する
-        // この瞬間に全ピクセルの情報が一斉に更新される
-        gl_FragColor = vec4(pos, 1.0);
-
       }
     `;
 
-    const velocityShader = noiseShader + /* glsl */`
-
-      // 外部から時刻情報を渡すためのuniform
-      uniform float time;
+    const velocityShader = NOISE_SHADER + /* glsl */`
+      // 外部から得る時刻情報
+      uniform float u_time;
 
       void main() {
 
@@ -385,9 +443,9 @@ export class Main {
 
         // パーリンノイズを使って、速度と向きを計算
         vel.xyz += 40.0 * vec3(
-          snoise( vec4( 0.1 * pos.xyz, 7.225 + 0.5 * time ) ),
-          snoise( vec4( 0.1 * pos.xyz, 3.553 + 0.5 * time ) ),
-          snoise( vec4( 0.1 * pos.xyz, 1.259 + 0.5 * time ) )
+          snoise( vec4( 0.1 * pos.xyz, 7.225 + 0.5 * u_time ) ),
+          snoise( vec4( 0.1 * pos.xyz, 3.553 + 0.5 * u_time ) ),
+          snoise( vec4( 0.1 * pos.xyz, 1.259 + 0.5 * u_time ) )
         ) * 0.2;
 
         vel += -pos * length(pos) * 0.1;
@@ -408,20 +466,22 @@ export class Main {
     // テクスチャと、それに対応するシェーダを指定して、変数 "texturePosition" を追加する
     // シェーダーの中で texture2D( texturePosition, uv ) のように参照できるようになる
 
-    // 戻り値は getCurrentRenderTarget() でテクスチャを取り出すのに必要なので、
-    // 外から参照できる場所に保存しておく
+    // addVariable()の戻り値はテクスチャを取り出すのに必要
 
-    this.computeParams.position.variable = this.computeRenderer.addVariable(
+    const positionVariable = this.computationRenderer.addVariable(
       "texturePosition",      // シェーダーの中で参照する名前
       positionShader,         // シェーダーコード
       initialPositionTexture  // 最初に作ったテクスチャを渡す
     );
 
-    this.computeParams.velocity.variable = this.computeRenderer.addVariable(
+    const velocityVariable = this.computationRenderer.addVariable(
       "textureVelocity",      // シェーダーの中で参照する名前
       velocityShader,         // シェーダーコード
       initialVelocityTexture  // 最初に作ったテクスチャを渡す
     );
+
+    // シェーダー用いているuniformを登録する場合はここで設定する
+    velocityVariable.material.uniforms = this.computationUniforms;
 
     //
     // computeRenderer.setVariableDependencies();
@@ -430,33 +490,34 @@ export class Main {
     // 追加した変数の依存関係を設定する
 
     // シェーダーの中でtexturePositionとtextureVelocityの両方を参照しているので、このように設定する
-    this.computeRenderer.setVariableDependencies(
-      this.computeParams.position.variable,
-      [this.computeParams.position.variable, this.computeParams.velocity.variable]
+    computationRenderer.setVariableDependencies(
+      positionVariable,
+      [positionVariable, velocityVariable]
     );
 
-    this.computeRenderer.setVariableDependencies(
-      this.computeParams.velocity.variable,
-      [this.computeParams.position.variable, this.computeParams.velocity.variable]
+    computationRenderer.setVariableDependencies(
+      velocityVariable,
+      [positionVariable, velocityVariable]
     );
-
-    // シェーダーに渡すuniformsオブジェクトを取り出して、値を代入しやすくする
-    // もちろん this.computeParams.position.variable.material.uniform = ... と書いてもいいけど、長いので
-    this.computeParams.position.uniforms = this.computeParams.position.variable.material.uniforms;
-    this.computeParams.velocity.uniforms = this.computeParams.velocity.variable.material.uniforms;
-
-    // uniformsにtime変数を追加
-    this.computeParams.velocity.uniforms.time = { value: 0.0 };
 
     //
     // computeRenderer.init();
     //
 
-    const error = this.computeRenderer.init();
+    const error = this.computationRenderer.init();
     if (error !== null) {
       console.error(error);
       new Error(error);
     }
+
+    //
+    // テクスチャを取り出してシェーダーマテリアルのuniformsに設定する
+    //
+    this.uniforms.u_texture_position.value = computationRenderer.getCurrentRenderTarget(positionVariable).texture;
+  }
+
+
+  initParticles = () => {
 
     //
     // パーティクルを表すメッシュの作成と表示
@@ -465,27 +526,32 @@ export class Main {
     // バッファジオメトリを作成
     const geometry = new THREE.BufferGeometry();
 
+    //
     // positionとuvとindicesを作成する
+    //
+
+    const particleNum = this.params.particleNum;
+    const particleLen = this.params.particleLen;
 
     // 画面上に存在するパーティクル（頂点）の個数は particleNum * particleLen なので、
     // その数だけvec3を格納できるFloat32Arrayを準備する
-    const vertices = new Float32Array(this.params.particleNum * this.params.particleLen * 3);
+    const vertices = new Float32Array(particleNum * particleLen * 3);
 
     // UVは、その数だけvec2を格納できるFloat32Arrayを準備する
-    const uv = new Float32Array(this.params.particleNum * this.params.particleLen * 2);
+    const uv = new Float32Array(particleNum * particleLen * 2);
 
     // indexは3個の頂点を指定して三角形のポリゴンを設定するので*3で確保する
-    const indices = new Uint32Array(this.params.particleNum * this.params.particleLen * 3);
+    const indices = new Uint32Array(particleNum * particleLen * 3);
 
-    // 各行、すなわちパーティクルごとに、
-    for (let i = 0; i < this.params.particleNum; i++) {
+    for (let i = 0; i < particleNum; i++) {
+      // 各行、すなわちi番目のラインごとに、
 
-      // 各列、すなわちパーティクルの尻尾ごとに、
       for (let j = 0; j < this.params.particleLen; j++) {
+        // 各列、すなわちパーティクルの尻尾ごとに、
 
         // いま何番目の頂点を処理しているかを表すindex
         // indexは 0 ~ particleNum * particleLen - 1 までの値を取る
-        let index = i * this.params.particleLen + j;
+        let index = i * particleLen + j;
 
         // 頂点のxyz座標を0で初期化
         vertices[index * 3 + 0] = 0;  // X座標
@@ -503,13 +569,8 @@ export class Main {
         // 左下が原点なので(0, 0)、右上が(1, 1)になるようにUV座標を設定する
         // 座標は0始まりなので、i / (particleLen - 1) としないと、一番右が1.0にならない
 
-        // index = 0 のとき、i = 0, j = 0 なので、uv[0] = 0, uv[1] = 0 になる
-        // index = 1 のとき、i = 0, j = 1 なので、uv[2] = 0, uv[3] = 1 / (particleLen - 1) になる
-        // index = 2 のとき、i = 0, j = 2 なので、uv[4] = 0, uv[5] = 2 / (particleLen - 1) になる
-
-        uv[index * 2 + 0] = j / (this.params.particleLen -1);
-        uv[index * 2 + 1] = i / (this.params.particleNum -1);
-
+        uv[index * 2 + 0] = j / (particleLen - 1);
+        uv[index * 2 + 1] = i / (particleNum - 1);
 
         // indexを作成してポリゴンを構成する
 
@@ -523,10 +584,7 @@ export class Main {
         indices[index * 3 + 1] = Math.min(index + 1, i * this.params.particleLen + this.params.particleLen - 1);
 
         // 頂点3 これは頂点2と同じものを指定する。三角形のポリゴンにならないが、描画したいのは線なので問題ない
-        indices[index * 3 + 2] = Math.min(index + 1, i * this.params.particleLen + this.params.particleLen - 1);
-
-        // 結果的に尻尾の最後の方はうまく表示されてないと思うが、すぐに消えて見えなくなるので気にしない
-
+        indices[index * 3 + 2] = indices[index * 3 + 1];
       }
     }
 
@@ -535,7 +593,7 @@ export class Main {
     //
 
     // positionはバーテックスシェーダーで参照しているものの、
-    // 計算で使うときには常時vec3(0.0)なので設定しなくても表示できてしまう
+    // 計算で使うときには常時vec3(0.0)なので、設定しなくても表示できてしまう
     geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
 
     // uvはバーテックスシェーダーで参照しているので必須
@@ -546,13 +604,17 @@ export class Main {
 
     // シェーダーマテリアルを作成
     const material = new THREE.ShaderMaterial({
+
+      // wireframeで表示することで線がはっきり見える
+      wireframe: true,
+
       // updateParticles() の中でフレームごとに値を更新する
       uniforms: this.uniforms,
 
       vertexShader: /* glsl */`
 
         // 位置情報が書き込まれているテクスチャtexturePositionは外からuniformで渡す必要がある
-        uniform sampler2D texturePosition;
+        uniform sampler2D u_texture_position;
 
         // バーテックスシェーダーで色を決めて、フラグメントシェーダーに渡す
         varying vec4 vColor;
@@ -560,10 +622,10 @@ export class Main {
         void main() {
 
           // 位置をテクスチャから取得
-          vec3 pos = texture2D(texturePosition, uv).xyz;
+          vec3 pos = texture2D(u_texture_position, uv).xyz;
 
-          // 現在位置にposを加えて位置を更新
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position + pos, 1.0 );
+          // 位置をposにして更新
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
 
           // 座標に応じて色を変えて、それをフラグメントシェーダーに渡す
           vColor = vec4(uv.x, uv.y, 1.0, 1.0);
@@ -577,9 +639,6 @@ export class Main {
       `,
     });
 
-    // wireframeで表示することで線がはっきり見える
-    material.wireframe = true;
-
     const mesh = new THREE.Mesh(geometry, material);
     mesh.matrixAutoUpdate = false;
     mesh.updateMatrix();
@@ -589,16 +648,11 @@ export class Main {
 
 
   updateParticles = () => {
-
     // 時刻情報を渡して
-    this.computeParams.velocity.uniforms.time.value = this.renderParams.time;
+    this.computationUniforms.u_time.value = this.renderParams.time;
 
     // 位置情報を計算する
-    this.computeRenderer.compute();
-
-    // 位置情報が格納されているtexturePositionをuniformsでバーテックスシェーダーに渡す
-    this.uniforms.texturePosition.value = this.computeRenderer.getCurrentRenderTarget(this.computeParams.position.variable).texture;
-
+    this.computationRenderer.compute();
   }
 
 }
@@ -608,7 +662,7 @@ export class Main {
 // 以下、シェーダーで使うノイズ関数
 //
 
-const noiseShader = /* glsl */`
+const NOISE_SHADER = /* glsl */`
 
   // Description : Array and textureless GLSL 2D/3D/4D simplex
   //               noise functions.
