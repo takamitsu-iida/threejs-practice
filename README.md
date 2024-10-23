@@ -956,13 +956,13 @@ GPGPUを簡単に使えるようにするヘルパー GPUComputationRenderer.js 
 
 後から見直したときに分かるようにコメントを多めに書いておいた。
 
-[![ScreenImage](./asset/index-gpgpu-particles3.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-particles3.html)
+[![ScreenImage](./asset/index-gpgpu-particle-trail.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-particle-trail.html)
 
-[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-particles3.html)
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-particle-trail.html)
 
-[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-gpgpu-particles3.html)
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-gpgpu-particles-trail.html)
 
-[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/gpgpu-particles3.js)
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/gpgpu-particles-trail.js)
 
 <br>
 

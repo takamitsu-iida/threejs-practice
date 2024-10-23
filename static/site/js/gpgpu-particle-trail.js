@@ -1,15 +1,14 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/controls/OrbitControls.js";
 
-// stats.js
 import Stats from "three/libs/stats.module.js";
+
+import { GUI } from "three/libs/lil-gui.module.min.js";
 
 // 必要な追加モジュール（libsに配置するファイル）
 //   three.js/examples/jsm/misc/GPUComputationRenderer.js
 //   three.js/examples/jsm/postprocessing/Pass.js
 import { GPUComputationRenderer } from "three/libs/misc/GPUComputationRenderer.js";
-
-import { GUI } from "three/libs/lil-gui.module.min.js";
 
 /*
 
@@ -98,10 +97,12 @@ export class Main {
 
     // コンテンツを初期化
     this.initContents();
+
   }
 
 
   initContents = () => {
+
     // アニメーションを停止
     this.stop();
 
@@ -116,7 +117,7 @@ export class Main {
     this.initComputationRenderer();
 
     // パーティクルを初期化
-    this.initContents();
+    this.initParticles();
 
     // フレーム処理
     this.render();
@@ -517,7 +518,7 @@ export class Main {
   }
 
 
-  initContents = () => {
+  initParticles = () => {
 
     //
     // パーティクルを表すメッシュの作成と表示
