@@ -270,6 +270,22 @@ ICS MEDIAの [記事](https://ics.media/entry/10657/") から引用。
 
 <br>
 
+## セーブポイント
+
+ICS MEDIAの [記事](https://ics.media/entry/11401/") から引用。
+
+テクスチャをうまく使ってかっこいいエフェクトを作っている例。とても勉強になった。
+
+[![ScreenImage](./asset/index-savepoint.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-savepoint.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-savepoint.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-savepoint.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/savepoint.js)
+
+<br>
+
 ## 回転するパーティクル
 
 オブジェクトを回転させる方法を調べるために作成。
