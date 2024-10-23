@@ -97,11 +97,11 @@ export class Main {
     this.initGui();
 
     // コンテンツを初期化
-    this.init();
+    this.initContents();
   }
 
 
-  init = () => {
+  initContents = () => {
     // アニメーションを停止
     this.stop();
 
@@ -116,35 +116,10 @@ export class Main {
     this.initComputationRenderer();
 
     // パーティクルを初期化
-    this.initParticles();
+    this.initContents();
 
     // フレーム処理
     this.render();
-  }
-
-
-  clearScene = () => {
-    this.scene.children.forEach((child) => {
-      if (child.type === 'AxesHelper') {
-        return;
-      }
-      if (child.type === 'Light') {
-        return;
-      }
-
-      this.scene.remove(child);
-      if (child.geometry) {
-        child.geometry.dispose();
-      }
-      if (child.material) {
-        // マテリアルが配列の場合もあるので、配列の場合はすべて破棄
-        if (Array.isArray(child.material)) {
-          child.material.forEach(material => material.dispose());
-        } else {
-          child.material.dispose();
-        }
-      }
-    });
   }
 
 
@@ -243,7 +218,7 @@ export class Main {
       .max(200)
       .step(1)
       .onChange((value) => {
-        doLater(this.init, 100);
+        doLater(this.initContents, 100);
       });
   }
 
@@ -282,6 +257,31 @@ export class Main {
       cancelAnimationFrame(this.renderParams.animationId);
     }
     this.renderParams.animationId = null;
+  }
+
+
+  clearScene = () => {
+    this.scene.children.forEach((child) => {
+      if (child.type === 'AxesHelper') {
+        return;
+      }
+      if (child.type === 'Light') {
+        return;
+      }
+
+      this.scene.remove(child);
+      if (child.geometry) {
+        child.geometry.dispose();
+      }
+      if (child.material) {
+        // マテリアルが配列の場合もあるので、配列の場合はすべて破棄
+        if (Array.isArray(child.material)) {
+          child.material.forEach(material => material.dispose());
+        } else {
+          child.material.dispose();
+        }
+      }
+    });
   }
 
 
@@ -517,7 +517,7 @@ export class Main {
   }
 
 
-  initParticles = () => {
+  initContents = () => {
 
     //
     // パーティクルを表すメッシュの作成と表示

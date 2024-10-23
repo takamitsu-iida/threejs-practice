@@ -1,8 +1,9 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/controls/OrbitControls.js";
 
-// stats.js
 import Stats from "three/libs/stats.module.js";
+
+import { GUI } from "three/libs/lil-gui.module.min.js";
 
 // 必要な追加モジュール（libs以下に配置するファイル）
 //   three.js/examples/jsm/misc/GPUComputationRenderer.js
@@ -49,6 +50,7 @@ export class Main {
   statsjs;
 
   renderParams = {
+    animationId: null,
     clock: new THREE.Clock(),
     delta: 0,
     time: 0,
@@ -63,7 +65,8 @@ export class Main {
     // 描画する線の数、この数でinitComputationRenderer()で計算するテクスチャの高さを決める
     numLines: 10,
 
-    // プレーンジオメトリのwidthSegments, heightSegmentsは1で固定
+    // プレーンジオメトリのwidthSegments
+    // heightSegmentsは1で固定
     widthSegments: 31,
   }
 
@@ -98,6 +101,25 @@ export class Main {
     // stats.jsを初期化
     this.initStatsjs();
 
+    // lil-guiを初期化
+    this.initGui();
+
+    // コンテンツを初期化
+    this.initContents();
+  }
+
+
+  initContents = () => {
+    // アニメーションを停止
+    this.stop();
+
+    // シーン上のメッシュを削除する
+    // this.scene.clear();
+    this.clearScene();
+
+    // 削除した状態を描画
+    this.renderer.render(this.scene, this.camera);
+
     // 風のテクスチャを初期化
     this.initWindTexture();
 
@@ -109,7 +131,6 @@ export class Main {
 
     // フレーム毎の処理を開始
     this.render();
-
   }
 
 
@@ -180,9 +201,49 @@ export class Main {
   }
 
 
+  initGui = () => {
+    const guiContainer = document.getElementById("guiContainer");
+    const gui = new GUI({
+      container: guiContainer,
+      width: 300,
+    });
+
+    // 一度だけ実行するための関数
+    const doLater = (job, tmo) => {
+
+      // 処理が登録されているならタイマーをキャンセル
+      var tid = doLater.TID[job];
+      if (tid) {
+        window.clearTimeout(tid);
+      }
+
+      // タイムアウト登録する
+      doLater.TID[job] = window.setTimeout(() => {
+        // 実行前にタイマーIDをクリア
+        doLater.TID[job] = null;
+        // 登録処理を実行
+        job.call();
+      }, tmo);
+    }
+
+    // 処理からタイマーIDへのハッシュ
+    doLater.TID = {};
+
+    gui
+      .add(this.params, "numLines")
+      .name(navigator.language.startsWith("ja") ? "ラインの数" : "number of lines")
+      .min(1)
+      .max(200)
+      .step(1)
+      .onChange((value) => {
+        doLater(this.initContents, 100);
+      });
+  }
+
+
   render = () => {
     // 再帰処理
-    requestAnimationFrame(this.render);
+    this.renderParams.animationId = requestAnimationFrame(this.render);
 
     const delta = this.renderParams.clock.getDelta();
     this.renderParams.time += delta;
@@ -206,6 +267,39 @@ export class Main {
     }
 
     this.renderParams.delta %= this.renderParams.interval;
+  }
+
+
+  stop = () => {
+    if (this.renderParams.animationId) {
+      cancelAnimationFrame(this.renderParams.animationId);
+    }
+    this.renderParams.animationId = null;
+  }
+
+
+  clearScene = () => {
+    this.scene.children.forEach((child) => {
+      if (child.type === 'AxesHelper') {
+        return;
+      }
+      if (child.type === 'Light') {
+        return;
+      }
+
+      this.scene.remove(child);
+      if (child.geometry) {
+        child.geometry.dispose();
+      }
+      if (child.material) {
+        // マテリアルが配列の場合もあるので、配列の場合はすべて破棄
+        if (Array.isArray(child.material)) {
+          child.material.forEach(material => material.dispose());
+        } else {
+          child.material.dispose();
+        }
+      }
+    });
   }
 
 
@@ -306,10 +400,10 @@ export class Main {
       for (let j = 0; j < numVertices; j++) {
         // 同じラインの頂点は全て同じ座標にして、初期状態では尻尾が存在しないようにする
         const index = (i * numVertices + j) * 4;
-        initialPositionTexture.image.data[index + 0] = x;      // X座標
-        initialPositionTexture.image.data[index + 1] = y;      // Y座標
-        initialPositionTexture.image.data[index + 2] = z;      // Z座標
-        initialPositionTexture.image.data[index + 3] = j % 2;  // W座標は頂点が奇数か偶数かを表す
+        initialPositionTexture.image.data[index + 0] = x;  // X座標
+        initialPositionTexture.image.data[index + 1] = y;  // Y座標
+        initialPositionTexture.image.data[index + 2] = z;  // Z座標
+        initialPositionTexture.image.data[index + 3] = j;  // W座標は頂点の番号
       }
     }
 
@@ -344,7 +438,7 @@ export class Main {
           // texturePositionはuniformで渡していないが、この後addVariable()で変数を追加すると自動的に使えるようになる
           vec4 textureValue = texture2D( texturePosition, uv );
 
-          // 位置情報はxyzに、頂点が奇数か偶数かを表す情報はwに入っている
+          // 位置情報はxyzに、頂点番号を表す情報がwに入っている
           vec3 pos = texture2D( texturePosition, uv ).xyz;
           float w = textureValue.w;
 
@@ -472,6 +566,13 @@ export class Main {
       // i番目のラインに関して、
 
       // PlaneGeometryを作成
+      // widthSegmentsは間隔の数なので、PlaneGeometryの頂点の数は (widthSegments + 1) * 2 になる
+      // 頂点は以下のように並ぶ
+      // 0～WidthSegments は上側、(widthSegments + 1)よりも大きい値は下側に配置される
+      //  0 --- 1 --- 2
+      //  |     |     |
+      //  3 --- 4 --- 5
+
       const geometry = new THREE.PlaneGeometry(1, 1, this.params.widthSegments, 1);
 
       // ジオメトリの頂点数を取得、これは (this.params.widthSegments + 1) * 2 になる
@@ -517,13 +618,13 @@ export class Main {
           // 位置をテクスチャから取得
           vec4 textureValue = texture2D(u_texture_position, gpgpuUv);
 
-          // 位置はxyzに、頂点が奇数か偶数かを表す情報はwに入っている
+          // 位置はxyzに、頂点の番号がwに入っている
           vec3 pos = textureValue.xyz;
           float w = textureValue.w;
 
-          // 奇数の頂点は座標を+する
-          if (w > 0.5) {
-            pos += vec3(.5);
+          // 下半分の頂点のY座標を+1する
+          if (w > ${this.params.widthSegments}.0) {
+            pos.y += 1.0;
           }
 
           // 位置をposに更新
