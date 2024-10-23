@@ -1043,7 +1043,8 @@ GPGPUを簡単に使えるようにするヘルパー GPUComputationRenderer.js 
 
 THREE.TubeGeometryを使って線を太くして、シェーダーで動く色を付けて向きを表現した例。
 
-直線の場合、始点と終点の2点で表現できるけど、両端から描画する場合には点数を増やしておいた方がよい（理由は動かしてみれば分かる）
+直線の場合、始点と終点の2点で表現できるけど、両端から描画する場合には点数を増やしておいた方がよい
+（理由はnumPointsを2にして動かしてみれば分かる）
 
 [![ScreenImage](./asset/index-line-shader2.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-line-shader2.html)
 

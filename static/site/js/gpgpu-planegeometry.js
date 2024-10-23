@@ -279,24 +279,25 @@ export class Main {
 
 
   clearScene = () => {
-    this.scene.children.forEach((child) => {
-      if (child.type === 'AxesHelper') {
-        return;
-      }
-      if (child.type === 'Light') {
-        return;
-      }
+    const objectsToRemove = [];
 
-      this.scene.remove(child);
-      if (child.geometry) {
-        child.geometry.dispose();
+    this.scene.children.forEach((child) => {
+      if (child.type === 'AxesHelper' || child.type === 'GridHelper' || child.type === 'Light' ) {
+        return;
       }
-      if (child.material) {
-        // マテリアルが配列の場合もあるので、配列の場合はすべて破棄
-        if (Array.isArray(child.material)) {
-          child.material.forEach(material => material.dispose());
+      objectsToRemove.push(child);
+    });
+
+    objectsToRemove.forEach((object) => {
+      this.scene.remove(object);
+      if (object.geometry) {
+        object.geometry.dispose();
+      }
+      if (object.material) {
+        if (Array.isArray(object.material)) {
+          object.material.forEach(material => material.dispose());
         } else {
-          child.material.dispose();
+          object.material.dispose();
         }
       }
     });

@@ -29,13 +29,13 @@ export class Main {
   statsjs;
 
   renderParams = {
+    animationId: null,
     clock: new THREE.Clock(),
     delta: 0,
     interval: 1 / 30,  // = 30fps
   }
 
   uniforms = {
-
     u_time: { value: 0.0 },
 
     // 周波数のスケール
@@ -51,7 +51,6 @@ export class Main {
 
     // チューブの断面の分割数
     radialSegments: 8,
-
   }
 
 
@@ -61,11 +60,27 @@ export class Main {
     // scene, camera, renderer, controllerを初期化
     this.initThreejs();
 
+    // stats.jsを初期化
+    this.initStatsjs();
+
     // lil-guiを初期化
     this.initGui();
 
-    // stats.jsを初期化
-    this.initStatsjs();
+    // コンテンツを初期化
+    this.initContents();
+  }
+
+
+  initContents = () => {
+    // アニメーションを停止
+    this.stop();
+
+    // シーン上のメッシュを削除する
+    // this.scene.clear();
+    this.clearScene();
+
+    // 削除した状態を描画
+    this.renderer.render(this.scene, this.camera);
 
     // ラインを作成
     this.initCurve();
@@ -165,6 +180,17 @@ export class Main {
       .max(20.0)
       .step(2.0)
       .name(navigator.language.startsWith("ja") ? "周波数係数" : "Frequency Scale");
+
+    gui
+      .add(this.params, "numPoints")
+      .min(2)
+      .max(100)
+      .step(1)
+      .name(navigator.language.startsWith("ja") ? "線を構成する点の数" : "Number of Points")
+      .onChange(() => {
+        doLater(this.initContents, 100);
+      });
+
   }
 
 
@@ -185,7 +211,7 @@ export class Main {
 
   render = () => {
     // 再帰処理
-    requestAnimationFrame(this.render);
+    this.renderParams.animationId = requestAnimationFrame(this.render);
 
     this.renderParams.delta += this.renderParams.clock.getDelta();
     if (this.renderParams.delta < this.renderParams.interval) {
@@ -208,6 +234,40 @@ export class Main {
     }
 
     this.renderParams.delta %= this.renderParams.interval;
+  }
+
+
+  stop = () => {
+    if (this.renderParams.animationId) {
+      cancelAnimationFrame(this.renderParams.animationId);
+    }
+    this.renderParams.animationId = null;
+  }
+
+
+  clearScene = () => {
+    const objectsToRemove = [];
+
+    this.scene.children.forEach((child) => {
+      if (child.type === 'AxesHelper' || child.type === 'GridHelper' || child.type === 'Light' ) {
+        return;
+      }
+      objectsToRemove.push(child);
+    });
+
+    objectsToRemove.forEach((object) => {
+      this.scene.remove(object);
+      if (object.geometry) {
+        object.geometry.dispose();
+      }
+      if (object.material) {
+        if (Array.isArray(object.material)) {
+          object.material.forEach(material => material.dispose());
+        } else {
+          object.material.dispose();
+        }
+      }
+    });
   }
 
 
