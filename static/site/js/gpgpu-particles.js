@@ -4,10 +4,9 @@ import { OrbitControls } from "three/controls/OrbitControls.js";
 // stats.js
 import Stats from "three/libs/stats.module.js";
 
-// 必要な追加モジュール
-// three.js/examples/jsm/misc/GPUComputationRenderer.js
-// three.js/examples/jsm/postprocessing/Pass.js
-
+// 必要な追加モジュール（libsに配置するファイル）
+//   three.js/examples/jsm/misc/GPUComputationRenderer.js
+//   three.js/examples/jsm/postprocessing/Pass.js
 import { GPUComputationRenderer } from "three/libs/misc/GPUComputationRenderer.js";
 
 // 参照元
@@ -242,7 +241,7 @@ export class Main {
   `;
 
 
-// シェーダーマテリアルで描画するためのフラグメントシェーダー
+  // シェーダーマテリアルで描画するためのフラグメントシェーダー
   particleFragmentShader = /*glsl*/`
     // VertexShaderから受け取った色を格納するだけ。
     varying vec4 vColor;
@@ -292,9 +291,6 @@ export class Main {
     if (error !== null) {
       new Error(`[ERROR] ${error}`);
     }
-
-    // 以下、フレームごとにこれを実行して参照用と格納用のテクスチャを切り替える
-    // gpuCompute.compute();
 
   }
 
