@@ -1095,8 +1095,7 @@ THREE.TubeGeometryを使って線を太くして、シェーダーで動く色�
 
 [WebGL開発に役立つ重要な三角関数の数式・概念まとめ（Three.js編）](https://ics.media/entry/10657/)
 
-[Basic examples from https://discourse.threejs.org](https://hofk.de/main/discourse.threejs/2023/index2023.html)
-
+[Collection of Examples](https://hofk.de/main/discourse.threejs/)
 
 <br>
 

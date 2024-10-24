@@ -857,6 +857,30 @@ export class Main {
       }
 
       void main() {
+        float curveIndex;
+        float fraction;
+        float direction;
+        float countDown;
+
+        // 一番左のピクセルからcountDownの情報を取り出して
+        // 0以下なら全ピクセルいっせいに新しいカーブに飛ぶ
+        vec2 leftMostUv = vec2(0.0, gl_FragCoord.y / resolution.y);
+        vec4 leftMostValue = texture2D( texturePosition, leftMostUv );
+        if (leftMostValue.w <= 0.0) {
+          curveIndex = floor(rand(leftMostUv * u_rand_seed) * (${this.params.numCurves}.0 - 1.0));
+          if (curveIndex == leftMostValue.x) {
+            curveIndex += 1.0;
+            if (curveIndex > ${this.params.numCurves}.0 - 1.0) {
+              curveIndex = 0.0;
+            }
+          }
+
+          direction = step(0.5, rand(leftMostUv * u_rand_seed));
+          fraction = direction;
+          countDown = ${this.params.particleLen}.0 + rand(leftMostUv * u_rand_seed) * 90.0;
+          gl_FragColor = vec4(curveIndex, fraction, direction, countDown);
+          return;
+        }
 
         // UV座標を計算して
         vec2 uv = gl_FragCoord.xy / resolution.xy;
@@ -865,19 +889,19 @@ export class Main {
         vec4 textureValue = texture2D( texturePosition, uv );
 
         if (gl_FragCoord.x < 1.0) {
-          // X座標が1.0未満、ということはデータテクスチャにおける左端ということ
+          // X座標が1.0未満、すなわちデータテクスチャにおける左端の場合のみ位置を計算する
 
           // どのカーブ上にいるかを取得
-          float curveIndex = textureValue.x;
+          curveIndex = textureValue.x;
 
           // そのライン上のどのあたりにいるかを取得
-          float fraction = textureValue.y;
+          fraction = textureValue.y;
 
           // 逆向きに進むかどうかを取得
-          float direction = textureValue.z;
+          direction = textureValue.z;
 
           // 新しい場所に飛ぶまでの待ち時間を取得
-          float countDown = textureValue.w;
+          countDown = textureValue.w;
 
           if (direction == 0.0) {
             // 順方向に進む場合
@@ -897,40 +921,13 @@ export class Main {
             }
           }
 
-          if (countDown <= 0.0) {
-            // 新しいカーブに飛ぶ
-            curveIndex = floor(rand(uv * u_rand_seed) * (${this.params.numCurves}.0 - 1.0));
-            if (curveIndex == textureValue.x) {
-              curveIndex += 1.0;
-              if (curveIndex >= ${this.params.numCurves}.0 - 1.0) {
-                curveIndex = 0.0;
-              }
-            }
-
-            direction = step(0.5, rand(uv * u_rand_seed));
-            fraction = direction;
-            countDown = ${this.params.particleLen}.0 + rand(uv * u_rand_seed) * 90.0;
-          }
-
           // 更新した値を書き込む
           gl_FragColor = vec4(curveIndex, fraction, direction, countDown);
 
         } else {
-
-          // 一番左のピクセルの情報を取り出す
-          vec4 leftMostValue = texture2D( texturePosition, vec2(0.0, uv.y) );
-
-          // カーブの番号が違っていたら、一番左のピクセルは新しい場所に飛んだ、ということ
-          if (leftMostValue.x != textureValue.x) {
-            // 一番左のピクセルの値をそのままコピー
-            gl_FragColor = leftMostValue;
-          } else {
-            // 自分の左隣のピクセルの値をそのままコピー
-            vec2 leftUv = (gl_FragCoord.xy - vec2(1.0, 0.0)) / resolution.xy;
-            vec4 leftValue = texture2D( texturePosition, leftUv );
-            gl_FragColor = leftValue;
-          }
-
+          // 自分の左隣のピクセルの値をそのままコピー
+          vec2 leftUv = (gl_FragCoord.xy - vec2(1.0, 0.0)) / resolution.xy;
+          gl_FragColor = texture2D( texturePosition, leftUv );
         }
       }
     `;
