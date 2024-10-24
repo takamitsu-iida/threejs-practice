@@ -684,7 +684,6 @@ GPGPUで線が動いているようにしたもの。あまり美しくできな
 GPGPUで線を動かしている部分は難解なので、時間をおいたら自分でもわからなくなる。
 
 いま思うと、わざわざ線を動かさなくても Directional line using shader の例にあるように線の色を変えるだけでよかったのでは？
-次に実装するときはそうしよう。
 
 [![ScreenImage](./asset/index-load-geojson4.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-geojson4.html)
 
