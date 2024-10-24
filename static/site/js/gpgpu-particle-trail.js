@@ -591,7 +591,7 @@ export class Main {
     }
 
     //
-    // アトリビュート position と uv と inddex を設定する
+    // アトリビュート position と uv と index を設定する
     //
 
     // positionはバーテックスシェーダーで参照しているものの、

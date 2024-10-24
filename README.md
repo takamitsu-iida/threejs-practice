@@ -1049,6 +1049,21 @@ THREE.TubeGeometryを使って線を太くして、シェーダーで動く色�
 
 [JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/line-shader2.js)
 
+<br>
+
+## Bezier line using shader
+
+バーテックスシェーダーでベジエ曲線に沿った頂点座標を計算して線を描画する例。
+
+ベジエ曲線の始点、終点、制御点の情報はuniformで渡して、fractionは頂点にアトリビュートとして設定。
+
+[![ScreenImage](./asset/index-line-shader-bezier.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-line-shader-bezier.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-line-shader-bezier.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-line-shader-bezier.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/line-shader-bezier.js)
 
 
 

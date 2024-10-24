@@ -8,10 +8,6 @@ import { GUI } from "three/libs/lil-gui.module.min.js";
 import Stats from "three/libs/stats.module.js";
 
 
-// 参照元
-// https://misora.main.jp/blog/archives/213
-
-
 export class Main {
 
   container;
