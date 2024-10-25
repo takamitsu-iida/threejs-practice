@@ -993,6 +993,26 @@ GPGPUを簡単に使えるようにするヘルパー GPUComputationRenderer.js 
 
 <br>
 
+## GPGPU Draw bezier line
+
+GPGPUでベジエ曲線を描く例。
+
+JavaScriptではフレームごとにcompute()しているだけで、全ての処理をシェーダーで実装している。
+
+ラインが動いてみえるのはシェーダーで色を付けているためで、実際には動いていない（見えていない部分は黒で描画されている）
+
+一定期間経過すると、ランダムな場所にベジエ曲線を再描画する。
+
+[![ScreenImage](./asset/index-gpgpu-draw-line.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-draw-line.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-gpgpu-draw-line.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-gpgpu-draw-line.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/gpgpu-draw-line.js)
+
+<br>
+
 ## Transform using shader
 
 シェーダーでオブジェクトを移動、変形する例。
