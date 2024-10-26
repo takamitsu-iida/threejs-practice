@@ -358,8 +358,15 @@ export class Main {
     const shader = /* glsl */`
       uniform float u_freq_scale;
 
-      float rand(vec2 co) {
-        return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+      // float rand(vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453); }
+
+      highp float rand(vec2 co){
+        highp float a = 12.9898;
+        highp float b = 78.233;
+        highp float c = 43758.5453;
+        highp float dt= dot(co.xy ,vec2(a,b));
+        highp float sn= mod(dt,3.14);
+        return fract(sin(sn) * c);
       }
 
       void main() {
@@ -378,21 +385,20 @@ export class Main {
 
         // tがしきい値に達していたら、次の目的地に向かうために値を刷新する
         // しきい値を1.0にすると、ラインの先頭が目的地に到達すると次の目的地に向かうようになる
-        // 2.0にすると、ラインの尻尾が目的地に到達してから次の目的地をランダムに設定するようになる
+        // しきい値を2.0にすると、ラインの尻尾が目的地に到達してから次の目的地をランダムに設定するようになる
         if (t >= 2.0) {
           if (gl_FragCoord.x < 1.0) {
             // 当該ピクセルが一番左、つまり始点の場合、現在の終点に置き換える
             gl_FragColor = texture2D( textureLine, uv1 );
           } else if (gl_FragCoord.x < 2.0) {
+
+
             // 当該ピクセルが2番目、つまり終点の場合、ランダムな場所を新たに設定する
-            // なるべく現在の終点から離れた場所にする
+            // なるべく現在の終点から離れた場所にしたいが、rand()は何度実行しても同じ値を返すので、複雑になりがち
+            // ここでは単純にrand()を使ってランダムな座標を生成している
             vec4 currentDestination = texture2D( textureLine, uv1 );
-            float x, z;
-            do {
-              // ランダムな座標を生成
-              x = rand(vec2(currentDestination.x, currentDestination.z)) * 10.0 - 5.0;
-              z = rand(vec2(currentDestination.z, currentDestination.x)) * 10.0 - 5.0;
-            } while (distance(currentDestination.xyz, vec3(x, 0.0, z)) < sqrt(18.0)); // 一定の距離以上離れていることを確認
+            float x = rand(vec2(currentDestination.x, currentDestination.z)) * 10.0 - 5.0;
+            float z = rand(vec2(currentDestination.z, currentDestination.x)) * 10.0 - 5.0;
             gl_FragColor = vec4(x, 0.0, z, 0.0);
           } else if (gl_FragCoord.x < 3.0) {
             // 当該ピクセルが3番目、つまりtの場合、tは0に戻す
