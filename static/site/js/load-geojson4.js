@@ -852,8 +852,15 @@ export class Main {
       // 疑似ランダム関数
       // https://blog.mapbox.com/how-i-built-a-wind-map-with-webgl-b63022b5537f
       // https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
-      float rand(vec2 p) {
-        return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+      // float rand(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+
+      highp float rand(vec2 co){
+        highp float a = 12.9898;
+        highp float b = 78.233;
+        highp float c = 43758.5453;
+        highp float dt= dot(co.xy ,vec2(a,b));
+        highp float sn= mod(dt,3.14);
+        return fract(sin(sn) * c);
       }
 
       void main() {
