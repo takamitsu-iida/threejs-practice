@@ -1085,6 +1085,21 @@ THREE.TubeGeometryを使って線を太くして、シェーダーで動く色�
 
 [JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/line-shader-bezier.js)
 
+<br>
+
+## Particle using shader
+
+パーティクルはデフォルトで正方形で描画されるが、これを丸くする例。
+
+丸くするにはテクスチャを貼るか、シェーダーを使うか、のどちらかになる。
+
+[![ScreenImage](./asset/index-particle-shader.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-particle-shader.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-particle-shader.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-particle-shader.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/particle-shader.js)
 
 
 
