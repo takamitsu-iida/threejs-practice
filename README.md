@@ -1091,7 +1091,7 @@ THREE.TubeGeometryを使って線を太くして、シェーダーで動く色�
 
 パーティクルはデフォルトで正方形で描画されるが、これを丸くする例。
 
-丸くするにはテクスチャを貼るか、シェーダーを使うか、のどちらかになる。
+上のパーティクルはテクスチャを貼って丸くした例、下２つはシェーダーで丸くした例。
 
 [![ScreenImage](./asset/index-particle-shader.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-particle-shader.html)
 
