@@ -415,7 +415,7 @@ export class Main {
 
     gui
       .add(this.params, "maxPoints")
-      .name(navigator.language.startsWith("ja") ? "四分木分割点数" : "maxPoints")
+      .name(navigator.language.startsWith("ja") ? "四分木分割しきい値" : "maxPoints")
       .min(1)
       .max(10)
       .step(1)
@@ -503,7 +503,6 @@ export class Main {
       }
     });
   }
-
 
 
   onWindowResize = (event) => {
