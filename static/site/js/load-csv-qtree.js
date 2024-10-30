@@ -386,7 +386,7 @@ export class Main {
       });
 
     gui
-      .add(this.params, "showPointCloud")
+    .add(this.params, "showPointCloud")
       .name(navigator.language.startsWith("ja") ? "ポイントクラウド表示" : "showPointCloud")
       .onChange((value) => {
         this.pointMesh.visible = value;
@@ -633,6 +633,9 @@ export class Main {
 
     // 点群を作成
     const pointMesh = new THREE.Points(geometry, pointsMaterial);
+
+    // 表示するかどうか
+    pointMesh.visible = this.params.showPointCloud;
 
     // シーンに追加
     this.scene.add(pointMesh);
