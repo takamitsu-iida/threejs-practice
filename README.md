@@ -93,6 +93,9 @@ Thiessen Polygon ティーセンポリゴン
 逆距離加重法 IDW (Inverse Distance Weighting)
 通常距離加重法 NDW (Normal Distance Weighting)
 
+四分木 quad tree
+八分木 octree
+
 -->
 
 
