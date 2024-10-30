@@ -59,27 +59,47 @@ export class Main {
   statsjs;
 
   renderParams = {
+    animationId: null,
     clock: new THREE.Clock(),
     delta: 0,
     interval: 1 / 30,  // = 30fps
   }
 
   params = {
-    path: "./static/data/depth_map_data.csv",
+    // path: "./static/data/depth_map_data.csv",
+    path: "./static/data/depth_map_data_edited.csv",
+
     csvData: null,
 
+    // ポイントクラウドを表示するか？
+    showPointCloud: true,
+
+    // ポイントクラウドのサイズ
+    pointSize: 0.2,
+
+    // ワイヤーフレーム表示にする？
     wireframe: false,
+
+    // コントローラの設定
     autoRotate: true,
     autoRotateSpeed: 1.0,
 
+    // 緯度経度の最大値、最小値（CSVから自動で読み取る）
     minLat: 0,
     maxLat: 0,
     minLon: 0,
     maxLon: 0,
 
+    // 四分木の分割パラメータ
+    divideParam: 5,  // 見栄えに変化がないので5のままでよい（guiはdisableにしておく）
+    maxPoints: 5,
+
     // 四分木に分割した領域の配列
     areas: null,
   }
+
+  // 地形図のポイントクラウド（guiで表示を操作するためにインスタンス変数にする）
+  pointMesh;
 
   // デローネ三角形で作成する地形図のメッシュ（guiで表示を操作するためにインスタンス変数にする）
   terrainMesh;
@@ -103,22 +123,37 @@ export class Main {
     // console.log(this.params.csvData);
     // {lat: xxx, lon: xxx, depth: xxx}
 
-    // quad treeに分割する
-    this.initQuadTree();
-
     // scene, camera, renderer, controllerを初期化
     this.initThreejs();
-
-    // lil-guiを初期化
-    this.initGui();
 
     // stats.jsを初期化
     this.initStatsjs();
 
-    // 四分木に分割したデータareasを元にデローネ三角形を形成する
+    // lil-guiを初期化
+    this.initGui();
+
+    // コンテンツを初期化
+    this.initContents();
+  }
+
+
+  initContents = () => {
+    // アニメーションを停止
+    this.stop();
+
+    // シーン上のメッシュを削除する
+    this.clearScene();
+
+    // 削除した状態を描画
+    //this.renderer.render(this.scene, this.camera);
+
+    // CSVデータを四分木に分割してareas配列を作成する
+    this.initQuadTree();
+
+    // 四分木で領域分割したareas配列を元に、デローネ三角形でメッシュを表示する
     this.initDelaunay();
 
-    // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
+    // フレーム毎の処理
     this.render();
   }
 
@@ -281,7 +316,7 @@ export class Main {
 
     // ディレクショナルライト
     const light = new THREE.DirectionalLight(0xffffff, 0.8);
-    light.position.set(-50, 50, 50);
+    light.position.set(-50, 0, 0);
     this.scene.add(light);
 
   }
@@ -293,6 +328,27 @@ export class Main {
       container: guiContainer,
       width: 300,
     });
+
+    // 一度だけ実行するための関数
+    const doLater = (job, tmo) => {
+
+      // 処理が登録されているならタイマーをキャンセル
+      var tid = doLater.TID[job];
+      if (tid) {
+        window.clearTimeout(tid);
+      }
+
+      // タイムアウト登録する
+      doLater.TID[job] = window.setTimeout(() => {
+        // 実行前にタイマーIDをクリア
+        doLater.TID[job] = null;
+        // 登録処理を実行
+        job.call();
+      }, tmo);
+    }
+
+    // 処理からタイマーIDへのハッシュ
+    doLater.TID = {};
 
     gui
       .add(this.params, "autoRotate")
@@ -318,6 +374,43 @@ export class Main {
         this.terrainMesh.material.wireframe = this.params.wireframe;
       });
 
+    gui
+      .add(this.params, "showPointCloud")
+      .name(navigator.language.startsWith("ja") ? "ポイントクラウド表示" : "showPointCloud")
+      .onChange((value) => {
+        this.pointMesh.visible = value;
+      });
+
+    gui
+      .add(this.params, "pointSize")
+      .name(navigator.language.startsWith("ja") ? "ポイントサイズ" : "pointSize")
+      .min(0.1)
+      .max(1.0)
+      .step(0.1)
+      .onChange((value) => {
+        this.pointMesh.material.size = value;
+      });
+
+    gui
+      .add(this.params, "divideParam")
+      .name(navigator.language.startsWith("ja") ? "四分木分割パラメータ" : "divideParam")
+      .min(1)
+      .max(10)
+      .step(1)
+      .onFinishChange(() => {
+        doLater(this.initContents, 100);
+      })
+      .disable();  // このパラメータは分割数に影響するが、見栄えには変化がないのでdisableにしておく
+
+    gui
+      .add(this.params, "maxPoints")
+      .name(navigator.language.startsWith("ja") ? "四分木分割点数" : "maxPoints")
+      .min(1)
+      .max(10)
+      .step(1)
+      .onFinishChange(() => {
+        doLater(this.initContents, 100);
+      });
 
   }
 
@@ -339,7 +432,7 @@ export class Main {
 
   render = () => {
     // 再帰処理
-    requestAnimationFrame(this.render);
+    this.renderParams.animationId = requestAnimationFrame(this.render);
 
     this.renderParams.delta += this.renderParams.clock.getDelta();
     if (this.renderParams.delta < this.renderParams.interval) {
@@ -359,6 +452,41 @@ export class Main {
 
     this.renderParams.delta %= this.renderParams.interval;
   }
+
+
+  stop = () => {
+    if (this.renderParams.animationId) {
+      cancelAnimationFrame(this.renderParams.animationId);
+    }
+    this.renderParams.animationId = null;
+  }
+
+
+  clearScene = () => {
+    const objectsToRemove = [];
+
+    this.scene.children.forEach((child) => {
+      if (child.type === 'AxesHelper' || child.type === 'GridHelper' || String(child.type).indexOf('Light') >= 0 ) {
+        return;
+      }
+      objectsToRemove.push(child);
+    });
+
+    objectsToRemove.forEach((object) => {
+      this.scene.remove(object);
+      if (object.geometry) {
+        object.geometry.dispose();
+      }
+      if (object.material) {
+        if (Array.isArray(object.material)) {
+          object.material.forEach(material => material.dispose());
+        } else {
+          object.material.dispose();
+        }
+      }
+    });
+  }
+
 
 
   onWindowResize = (event) => {
@@ -407,10 +535,6 @@ export class Main {
 
 
   initQuadTree = () => {
-    if (this.params.areas !== null) {
-      return;
-    }
-
     // X軸 = Longitude(経度)
     const minLon = this.params.minLon;  // -93.15585150687866
     const maxLon = this.params.maxLon;  // 137.8217825273964
@@ -419,11 +543,14 @@ export class Main {
     const minLat = this.params.minLat;  // -96.32579062369473
     const maxLat = this.params.maxLat;  // 68.51506401226004
 
-    // 5で割るのは適当に選んだ
-    const maxdivision = Math.ceil(Math.max((maxLon - minLon) / 5, (maxLat - minLat) / 5));
-    console.log(`maxdivision: ${maxdivision}`);
+    // 四分木の分割パラメータを調整する
+    const divideParam = this.params.divideParam;
+    const maxDivision = Math.ceil(Math.max((maxLon - minLon) / divideParam, (maxLat - minLat) / divideParam));
 
-    const maxpoints = 5;
+    console.log(`maxdivision: ${maxDivision}`);
+
+    // 領域内に含まれる最大の点の数、これを超えていたらさらに小さく分割する
+    const maxPoints = this.params.maxPoints;
 
     // 対象とする領域を生成
     const initial = new Area(minLon, minLat, maxLon, maxLat, 0);
@@ -437,7 +564,7 @@ export class Main {
     }
 
     // 四分木に分割する
-    const areas = this.quadtree(initial, maxpoints, maxdivision);
+    const areas = this.quadtree(initial, maxPoints, maxDivision);
     console.log(`initial area is divided into ${areas.length} areas`);
 
     // 保存しておく
@@ -451,14 +578,26 @@ export class Main {
     const areas = this.params.areas;
 
     const point3d = [];
+    const colors = [];
     areas.forEach((area) => {
-      if (area.points.length === 0) {
+      // 点がない場合は無視する
+      if (area.points.length < 1) {
         return;
       }
+      // エリアの分割レベルが浅い部分は無視する
+      if (area.depth < 5) {
+        return;
+      }
+
+      // 頂点の座標を計算
       const lon = (area.minLon + area.maxLon) / 2;
       const lat = (area.minLat + area.maxLat) / 2;
       const depth = area.points.reduce((acc, cur) => acc + cur.depth, 0) / area.points.length;
       point3d.push(new THREE.Vector3(lon, depth, lat));
+
+      // 深さに応じて頂点に色を付ける
+      const color = this.getDepthColor(depth);
+      colors.push(color.r, color.g, color.b);
     });
 
     console.log(`${point3d.length} points are created`);
@@ -466,17 +605,23 @@ export class Main {
     // ポイントクラウドのジオメトリを作成
     const geometry = new THREE.BufferGeometry().setFromPoints(point3d);
 
+    // 頂点カラーを設定
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
     // マテリアルを作成
-    const pointMaterial = new THREE.PointsMaterial({
+    const pointsMaterial = new THREE.PointsMaterial({
       color: 0x99ccff,
-      size: 0.2,
+      size: this.params.pointSize,
     });
 
     // 点群を作成
-    const pointCloud = new THREE.Points(geometry, pointMaterial);
+    const pointMesh = new THREE.Points(geometry, pointsMaterial);
 
     // シーンに追加
-    this.scene.add(pointCloud);
+    this.scene.add(pointMesh);
+
+    // インスタンス変数に保存
+    this.pointMesh = pointMesh;
 
     // デローネ三角形を形成する
     const delaunay = Delaunator.from(
@@ -499,7 +644,7 @@ export class Main {
 
     // マテリアルを生成
     const material = new THREE.MeshLambertMaterial({
-      color: 0x00ff00,
+      vertexColors: true, // 頂点カラーを使用
       wireframe: this.params.wireframe,
     });
 
@@ -511,6 +656,55 @@ export class Main {
 
     // インスタンス変数に保存
     this.terrainMesh = terrainMesh;
+  }
+
+
+  getDepthColor(depth) {
+    let color;
+    if (depth < -60.0) {
+      color = new THREE.Color(0x2e146a);
+    } else if (depth < -55.0) {
+      color = new THREE.Color(0x451e9f);
+    } else if (depth < -50.0) {
+      color = new THREE.Color(0x3b31c3);
+    } else if (depth < -45.0) {
+      color = new THREE.Color(0x1f47de);
+    } else if (depth < -40.0) {
+      color = new THREE.Color(0x045ef9);
+    } else if (depth < -35.0) {
+      color = new THREE.Color(0x0075fd);
+    } else if (depth < -30.0) {
+      color = new THREE.Color(0x008ffd);
+    } else if (depth < -25.0) {
+      color = new THREE.Color(0x01aafc);
+    } else if (depth < -20.0) {
+      color = new THREE.Color(0x01c5fc);
+    } else if (depth < -16.0) {
+      color = new THREE.Color(0x45ccb5);
+    } else if (depth < -12.0) {
+      color = new THREE.Color(0x90d366);
+    } else if (depth < -10.0) {
+      color = new THREE.Color(0xb4df56);
+    } else if (depth < -8.0) {
+      color = new THREE.Color(0xd9ed4c);
+    } else if (depth < -6.0) {
+      color = new THREE.Color(0xfdfb41);
+    } else if (depth < -5.0) {
+      color = new THREE.Color(0xfee437);
+    } else if (depth < -4.0) {
+      color = new THREE.Color(0xfecc2c);
+    } else if (depth < -3.0) {
+      color = new THREE.Color(0xfeb321);
+    } else if (depth < -2.0) {
+      color = new THREE.Color(0xff9b16);
+    } else if (depth < -1.0) {
+      color = new THREE.Color(0xff820b);
+    } else if (depth < 0.0) {
+      color = new THREE.Color(0xff7907);
+    } else {
+      color = new THREE.Color(0xffffff);
+    }
+    return color;
   }
 
 

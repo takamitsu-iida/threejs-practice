@@ -252,7 +252,7 @@ export class Main {
     const objectsToRemove = [];
 
     this.scene.children.forEach((child) => {
-      if (child.type === 'AxesHelper' || child.type === 'GridHelper' || child.type === 'Light' ) {
+      if (child.type === 'AxesHelper' || child.type === 'GridHelper' || String(child.type).indexOf('Light') >= 0 ) {
         return;
       }
       objectsToRemove.push(child);
