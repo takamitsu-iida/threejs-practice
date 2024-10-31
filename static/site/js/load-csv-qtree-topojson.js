@@ -1112,11 +1112,11 @@ export class Main {
 
       // クリッピングして表示領域を制限する
       clippingPlanes: [
-        new THREE.Plane(new THREE.Vector3(0, 0, 1), clippingSize),   // Z座標がxzGridSize以下
-        new THREE.Plane(new THREE.Vector3(0, 0, -1), clippingSize),  // Z座標が-xzGridSize以上
-        new THREE.Plane(new THREE.Vector3(-1, 0, 0), clippingSize),  // X座標がxzGridSize以下
-        new THREE.Plane(new THREE.Vector3(1, 0, 0), clippingSize),   // X座標が-xzGridSize以上
-        new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),              // Y座標が0以上
+        new THREE.Plane(new THREE.Vector3(0, 0, 1), clippingSize),   // Z座標がxzGridSize以下を表示
+        new THREE.Plane(new THREE.Vector3(0, 0, -1), clippingSize),  // Z座標が-xzGridSize以上を表示
+        new THREE.Plane(new THREE.Vector3(-1, 0, 0), clippingSize),  // X座標がxzGridSize以下を表示
+        new THREE.Plane(new THREE.Vector3(1, 0, 0), clippingSize),   // X座標が-xzGridSize以上を表示
+        new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),              // Y座標が0以上を表示
       ],
     });
 
