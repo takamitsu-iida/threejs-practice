@@ -53,11 +53,14 @@ export class Main {
     height: 0
   }
 
-  // 水深を表示するコンテナ要素
+  // 水深を表示するHTML要素
   depthContainer;
 
-  // 緯度経度を表示するコンテナ要素
+  // 緯度経度を表示するHTML要素
   coordinatesContainer;
+
+  // 方位磁針を表示するHTML要素
+  compassElement;
 
   // Three.jsの要素
   scene;
@@ -393,18 +396,21 @@ export class Main {
 
   initThreejs = () => {
 
-    // Three.jsを表示するコンテナ要素
+    // Three.jsを表示するHTML要素
     this.container = document.getElementById("threejsContainer");
 
     // そのコンテナのサイズ
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
 
-    // 水深を表示するコンテナ要素
+    // 水深を表示するHTML要素
     this.depthContainer = document.getElementById("depthContainer");
 
-    // 緯度経度を表示するコンテナ要素
+    // 緯度経度を表示するHTML要素
     this.coordinatesContainer = document.getElementById("coordinatesContainer");
+
+    // 方位磁針を表示する要素
+    this.compassElement = document.getElementById('compass');
 
     // resizeイベントのハンドラを登録
     window.addEventListener("resize", this.onWindowResize, false);
@@ -574,8 +580,6 @@ export class Main {
       .onFinishChange(() => {
         doLater(this.initContents, 100);
       });
-
-
   }
 
 
@@ -615,6 +619,9 @@ export class Main {
 
       // 水深を表示
       this.renderDepth();
+
+      // 方位磁針を更新
+      this.updateCompass();
     }
 
     this.renderParams.delta %= this.renderParams.interval;
@@ -1114,6 +1121,20 @@ export class Main {
       this.coordinatesContainer.textContent = '';
     }
   }
+
+
+  updateCompass = () => {
+    const cameraDirection = new THREE.Vector3();
+    this.camera.getWorldDirection(cameraDirection);
+
+    // カメラの方向を方位磁針の回転角度に変換
+    const angle = Math.atan2(cameraDirection.x, cameraDirection.z);
+    const degrees = THREE.MathUtils.radToDeg(angle);
+
+    // 方位磁針の回転を更新
+    this.compassElement.style.transform = `rotate(${degrees}deg)`;
+  }
+
 
 }
 

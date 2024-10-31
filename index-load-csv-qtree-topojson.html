@@ -98,6 +98,28 @@
       margin-right: 10px;
     }
 
+    #compassContainer {
+      position: absolute;
+      top: 100px;
+      left: 10px;
+      width: 50px;
+      height: 50px;
+      background-color: rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #compass {
+      width: 50px;
+      height: 50px;
+      background-image: url('./static/site/img/compass.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      transform-origin: center;
+    }
 
    /*
     ネットワーク経由でデータを取得する場合にロード中を表示
@@ -160,6 +182,10 @@
   <div id="threejsContainer"></div>
   <div id="statsjsContainer"></div>
   <div id="guiContainer"></div>
+
+  <div id="compassContainer">
+    <div id="compass"></div>
+  </div>
 
   <div id="legendContainer"></div>
 
