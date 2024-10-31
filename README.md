@@ -90,6 +90,15 @@ JavaScriptだけで描画すると重たくなってしまうのを解決した�
 
 [Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-csv-qtree-topojson.html)
 
+<br>
+
+TODO
+
+- データの加工処理をPythonにしたい
+- 四分木分割して粒度の高い領域のポイント数を削減しつつ、粒度の低いところはデータを補間したい
+- デローネ三角形を形成する領域を分割したいので、一つのデータの塊ではなく、分割したデータにしたい
+- Google Mapのような地図アプリと連動できないか模索してみる
+
 <!--
 
 https://jamescheshire.github.io/learningR/interpolating-point-data.html
