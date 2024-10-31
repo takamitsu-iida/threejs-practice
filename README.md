@@ -71,21 +71,20 @@ JavaScriptだけで描画すると重たくなってしまうのを解決した�
 
 <br><br>
 
-明らかにデータが密な場所と疎な場所で差がありすぎるので、それをなんとかしないといけません。
+このポイントクラウドは明らかにデータが密な場所と疎な場所で差がありすぎるので対策が必要です。
 
-まず、(lon, lat)の領域を四分木に分割してデータの密度の高いところ、低いところに分けていき、領域の中央をポイントクラウドにします。
+まず、(lon, lat)の領域を四分木に分割してデータの密度の高いところ、低いところに分けていきます。
+データの密度の高いところはより詳細な領域になるようにします。
 
-それをデローネ三角形でメッシュ化したものがこれ。
+領域の中央をポイントクラウドにしたうえで、頂点間をデローネ三角形でメッシュ化したものがこれ。
 
 [![ScreenImage](./asset/index-load-csv-qtree.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-csv-qtree.html)
 
 [Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-csv-qtree.html)
 
-<br><br>
+<br>
 
 四分木の領域の中央を採用するのはいかがなものかと思いつつも、なかなかいい感じに見えるので、topojsonで三浦市油壷周辺の地図を重ねてみたのがこれ。
-
-ついでなのでマウスカーソル上の水深も表示できるようにしてみました。
 
 [![ScreenImage](./asset/index-load-csv-qtree-topojson.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-csv-qtree-topojson.html)
 
