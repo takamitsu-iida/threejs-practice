@@ -52,7 +52,7 @@ const LANDMARKS = [
 
 export class Main {
 
-  // Three.jsを表示するコンテナ要素
+  // Three.jsを表示するコンテナのHTML要素
   container;
 
   // そのコンテナのサイズ
@@ -70,7 +70,7 @@ export class Main {
   // 方位磁針を表示するHTML要素
   compassElement;
 
-  // Three.jsの要素
+  // Three.jsの各種インスタンス
   scene;
   camera;
   renderer;
@@ -97,11 +97,11 @@ export class Main {
   params = {
 
     // 海底地形図の(lon, lat)をThree.jsのXZ座標のどの範囲に描画するか
-    xzGridSize: 200,  // -100～100の範囲に描画する
+    // 持っているGPSデータに応じて調整する
+    xzGridSize: 200,  // 200を指定する場合は -100～100 の範囲に描画する
 
-    // 緯度経度の拡大率
-    // xzGridSizeにあわせるために、どのくらい緯度経度を拡大するか（自動計算）
-    xzScale: 10000,  // 仮の値
+    // xzGridSizeにあわせるために、どのくらい緯度経度の値を拡大するか（自動計算）
+    xzScale: 10000,  // これは仮の値、概ね10000くらいがいい感じ
 
     // 水深データのCSVファイルのURL
     depthMapPath: "./static/data/depth_map_data_edited.csv",
@@ -119,7 +119,7 @@ export class Main {
     // topojsonデータ
     topojsonData: null,
 
-    // 三浦市のデータのobjectName
+    // topojsonデータに含まれるobjectName（三浦市のデータなら"miura"）
     objectName: "miura",
 
     // ポイントクラウドを表示するか？
@@ -150,7 +150,7 @@ export class Main {
     // 四分木の分割パラメータ
     divideParam: 5,  // 見栄えに変化がないので5のままでよい（guiはdisableにしておく）
 
-    // 5個以上の点がある場合にさらに分割する
+    // 5個以上の点がある場合にさらに小さく四分木分割する
     maxPoints: 5,
 
     // 四分木に分割した領域の配列
@@ -158,7 +158,6 @@ export class Main {
 
     // ランドマークラベルの高さ
     labelY: 20,
-
   }
 
   // 地形図のポイントクラウド（guiで表示を操作するためにインスタンス変数にする）
@@ -227,7 +226,7 @@ export class Main {
     // シーン上のメッシュを削除する
     this.clearScene();
 
-    // 削除した状態を描画
+    // 全てを削除した状態で描画
     this.renderer.render(this.scene, this.camera);
 
     // 緯度経度の値を正規化
@@ -354,7 +353,7 @@ export class Main {
       const lon = (d.lon - lonCenter) * scale;
 
       // 緯度(lat)はZ軸に対応する
-      // Three.jsの軸の向きと逆になるのでマイナスをかける
+      // Three.jsのZ軸の向きと、地図の南北は逆になるのでマイナスをかける
       const lat = -1 * (d.lat - latCenter) * scale;
 
       // 深さ(depth)はY軸に対応する
@@ -458,7 +457,7 @@ export class Main {
     this.renderer.setSize(this.sizes.width, this.sizes.height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    // 地図は大きいのでクリッピングして表示領域を制限する
+    // 地図は大きいのでクリッピングを有効にして表示領域を制限する
     this.renderer.localClippingEnabled = true;
 
     // コンテナにレンダラを追加
@@ -482,7 +481,7 @@ export class Main {
     this.scene.add(axesHelper);
 
     // 環境光
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
     // ディレクショナルライト
     const light = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -1207,8 +1206,6 @@ export class Main {
     cssObject.position.copy(position);
     this.scene.add(cssObject);
   }
-
-
 
 }
 
