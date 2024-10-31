@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/controls/OrbitControls.js";
+import { CSS2DRenderer, CSS2DObject } from 'three/libs/CSS2DRenderer.js';
 
 // lil-gui
 import { GUI } from "three/libs/lil-gui.module.min.js";
@@ -42,6 +43,13 @@ HTMLではこのようなimportmapを使う。
 
 */
 
+
+const LANDMARKS = [
+  { lon: 139.60695032, lat: 35.16900046, depth: -10, name: 'ヤギ瀬' },
+  { lon: 139.61539000, lat: 35.16946800, depth: 0, name: 'みなとや' },
+];
+
+
 export class Main {
 
   // Three.jsを表示するコンテナ要素
@@ -74,6 +82,9 @@ export class Main {
 
   // マウス座標
   mousePosition;
+
+  // CSS2DRenderer
+  cssRenderer;
 
   // レンダリング用のパラメータ
   renderParams = {
@@ -139,6 +150,10 @@ export class Main {
 
     // 四分木に分割した領域の配列
     areas: null,
+
+    // ラベルの高さ
+    labelY: 20,
+
   }
 
   // 地形図のポイントクラウド（guiで表示を操作するためにインスタンス変数にする）
@@ -224,6 +239,9 @@ export class Main {
 
     // シェイプの配列からメッシュを作成
     this.createMeshFromShapes(shapes);
+
+    // ランドマークを表示
+    this.initLandmarks();
 
     // フレーム毎の処理
     this.render();
@@ -478,6 +496,13 @@ export class Main {
       this.mousePosition.y = -(event.clientY / this.sizes.height) * 2 + 1;
     }, false);
 
+    // CSS2DRenderer
+    this.cssRenderer = new CSS2DRenderer();
+    this.cssRenderer.setSize(this.sizes.width, this.sizes.height);
+    this.cssRenderer.domElement.style.position = 'absolute';
+    this.cssRenderer.domElement.style.top = 0;
+    this.cssRenderer.domElement.style.pointerEvents = 'none';
+    this.container.appendChild(this.cssRenderer.domElement);
   }
 
 
@@ -580,6 +605,9 @@ export class Main {
       .onFinishChange(() => {
         doLater(this.initContents, 100);
       });
+
+    // 初期状態で閉じた状態にする
+    gui.close();
   }
 
 
@@ -616,6 +644,9 @@ export class Main {
 
       // シーンをレンダリング
       this.renderer.render(this.scene, this.camera);
+
+      // CSS2DRendererをレンダリング
+      this.cssRenderer.render(this.scene, this.camera);
 
       // 水深を表示
       this.renderDepth();
@@ -671,6 +702,9 @@ export class Main {
 
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(this.sizes.width, this.sizes.height);
+
+    // CSS2DRendererもリサイズする
+    this.cssRenderer.setSize(this.sizes.width, this.sizes.height);
   };
 
 
@@ -1111,7 +1145,7 @@ export class Main {
 
       if (depth < 0) {
         this.depthContainer.textContent = `Depth: ${depth.toFixed(2)}m`;
-        this.coordinatesContainer.textContent = `Lat: ${lat.toFixed(8)}, Lon: ${lon.toFixed(8)}`;
+        this.coordinatesContainer.textContent = `Lon: ${lon.toFixed(8)}, Lat: ${lat.toFixed(8)}`;
       } else {
         this.depthContainer.textContent = '';
         this.coordinatesContainer.textContent = '';
@@ -1129,11 +1163,46 @@ export class Main {
 
     // カメラの方向を方位磁針の回転角度に変換
     const angle = Math.atan2(cameraDirection.x, cameraDirection.z);
-    const degrees = THREE.MathUtils.radToDeg(angle);
+    const degrees = THREE.MathUtils.radToDeg(angle) + 180;  // 0度が北を向くように調整
 
     // 方位磁針の回転を更新
     this.compassElement.style.transform = `rotate(${degrees}deg)`;
   }
+
+
+  initLandmarks = () => {
+    LANDMARKS.forEach((landmark) => {
+      // 正規化した緯度経度を取得
+      let [lon, lat] = this.normalizeCoordinates([landmark.lon, landmark.lat]);
+
+      // Y座標はその場所の真上になるように設定
+      const position = new THREE.Vector3(lon, this.params.labelY, lat);
+
+      // ラベルを作成
+      this.createLandmarkLabel(landmark.name, position);
+
+      // ラインを作成
+      const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+      const points = [];
+      points.push(new THREE.Vector3(lon, landmark.depth, lat));
+      points.push(new THREE.Vector3(lon, position.y, lat));
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const line = new THREE.Line(geometry, material);
+      this.scene.add(line);
+
+    });
+  }
+
+  createLandmarkLabel = (name, position) => {
+    const div = document.createElement('div');
+    div.className = 'landmark-label';
+    div.textContent = name;
+
+    const cssObject = new CSS2DObject(div);
+    cssObject.position.copy(position);
+    this.scene.add(cssObject);
+  }
+
 
 
 }
