@@ -942,7 +942,12 @@ export class Main {
       const color = this.getDepthColor(depth);
 
       const legendItem = document.createElement('div');
+
+      // CSSクラスを設定
       legendItem.className = 'legend-item';
+
+      // 水深に応じたidを設定
+      legendItem.id = `legend-${depth}`;
 
       const colorBox = document.createElement('div');
       colorBox.className = 'legend-color';
@@ -955,6 +960,37 @@ export class Main {
       legendItem.appendChild(label);
       legendContainer.appendChild(legendItem);
     });
+  }
+
+  updateLegendHighlight = (depth) => {
+    this.clearLegendHighlight();
+
+    // TODO
+    // 同じ配列をinitLegendで作成しているので、ここで再定義するのは避けたい
+    const depthSteps = [
+      -1, -2, -3, -4, -5, -6, -8, -10, -12, -16, -20, -25, -30, -35, -40, -45, -50, -55, -60
+    ];
+
+    // depthに最も近いdepthStepsの値を見つける
+    let closestDepth = depthSteps[0];
+    let minDiff = Math.abs(depth - closestDepth);
+    for (let i = 1; i < depthSteps.length; i++) {
+      const diff = Math.abs(depth - depthSteps[i]);
+      if (diff < minDiff) {
+        closestDepth = depthSteps[i];
+        minDiff = diff;
+      }
+    }
+
+    const legendItem = document.getElementById(`legend-${closestDepth}`);
+    if (legendItem) {
+      legendItem.classList.add('highlight');
+    }
+  }
+
+  clearLegendHighlight = () => {
+    const highlightedItems = document.querySelectorAll('.highlight');
+    highlightedItems.forEach(item => item.classList.remove('highlight'));
   }
 
 
@@ -1150,13 +1186,22 @@ export class Main {
       if (depth < 0) {
         this.depthContainer.textContent = `Depth: ${depth.toFixed(2)}m`;
         this.coordinatesContainer.textContent = `Lon: ${lon.toFixed(8)}, Lat: ${lat.toFixed(8)}`;
+
+        // 凡例をハイライト
+        this.updateLegendHighlight(depth);
       } else {
         this.depthContainer.textContent = '';
         this.coordinatesContainer.textContent = '';
+
+        // ハイライトをクリア
+        this.clearLegendHighlight();
       }
     } else {
       this.depthContainer.textContent = '';
       this.coordinatesContainer.textContent = '';
+
+      // ハイライトをクリア
+      this.clearLegendHighlight();
     }
   }
 
