@@ -69,7 +69,7 @@ JavaScriptだけで描画すると重たくなってしまうのを解決した�
 | max   |     35.1737     |    139.622      |     47.539   |
 
 
-<br>
+<br><br>
 
 明らかにデータが密な場所と疎な場所で差がありすぎるので、それをなんとかしないといけません。
 
@@ -81,9 +81,15 @@ JavaScriptだけで描画すると重たくなってしまうのを解決した�
 
 [Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-csv-qtree.html)
 
-異常値を取り除いて、光の当て方なんかを調整すればかなりいい感じになりそうな予感です。
+<br><br>
 
-あとは、地図を重ねて表示できるといいかな。
+四分木の領域の中央を採用するのはいかがなものかと思いつつも、なかなかいい感じに見えるので、topojsonで三浦市油壷周辺の地図を重ねてみたのがこれ。
+
+ついでなのでマウスカーソル上の水深も表示できるようにしてみました。
+
+[![ScreenImage](./asset/index-load-csv-qtree-topojson.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-csv-qtree-topojson.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-csv-qtree-topojson.html)
 
 <!--
 
