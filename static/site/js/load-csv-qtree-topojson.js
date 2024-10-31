@@ -101,19 +101,22 @@ export class Main {
 
     // 緯度経度の拡大率
     // xzGridSizeにあわせるために、どのくらい緯度経度を拡大するか（自動計算）
-    xzScale: 10000,
+    xzScale: 10000,  // 仮の値
 
-    // 水深データのパス
+    // 水深データのCSVファイルのURL
     depthMapPath: "./static/data/depth_map_data_edited.csv",
 
-    // CSVテキストをパースしたデータの配列
+    // CSVテキストをパースしたデータ配列
     depthMapData: null,
 
     // それを正規化したデータの配列
+    // TODO: 一つにまとめてもいいかも
     normalizedDepthMapData: null,
 
-    // 三浦市のデータのパスとデータ
+    // 三浦市のtopojsonファイルのURL
     topojsonPath: "./static/data/aburatsubo.json",
+
+    // topojsonデータ
     topojsonData: null,
 
     // 三浦市のデータのobjectName
@@ -138,7 +141,7 @@ export class Main {
     minLon: 0,
     maxLon: 0,
 
-    // 正規化した緯度経度の最大値、最小値
+    // 正規化した緯度経度の最大値、最小値（自動計算）
     normalizedMinLat: 0,
     normalizedMaxLat: 0,
     normalizedMinLon: 0,
@@ -146,12 +149,14 @@ export class Main {
 
     // 四分木の分割パラメータ
     divideParam: 5,  // 見栄えに変化がないので5のままでよい（guiはdisableにしておく）
+
+    // 5個以上の点がある場合にさらに分割する
     maxPoints: 5,
 
     // 四分木に分割した領域の配列
     areas: null,
 
-    // ラベルの高さ
+    // ランドマークラベルの高さ
     labelY: 20,
 
   }
