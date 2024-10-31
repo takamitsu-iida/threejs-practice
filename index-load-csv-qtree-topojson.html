@@ -55,17 +55,47 @@
       border: 0px;
     }
 
-    #depthContainer {
+    #infoContainer {
       position: absolute;
-      bottom: 5%;
-      left: 5%;
+      bottom: 2%;
+      left: 2%;
       margin: 0px;
       padding: 0px;
       border: 0px;
-      font-size: 8rem;
       color: white;
       user-select: none;
       font-family: 'Roboto', sans-serif;
+    }
+
+    #depthContainer {
+      font-size: 6rem;
+    }
+
+    #coordinatesContainer {
+      font-size: 4rem;
+    }
+
+    #legendContainer {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      width: 80px;
+      background-color: rgba(255, 255, 255, 0.8);
+      padding-left: 10px;
+      padding-top: 10px;
+      padding-bottom: 10px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      margin-right: 10px;
     }
 
 
@@ -122,13 +152,22 @@
 </head>
 
 <body>
+
   <div id="loadingContainer">
     <div id="loading"></div>
   </div>
+
   <div id="threejsContainer"></div>
   <div id="statsjsContainer"></div>
   <div id="guiContainer"></div>
-  <div id="depthContainer"></div>
+
+  <div id="legendContainer"></div>
+
+  <div id="infoContainer">
+    <div id="depthContainer"></div>
+    <div id="coordinatesContainer"></div>
+  </div>
+
 </body>
 
 <!-- topojson -->

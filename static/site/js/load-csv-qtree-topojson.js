@@ -56,11 +56,12 @@ export class Main {
   // 水深を表示するコンテナ要素
   depthContainer;
 
+  // 緯度経度を表示するコンテナ要素
+  coordinatesContainer;
+
   // Three.jsの要素
   scene;
-  uiScene
   camera;
-  uiCamera;
   renderer;
   controller;
   statsjs;
@@ -391,15 +392,19 @@ export class Main {
 
 
   initThreejs = () => {
-    // コンテナ
+
+    // Three.jsを表示するコンテナ要素
     this.container = document.getElementById("threejsContainer");
 
-    // コンテナのサイズ
+    // そのコンテナのサイズ
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
 
-    // 水深を表示するコンテナ
+    // 水深を表示するコンテナ要素
     this.depthContainer = document.getElementById("depthContainer");
+
+    // 緯度経度を表示するコンテナ要素
+    this.coordinatesContainer = document.getElementById("coordinatesContainer");
 
     // resizeイベントのハンドラを登録
     window.addEventListener("resize", this.onWindowResize, false);
@@ -420,14 +425,14 @@ export class Main {
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
     });
+
     this.renderer.setSize(this.sizes.width, this.sizes.height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    // 凡例表示のためにautoClearをfalseにする
-    this.renderer.autoClear = false;
-    // 背景を黒に設定
-    this.renderer.setClearColor(0x000000, 1);
+
     // 地図は大きいのでクリッピングして表示領域を制限する
     this.renderer.localClippingEnabled = true;
+
+    // コンテナにレンダラを追加
     this.container.appendChild(this.renderer.domElement);
 
     // コントローラ
@@ -523,7 +528,7 @@ export class Main {
       });
 
     gui
-    .add(this.params, "showPointCloud")
+      .add(this.params, "showPointCloud")
       .name(navigator.language.startsWith("ja") ? "ポイントクラウド表示" : "showPointCloud")
       .onChange((value) => {
         this.pointMesh.visible = value;
@@ -602,16 +607,10 @@ export class Main {
       // stats.jsを更新
       this.statsjs.update();
 
-      // カメラコントローラーの更新
+      // カメラコントローラーを更新
       this.controller.update();
 
-      // 凡例表示のためにautoClearをfalseにしているので、手動でクリア操作を行う
-      this.renderer.clear();
-
-      // 再描画
-      this.renderer.render(this.uiScene, this.uiCamera);
-
-      // UIシーンをレンダリング
+      // シーンをレンダリング
       this.renderer.render(this.scene, this.camera);
 
       // 水深を表示
@@ -634,7 +633,7 @@ export class Main {
     const objectsToRemove = [];
 
     this.scene.children.forEach((child) => {
-      if (child.type === 'AxesHelper' || child.type === 'GridHelper' || String(child.type).indexOf('Light') >= 0 ) {
+      if (child.type === 'AxesHelper' || child.type === 'GridHelper' || String(child.type).indexOf('Light') >= 0) {
         return;
       }
       objectsToRemove.push(child);
@@ -888,69 +887,29 @@ export class Main {
 
 
   initLegend = () => {
+    const legendContainer = document.getElementById('legendContainer');
 
-    // 色の凡例を表示するシーン
-    this.uiScene = new THREE.Scene();
-
-    // 色の凡例を表示する平行投影カメラ
-    this.uiCamera = new THREE.OrthographicCamera(
-      -1,  // left
-      1,   // right
-      1,   // top
-      -1,  // bottom
-      0,   // near
-      2    // far
-    );
-
-    // カメラの位置を変えることでスプライトの表示位置を変える
-    // カメラを右に移動するとスプライトは左に寄る
-    this.uiCamera.position.set(0.9, 0, 0);
-
-    // 凡例を描くキャンバスの幅と高さ
-    // 大きめに描いて、スプライトのスケールを小さくする
-    const width = 50;
-    const height = 400;
-
-    // キャンバスを作成
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-
-    // グラデーションを作成
-    const gradient = context.createLinearGradient(0, 0, 0, height);
     const depthSteps = [
       -1, -2, -3, -4, -5, -6, -8, -10, -12, -16, -20, -25, -30, -35, -40, -45, -50, -55, -60
     ];
 
-    depthSteps.forEach((depth, index) => {
+    depthSteps.forEach((depth) => {
       const color = this.getDepthColor(depth);
-      gradient.addColorStop(index / (depthSteps.length - 1), `#${color.getHexString()}`);
+
+      const legendItem = document.createElement('div');
+      legendItem.className = 'legend-item';
+
+      const colorBox = document.createElement('div');
+      colorBox.className = 'legend-color';
+      colorBox.style.backgroundColor = `#${color.getHexString()}`;
+
+      const label = document.createElement('span');
+      label.textContent = `${depth}m`;
+
+      legendItem.appendChild(colorBox);
+      legendItem.appendChild(label);
+      legendContainer.appendChild(legendItem);
     });
-
-    // グラデーションを塗りつぶす
-    context.fillStyle = gradient;
-    context.fillRect(0, 0, width, height);
-
-    // 深さのラベルを追加
-    context.fillStyle = '#000';
-    context.font = '10px Arial';
-    context.textAlign = 'right';
-    context.textBaseline = 'middle';
-    depthSteps.forEach((depth, index) => {
-      const y = (index / (depthSteps.length - 1)) * height;
-      context.fillText(`${depth}m`, width - 10, y + 10);
-    });
-
-    // スプライトを作成
-    const texture = new THREE.CanvasTexture(canvas);
-    const material = new THREE.SpriteMaterial({ map: texture });
-    const sprite = new THREE.Sprite(material);
-    sprite.material.map.colorSpace = THREE.SRGBColorSpace;
-    sprite.scale.x = 0.125;
-
-    // シーンに追加
-    this.uiScene.add(sprite);
   }
 
 
@@ -1053,6 +1012,7 @@ export class Main {
   }
 
 
+  // 経度経度を中央寄せして正規化する
   normalizeCoordinates = ([lon, lat]) => {
     const scale = this.params.xzScale;
     const latCenter = (this.params.maxLat + this.params.minLat) / 2;
@@ -1064,23 +1024,39 @@ export class Main {
   }
 
 
+  // 元の座標系に戻す
+  inverseNormalizeCoordinates = (x, z) => {
+    const scale = this.params.xzScale;
+    const latCenter = (this.params.maxLat + this.params.minLat) / 2;
+    const lonCenter = (this.params.maxLon + this.params.minLon) / 2;
+    return [
+      x / scale + lonCenter,
+      z / scale + latCenter
+    ];
+  }
+
+
   createMeshFromShapes = (shapes) => {
     // ExtrudeGeometryに渡すdepthパラメータ（厚み）
-    const depth = 0.5;
+    const depth = 1.0;
 
     // カスタムジオメトリを作成
     const geometry = new THREE.ExtrudeGeometry(shapes, {
       depth: depth,
-      bevelEnabled: true,  // エッジを斜めにする
-      bevelSize: 1,        // 斜めのサイズ
-      bevelThickness: 1,   // 斜めの厚み
-      bevelSegments: 1,    // 斜めのセグメント数
+      bevelEnabled: true,   // エッジを斜めにする
+      bevelSize: 0.5,       // 斜めのサイズ
+      bevelThickness: 0.5,  // 斜めの厚み
+      bevelSegments: 1,     // 斜めのセグメント数
     });
 
     // XZ平面化
     geometry.rotateX(-Math.PI / 2);
 
-    const xzGridSize = this.params.xzGridSize;
+    // 上下位置を調整（このあと下半分はクリッピングする）
+    geometry.translate(0, -depth / 2, 0);
+
+    // 地図領域は海底地形図の倍の大きさになるようにクリッピングする
+    const clippingSize = this.params.xzGridSize;
 
     // マテリアル、ここでは適当にMeshStandardMaterialを使う
     const material = new THREE.MeshStandardMaterial({
@@ -1089,12 +1065,13 @@ export class Main {
       depthWrite: false,
       opacity: 0.9,
 
-      // 地図は大きいのでクリッピングして表示領域を制限する
+      // クリッピングして表示領域を制限する
       clippingPlanes: [
-        new THREE.Plane(new THREE.Vector3(0, 0, 1), xzGridSize),   // Z座標がxzGridSize以下
-        new THREE.Plane(new THREE.Vector3(0, 0, -1), xzGridSize),  // Z座標が-xzGridSize以上
-        new THREE.Plane(new THREE.Vector3(-1, 0, 0), xzGridSize),  // X座標がxzGridSize以下
-        new THREE.Plane(new THREE.Vector3(1, 0, 0), xzGridSize),  // X座標が-xzGridSize以上
+        new THREE.Plane(new THREE.Vector3(0, 0, 1), clippingSize),   // Z座標がxzGridSize以下
+        new THREE.Plane(new THREE.Vector3(0, 0, -1), clippingSize),  // Z座標が-xzGridSize以上
+        new THREE.Plane(new THREE.Vector3(-1, 0, 0), clippingSize),  // X座標がxzGridSize以下
+        new THREE.Plane(new THREE.Vector3(1, 0, 0), clippingSize),   // X座標が-xzGridSize以上
+        new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),              // Y座標が0以上
       ],
     });
 
@@ -1109,19 +1086,32 @@ export class Main {
   renderDepth = () => {
     // レイキャストを使用してマウスカーソルの位置を取得
     this.raycaster.setFromCamera(this.mousePosition, this.camera);
+
+    // シーン全体を対象にレイキャストを行う
     // const intersects = this.raycaster.intersectObject(this.terrainMesh);
     const intersects = this.raycaster.intersectObject(this.scene, true);
 
     if (intersects.length > 0) {
       const intersect = intersects[0];
-      const depth = intersect.point.y; // 水深データを取得
+
+      // 水深データを取得
+      const depth = intersect.point.y;
+
+      // 緯度経度を取得
+      const x = intersect.point.x;
+      const z = intersect.point.z;
+      const [lon, lat] = this.inverseNormalizeCoordinates(x, z);
+
       if (depth < 0) {
         this.depthContainer.textContent = `Depth: ${depth.toFixed(2)}m`;
+        this.coordinatesContainer.textContent = `Lat: ${lat.toFixed(8)}, Lon: ${lon.toFixed(8)}`;
       } else {
         this.depthContainer.textContent = '';
+        this.coordinatesContainer.textContent = '';
       }
     } else {
       this.depthContainer.textContent = '';
+      this.coordinatesContainer.textContent = '';
     }
   }
 
