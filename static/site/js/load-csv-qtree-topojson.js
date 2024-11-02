@@ -247,6 +247,9 @@ export class Main {
     // ランドマークを表示
     this.initLandmarks();
 
+    // 縮尺を表示
+    this.initScale();
+
     // フレーム毎の処理
     this.render();
   }
@@ -1121,7 +1124,6 @@ export class Main {
     // ExtrudeGeometryに渡すdepthパラメータ（厚み）
     const depth = 1.0;
 
-    // カスタムジオメトリを作成
     const geometry = new THREE.ExtrudeGeometry(shapes, {
       depth: depth,
       bevelEnabled: true,   // エッジを斜めにする
@@ -1249,6 +1251,40 @@ export class Main {
 
     const cssObject = new CSS2DObject(div);
     cssObject.position.copy(position);
+    this.scene.add(cssObject);
+  }
+
+
+  initScale = () => {
+    const earthRadiusKm = 6371; // 地球の半径（km）
+    const kmToRadians = 1 / (earthRadiusKm * Math.PI / 180); // 1kmをラジアンに変換
+    const kmToDisplayLength = kmToRadians * this.params.xzScale;
+
+    const start = new THREE.Vector3(0, 1.1, 0);
+    const end = new THREE.Vector3(kmToDisplayLength, 1.1, 0);
+
+    const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+    const points = [start, end];
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const line = new THREE.Line(geometry, material);
+    this.scene.add(line);
+
+    // 100mごとの目印を追加
+    for (let i = 1; i <= 10; i++) {
+      const markerPosition = new THREE.Vector3(i * kmToDisplayLength / 10, 1.1, 0);
+      const markerGeometry = new THREE.BufferGeometry().setFromPoints([markerPosition, new THREE.Vector3(markerPosition.x, 2.1, markerPosition.z)]);
+      const markerLine = new THREE.Line(markerGeometry, material);
+      this.scene.add(markerLine);
+    }
+
+    // ラベルを追加
+    const div = document.createElement('div');
+    div.className = 'landmark-label';
+    div.textContent = '1km';
+
+    const cssObject = new CSS2DObject(div);
+    cssObject.position.copy(end);
+    cssObject.position.y = 5;
     this.scene.add(cssObject);
   }
 
