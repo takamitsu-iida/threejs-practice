@@ -84,19 +84,17 @@ JavaScriptだけで描画すると重たくなってしまうのを解決した�
 
 <br>
 
-四分木の領域の中央を採用するのはいかがなものかと思いつつも、なかなかいい感じに見えるので、topojsonで三浦市油壷周辺の地図を重ねてみたのがこれ。
+四分木の領域の中央を採用するのはいかがなものかと思いつつも、なかなかいい感じに見えるので、topojsonで三浦市油壷周辺の地図を重ねてみたのがこれ。四分木の領域単位でメッシュ化するようにしたので、四分木の深さを深くすると、データが存在する近傍しか表示されなくなります。より正確になりますが、データのないところは抜けてしまいます。
 
-[![ScreenImage](./asset/index-load-csv-qtree-topojson.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-csv-qtree-topojson.html)
+[![ScreenImage](./asset/index-load-csv-qtree-topojson2.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-csv-qtree-topojson2.html)
 
-[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-csv-qtree-topojson.html)
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-csv-qtree-topojson2.html)
 
 <br>
 
 TODO
 
-- 四分木の実装をもう少しまともにしたい（現状、木にすらなってない）
-- 四分木分割した領域の広いところはデータを補間したい
-- デローネ三角形を形成する領域を分割したいので、一つのデータの塊ではなく、分割したデータごとにメッシュ化できるようにしたい
+- 四分木分割した領域の中央の座標を取るのではなく、領域内でデータを適切に補間したい
 - Google Mapのような地図アプリと連動できないか模索してみる
 
 <!--

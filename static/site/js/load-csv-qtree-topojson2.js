@@ -723,8 +723,7 @@ export class Main {
     Quadtree.MAX_DIVISION = maxDivision;
 
     // 領域内に含まれる最大の点の数、これを超えていたらさらに小さく分割する
-    const maxPoints = this.params.maxPoints;
-    Quadtree.MAX_POINTS = maxPoints;
+    Quadtree.MAX_POINTS = this.params.maxPoints;
 
     // X軸 = Longitude(経度)、Z軸 = Latitude(緯度)
     const bounds = {
@@ -740,13 +739,10 @@ export class Main {
 
     // normalizedDepthMapDataは配列で、各要素は以下のようなオブジェクト
     // [ {lat: 67.88624331335313, lon: -81.94761236723025, depth: -21.1785}, {...}, ... ]
-    // ルート領域にデータを追加する
     this.params.normalizedDepthMapData.forEach((d) => {
+      // ルート領域にデータを追加する
       quadtree.insert(d);
     });
-
-    // 何個に分割されたかを表示
-    console.log(`quadtree division: ${quadtree.division}`);
 
     // 保存しておく
     this.quadtree = quadtree;
