@@ -47,6 +47,10 @@ HTMLではこのようなimportmapを使う。
 const LANDMARKS = [
   { lon: 139.60695032, lat: 35.16900046, depth: -10, name: 'ヤギ瀬' },
   { lon: 139.61539000, lat: 35.16946800, depth: 0, name: 'みなとや' },
+  { lon: 139.61994200, lat: 35.16650700, depth: 0, name: '小網代湾' },
+  { lon: 139.61595853, lat: 35.17150509, depth: 0, name: '油壷湾' },
+
+
 ];
 
 
@@ -168,7 +172,7 @@ export class Main {
   }
 
   // 地形図のポイントクラウド（guiで表示を操作するためにインスタンス変数にする）
-  pointMesh;
+  pointMeshList;
 
   // 地形図のメッシュのリスト（guiで表示を操作するためにインスタンス変数にする）
   terrainMeshList = [];
@@ -459,6 +463,11 @@ export class Main {
     );
     this.camera.position.set(0, 100, 100);
 
+    // レイヤを設定
+    this.camera.layers.enable(0); // enabled by default
+    this.camera.layers.enable(1); // 1: landmark
+    this.camera.layers.enable(2); // 2: scale
+
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -578,7 +587,9 @@ export class Main {
       .add(this.params, "showPointCloud")
       .name(navigator.language.startsWith("ja") ? "ポイントクラウド表示" : "showPointCloud")
       .onChange((value) => {
-        this.pointMesh.visible = value;
+        this.pointMeshList.forEach((pointMesh) => {
+          pointMesh.visible = value;
+        });
       });
 
     gui
@@ -588,7 +599,9 @@ export class Main {
       .max(1.0)
       .step(0.1)
       .onChange((value) => {
-        this.pointMesh.material.size = value;
+        this.pointMeshList.forEach((pointMesh) => {
+          pointMesh.material.size = value;
+        });
       });
 
     gui
@@ -603,7 +616,7 @@ export class Main {
 
     gui
       .add(this.params, "quadtreeDepth")
-      .name(navigator.language.startsWith("ja") ? "表示する四分木の深さ" : "quadtreeDepth")
+      .name(navigator.language.startsWith("ja") ? "表示対象の四分木の深さ" : "quadtreeDepth")
       .min(0)
       .max(5)
       .step(1)
@@ -611,6 +624,20 @@ export class Main {
         doLater(this.initContents, 100);
       });
 
+    const layers = {
+      'landmark': () => { this.camera.layers.toggle(1); },
+      'scale': () => { this.camera.layers.toggle(2); },
+      'enable all': () => { this.camera.layers.enableAll(); },
+      'disable all': () => { this.camera.layers.disableAll(); }
+    };
+
+    gui
+      .add(layers, 'landmark')
+      .name(navigator.language.startsWith("ja") ? "ランドマーク表示" : "show landmark");
+
+    gui
+      .add(layers, 'scale')
+      .name(navigator.language.startsWith("ja") ? "縮尺表示" : "show scale");
 
     // gui.close();  // 初期状態で閉じた状態にする
   }
@@ -756,6 +783,9 @@ export class Main {
   initDelaunay = () => {
     // 四分木で分割した領域の中央を一つの点とするポイントクラウドを作成する
 
+    // 作成するポイントクラウドのリスト
+    const pointMeshList = [];
+
     // 作成するメッシュのリスト
     const terrainMeshList = [];
 
@@ -826,7 +856,7 @@ export class Main {
       this.scene.add(pointMesh);
 
       // インスタンス変数に保存（guiで表示を操作するため）
-      this.pointMesh = pointMesh;
+      pointMeshList.push(pointMesh);
 
       // XZ平面でデローネ三角形を形成する
       const delaunay = Delaunator.from(
@@ -865,6 +895,7 @@ export class Main {
     });
 
     // インスタンス変数に保存
+    this.pointMeshList = pointMeshList;
     this.terrainMeshList = terrainMeshList;
   }
 
@@ -949,6 +980,7 @@ export class Main {
     });
   }
 
+
   updateLegendHighlight = (depth) => {
     this.clearLegendHighlight();
 
@@ -974,6 +1006,7 @@ export class Main {
       legendItem.classList.add('highlight');
     }
   }
+
 
   clearLegendHighlight = () => {
     const highlightedItems = document.querySelectorAll('.highlight');
@@ -1129,9 +1162,9 @@ export class Main {
     // マテリアル、ここでは適当にMeshStandardMaterialを使う
     const material = new THREE.MeshStandardMaterial({
       color: 0xf0f0f0,
-      transparent: true,
-      depthWrite: false,
-      opacity: 0.9,
+      // transparent: true,
+      // depthWrite: false,
+      // opacity: 0.9,
 
       // クリッピングして表示領域を制限する
       clippingPlanes: [
@@ -1207,6 +1240,8 @@ export class Main {
 
 
   initLandmarks = () => {
+    const LAYER = 1;  // ランドマークを表示するレイヤー
+
     LANDMARKS.forEach((landmark) => {
       // 正規化した緯度経度を取得
       let [lon, lat] = this.normalizeCoordinates([landmark.lon, landmark.lat]);
@@ -1214,8 +1249,14 @@ export class Main {
       // Y座標はその場所の真上になるように設定
       const position = new THREE.Vector3(lon, this.params.labelY, lat);
 
-      // ラベルを作成
-      this.createLandmarkLabel(landmark.name, position);
+      // CSS2DRendererを使用してラベルを作成
+      const div = document.createElement('div');
+      div.className = 'landmark-label';
+      div.textContent = landmark.name;
+      const cssObject = new CSS2DObject(div);
+      cssObject.position.copy(position);
+      cssObject.layers.set(LAYER);
+      this.scene.add(cssObject);
 
       // ラインを作成
       const material = new THREE.LineBasicMaterial({ color: 0xffffff });
@@ -1224,53 +1265,47 @@ export class Main {
       points.push(new THREE.Vector3(lon, position.y, lat));
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
       const line = new THREE.Line(geometry, material);
+      line.layers.set(LAYER);
       this.scene.add(line);
-
     });
   }
 
 
-  createLandmarkLabel = (name, position) => {
-    const div = document.createElement('div');
-    div.className = 'landmark-label';
-    div.textContent = name;
-
-    const cssObject = new CSS2DObject(div);
-    cssObject.position.copy(position);
-    this.scene.add(cssObject);
-  }
-
-
   initScale = () => {
-    const earthRadiusKm = 6371; // 地球の半径（km）
-    const kmToRadians = 1 / (earthRadiusKm * Math.PI / 180); // 1kmをラジアンに変換
+    const LAYER = 2;  // 縮尺を表示するレイヤー
+
+    const EARTH_RADIUS_KM = 6371; // 地球の半径（km）
+    const kmToRadians = 1 / (EARTH_RADIUS_KM * Math.PI / 180); // 1kmをラジアンに変換
     const kmToDisplayLength = kmToRadians * this.params.xzScale;
 
+    // 横線を追加
     const start = new THREE.Vector3(0, 1.1, 0);
     const end = new THREE.Vector3(kmToDisplayLength, 1.1, 0);
-
     const material = new THREE.LineBasicMaterial({ color: 0xffffff });
     const points = [start, end];
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
     const line = new THREE.Line(geometry, material);
+    line.layers.set(LAYER);
     this.scene.add(line);
 
     // 100mごとの目印を追加
     for (let i = 1; i <= 10; i++) {
-      const markerPosition = new THREE.Vector3(i * kmToDisplayLength / 10, 1.1, 0);
-      const markerGeometry = new THREE.BufferGeometry().setFromPoints([markerPosition, new THREE.Vector3(markerPosition.x, 2.1, markerPosition.z)]);
+      const markerPosition1 = new THREE.Vector3(i * kmToDisplayLength / 10, 1.1, 0);
+      const markerPosition2 = new THREE.Vector3(markerPosition1.x, markerPosition1.y + 1, markerPosition1.z)
+      const markerGeometry = new THREE.BufferGeometry().setFromPoints([markerPosition1, markerPosition2]);
       const markerLine = new THREE.Line(markerGeometry, material);
+      markerLine.layers.set(LAYER);
       this.scene.add(markerLine);
     }
 
     // ラベルを追加
     const div = document.createElement('div');
-    div.className = 'landmark-label';
+    div.className = 'scale-label';
     div.textContent = '1km';
-
     const cssObject = new CSS2DObject(div);
     cssObject.position.copy(end);
-    cssObject.position.y = 6;
+    cssObject.position.y = 4;
+    cssObject.layers.set(LAYER);
     this.scene.add(cssObject);
   }
 
@@ -1301,7 +1336,7 @@ class QuadtreeNode {
     const midLat = (lat1 + lat2) / 2;
 
     // このノードを四分木で分割する
-    // childrenは以下の順になる
+    // children配列には以下の順に追加する
     //  +---+---+
     //  | 0 | 1 |
     //  +---+---+
