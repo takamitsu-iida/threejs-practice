@@ -84,11 +84,20 @@ JavaScriptだけで描画すると重たくなってしまうのを解決した�
 
 <br>
 
-四分木の領域の中央を採用するのはいかがなものかと思いつつも、なかなかいい感じに見えるので、topojsonで三浦市油壷周辺の地図を重ねてみたのがこれ。四分木の領域単位でメッシュ化するようにしたので、四分木の深さを大きくすると、データが存在する近傍しか表示されなくなります。より正確になりますが、データのないところは抜けてしまいます。
+四分木の領域の中央を採用するのはいかがなものかと思いつつも、なかなかいい感じに見えるので、topojsonで三浦市油壷周辺の地図を重ねてみたのがこれ。
+
+<br>
 
 [![ScreenImage](./asset/index-load-csv-qtree-topojson2.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-csv-qtree-topojson2.html)
 
 [Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-csv-qtree-topojson2.html)
+
+<br>
+
+> [!NOTE]
+>
+> 画面右上の「表示対象の四分木の深さ」を大きくすると、
+> より正確に表示されますが、データが存在する近傍しか表示されなくなり、データのないところは抜けてしまいます。
 
 <br>
 
