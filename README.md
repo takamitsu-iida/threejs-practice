@@ -620,6 +620,9 @@ SelectionBoxを使うと、GPU側で作成した個々のメッシュを選択�
 
 [JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/bathymetric-point-cloud.js)
 
+<br>
+
+500mメッシュの水深データは[JODC](https://www.jodc.go.jp/vpage/depth500_file_j.html)からダウンロード。
 
 <br>
 
