@@ -990,21 +990,27 @@ export class Main {
 
 
   getDepthColor = (depth) => {
-    for (let i = 0; i < this.depthSteps.length; i++) {
-      if (depth <= this.depthSteps[i]) {
-        return new THREE.Color(this.depthColors[this.depthSteps[i]]);
+    const depthSteps = this.depthSteps;
+    const depthColors = this.depthColors;
+    for (let i = 0; i < depthSteps.length; i++) {
+      if (depth <= depthSteps[i]) {
+        return new THREE.Color(depthColors[depthSteps[i]]);
       }
     }
-    return new THREE.Color(this.depthColors[this.depthSteps[this.depthSteps.length - 1]]);
+    return new THREE.Color(depthColors[depthSteps[depthSteps.length - 1]]);
   }
 
 
   initLegend = () => {
     const legendContainer = document.getElementById('legendContainer');
 
+    const depthSteps = this.depthSteps;
+
     // 上が浅い水深になるように逆順にループ
-    for (let i = this.depthSteps.length - 1; i >= 0; i--) {
-      const depth = this.depthSteps[i];
+    for (let i = depthSteps.length - 1; i >= 0; i--) {
+      const depth = depthSteps[i];
+
+      // 水深に応じた色を取得
       const color = this.getDepthColor(depth);
 
       // divを作成
@@ -1068,8 +1074,9 @@ export class Main {
     // GeoJSONに変換
     const geojsonData = topojson.feature(topojsonData, topojsonData.objects[objectName]);
 
-    // GeoJSONは別途利用したいので、paramsに保存しておく
-    this.params.geojsonData = geojsonData;
+    // GeoJSONは別途利用するかもしれないのでparamsに保存しておく？
+    // （現時点では使ってない）
+    // this.params.geojsonData = geojsonData;
 
     // FeatureCollectionからFeatureを取り出す
     const features = geojsonData.features;
@@ -1077,7 +1084,7 @@ export class Main {
     // featureを一つずつ取り出す
     features.forEach(feature => {
 
-      // GeometryがLineStringの場合
+      // featureのGeometryタイプがLineStringの場合
       if (feature.geometry.type === 'LineString') {
         const shape = new THREE.Shape();
 
@@ -1106,7 +1113,7 @@ export class Main {
         shapes.push(shape);
       }
 
-      // GeometryがPolygonの場合
+      // featureのGeometryタイプがPolygonの場合
       else if (feature.geometry.type === 'Polygon') {
         const shape = new THREE.Shape();
 
@@ -1132,7 +1139,7 @@ export class Main {
         shapes.push(shape);
       }
 
-      // GeometryがMultiPolygonの場合
+      // featureのGeometryタイプがMultiPolygonの場合
       else if (feature.geometry.type === 'MultiPolygon') {
         feature.geometry.coordinates.forEach(polygon => {
           const shape = new THREE.Shape();
@@ -1165,7 +1172,7 @@ export class Main {
   }
 
 
-  // 経度経度を中央寄せして正規化する
+  // 経度経度を画面表示用に正規化する
   normalizeCoordinates = ([lon, lat]) => {
     const scale = this.params.xzScale;
     const latCenter = (this.params.maxLat + this.params.minLat) / 2;
