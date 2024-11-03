@@ -76,7 +76,7 @@ JavaScriptだけで描画すると重たくなってしまうのを解決した�
 まず、(lon, lat)の領域を四分木に分割してデータの密度の高いところ、低いところに分けていきます。
 データの密度の高いところはより詳細な領域になるようにします。
 
-領域の中央をポイントクラウドにしたうえで、頂点間をデローネ三角形でメッシュ化したものがこれ。
+領域の中央座標をポイントクラウドにしたものがこれ。
 
 [![ScreenImage](./asset/index-load-csv-qtree.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-csv-qtree.html)
 
@@ -84,7 +84,15 @@ JavaScriptだけで描画すると重たくなってしまうのを解決した�
 
 <br>
 
-四分木の領域の中央を採用するのはいかがなものかと思いつつも、なかなかいい感じに見えるので、topojsonで三浦市油壷周辺の地図を重ねてみたのがこれ。
+四分木の領域の中央を採用すると誤差が大きくなりがちなので、
+- 領域内に一つしかポイントがない場合はそれを採用
+- ２つある場合はその平均を採用
+- ３つ以上ある場合は領域の中央を採用
+というルールに変更してポイントクラウドを作成。
+
+その後、頂点間をデローネ三角形でメッシュ化したものがこれ。
+
+なかなかいい感じに見えるので、topojsonで三浦市油壷周辺の地図を重ねてみたのがこれ。
 
 <br>
 
@@ -105,7 +113,6 @@ JavaScriptだけで描画すると重たくなってしまうのを解決した�
 
 TODO
 
-- 四分木分割した領域の中央の座標を取るのではなく、領域内でデータを適切に補間したい
 - Google Mapのような地図アプリと連動できないか模索してみる
 
 <!--
@@ -596,6 +603,23 @@ SelectionBoxを使うと、GPU側で作成した個々のメッシュを選択�
 [HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-csv-instancedgeometry-selectionbox.html)
 
 [JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-csv-instancedgeometry-selectionbox.js)
+
+<br>
+
+## Bathmetric point cloud
+
+日本海洋データセンター（JODC）が公開している500mメッシュ水深データをポイントクラウドにしたのがこれ。
+
+日本の近海はとてつもなく深いんだと、改めて実感。
+
+[![ScreenImage](./asset/index-bathymetric-point-cloud.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-bathymetric-point-cloud.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-bathymetric-point-cloud.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-bathymetric-point-cloud.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/bathymetric-point-cloud.js)
+
 
 <br>
 
