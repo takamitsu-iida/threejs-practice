@@ -129,6 +129,9 @@ export class Main {
     // topojsonデータに含まれるobjectName（三浦市のデータなら"miura"）
     objectName: "miura",
 
+    // topojsonを変換してGeoJSONデータにしたもの
+    geojsonData: null,
+
     // ポイントクラウドを表示するか？
     showPointCloud: true,
 
@@ -750,7 +753,7 @@ export class Main {
     // 四分木の分割パラメータを調整する
     const divideParam = this.params.divideParam;
     const maxDivision = Math.ceil(Math.max((maxLon - minLon) / divideParam, (maxLat - minLat) / divideParam));
-    console.log(`maxdivision: ${maxDivision}`);
+    // console.log(`maxdivision: ${maxDivision}`);
     Quadtree.MAX_DIVISION = maxDivision;
 
     // 領域内に含まれる最大の点の数、これを超えていたらさらに小さく分割する
@@ -763,7 +766,6 @@ export class Main {
       lon2: maxLon,  // 最大のX(lon)
       lat2: maxLat   // 最大のZ(lat)
     }
-    console.log(`quadtree bounds: ${JSON.stringify(bounds)}`);
 
     // ルート領域を作成
     const quadtree = new Quadtree(bounds);
@@ -858,9 +860,11 @@ export class Main {
         colors.push(color.r, color.g, color.b);
       });
 
+      // エリア内に点がない場合は無視する
       if (point3d.length < 1) {
         return;
       }
+
       // console.log(`${point3d.length} points are created`);
 
       // ポイントクラウドのジオメトリを作成
@@ -878,7 +882,7 @@ export class Main {
       // 点群を作成
       const pointMesh = new THREE.Points(geometry, pointsMaterial);
 
-      // 表示するかどうか
+      // 画面表示するかどうか
       pointMesh.visible = this.params.showPointCloud;
 
       // シーンに追加
@@ -896,8 +900,11 @@ export class Main {
 
       // デローネ三角形のインデックスをmeshIndexに代入してThree.jsのインデックスに変換
       const meshIndex = [];
-      for (let i = 0; i < delaunay.triangles.length; i++) {
-        meshIndex.push(delaunay.triangles[i]);
+      for (let i = 0; i < delaunay.triangles.length; i += 3) {
+        const a = delaunay.triangles[i + 0];
+        const b = delaunay.triangles[i + 1];
+        const c = delaunay.triangles[i + 2];
+        meshIndex.push(a, b, c);
       }
 
       // 点群のジオメトリにインデックスを追加してポリゴン化
@@ -954,71 +961,59 @@ export class Main {
   }
 
 
-  getDepthColor(depth) {
-    let color;
-    if (depth < -60.0) {
-      color = new THREE.Color(0x2e146a);
-    } else if (depth < -55.0) {
-      color = new THREE.Color(0x451e9f);
-    } else if (depth < -50.0) {
-      color = new THREE.Color(0x3b31c3);
-    } else if (depth < -45.0) {
-      color = new THREE.Color(0x1f47de);
-    } else if (depth < -40.0) {
-      color = new THREE.Color(0x045ef9);
-    } else if (depth < -35.0) {
-      color = new THREE.Color(0x0075fd);
-    } else if (depth < -30.0) {
-      color = new THREE.Color(0x008ffd);
-    } else if (depth < -25.0) {
-      color = new THREE.Color(0x01aafc);
-    } else if (depth < -20.0) {
-      color = new THREE.Color(0x01c5fc);
-    } else if (depth < -16.0) {
-      color = new THREE.Color(0x45ccb5);
-    } else if (depth < -12.0) {
-      color = new THREE.Color(0x90d366);
-    } else if (depth < -10.0) {
-      color = new THREE.Color(0xb4df56);
-    } else if (depth < -8.0) {
-      color = new THREE.Color(0xd9ed4c);
-    } else if (depth < -6.0) {
-      color = new THREE.Color(0xfdfb41);
-    } else if (depth < -5.0) {
-      color = new THREE.Color(0xfee437);
-    } else if (depth < -4.0) {
-      color = new THREE.Color(0xfecc2c);
-    } else if (depth < -3.0) {
-      color = new THREE.Color(0xfeb321);
-    } else if (depth < -2.0) {
-      color = new THREE.Color(0xff9b16);
-    } else if (depth < -1.0) {
-      color = new THREE.Color(0xff820b);
-    } else if (depth < 0.0) {
-      color = new THREE.Color(0xff7907);
-    } else {
-      color = new THREE.Color(0xffffff);
+  depthSteps = [
+    -60,-55, -50, -45, -40, -35, -30, -25, -20, -16, -12, -10, -8, -6, -5, -4, -3, -2, -1,
+  ];
+
+
+  depthColors = {
+    '-60': 0x2e146a,
+    '-55': 0x451e9f,
+    '-50': 0x3b31c3,
+    '-45': 0x1f47de,
+    '-40': 0x045ef9,
+    '-35': 0x0075fd,
+    '-30': 0x008ffd,
+    '-25': 0x01aafc,
+    '-20': 0x01c5fc,
+    '-16': 0x45ccb5,
+    '-12': 0x90d366,
+    '-10': 0xb4df56,
+    '-8': 0xd9ed4c,
+    '-6': 0xfdfb41,
+    '-5': 0xfee437,
+    '-4': 0xfecc2c,
+    '-3': 0xfeb321,
+    '-2': 0xff9b16,
+    '-1': 0xff820b,
+  }
+
+
+  getDepthColor = (depth) => {
+    for (let i = 0; i < this.depthSteps.length; i++) {
+      if (depth <= this.depthSteps[i]) {
+        return new THREE.Color(this.depthColors[this.depthSteps[i]]);
+      }
     }
-    return color;
+    return new THREE.Color(this.depthColors[this.depthSteps[this.depthSteps.length - 1]]);
   }
 
 
   initLegend = () => {
     const legendContainer = document.getElementById('legendContainer');
 
-    const depthSteps = [
-      -1, -2, -3, -4, -5, -6, -8, -10, -12, -16, -20, -25, -30, -35, -40, -45, -50, -55, -60
-    ];
-
-    depthSteps.forEach((depth) => {
+    // 上が浅い水深になるように逆順にループ
+    for (let i = this.depthSteps.length - 1; i >= 0; i--) {
+      const depth = this.depthSteps[i];
       const color = this.getDepthColor(depth);
 
+      // divを作成
       const legendItem = document.createElement('div');
 
-      // CSSクラスを設定
+      // divにCSSクラス legend-item を設定
       legendItem.className = 'legend-item';
 
-      // 水深に応じたidを設定
+      // 水深に応じたidを設定して、あとから取り出せるようにする
       legendItem.id = `legend-${depth}`;
 
       const colorBox = document.createElement('div');
@@ -1031,18 +1026,14 @@ export class Main {
       legendItem.appendChild(colorBox);
       legendItem.appendChild(label);
       legendContainer.appendChild(legendItem);
-    });
+    }
   }
 
 
   updateLegendHighlight = (depth) => {
     this.clearLegendHighlight();
 
-    // TODO
-    // 同じ配列をinitLegendで作成しているので、ここで再定義するのは避けたい
-    const depthSteps = [
-      -1, -2, -3, -4, -5, -6, -8, -10, -12, -16, -20, -25, -30, -35, -40, -45, -50, -55, -60
-    ];
+    const depthSteps = this.depthSteps;
 
     // depthに最も近いdepthStepsの値を見つける
     let closestDepth = depthSteps[0];
@@ -1059,6 +1050,7 @@ export class Main {
     if (legendItem) {
       legendItem.classList.add('highlight');
     }
+
   }
 
 
@@ -1068,15 +1060,21 @@ export class Main {
   }
 
 
-  createShapesFromTopojson = (jsonData, objectName) => {
+  createShapesFromTopojson = (topojsonData, objectName) => {
 
     // Shapeを格納する配列
     const shapes = [];
 
-    const topoData = topojson.feature(jsonData, jsonData.objects[objectName]);
-    const features = topoData.features;
+    // GeoJSONに変換
+    const geojsonData = topojson.feature(topojsonData, topojsonData.objects[objectName]);
 
-    // topojsonのFeatureCollectionからFeatureを一つずつ取り出す
+    // GeoJSONは別途利用したいので、paramsに保存しておく
+    this.params.geojsonData = geojsonData;
+
+    // FeatureCollectionからFeatureを取り出す
+    const features = geojsonData.features;
+
+    // featureを一つずつ取り出す
     features.forEach(feature => {
 
       // GeometryがLineStringの場合
