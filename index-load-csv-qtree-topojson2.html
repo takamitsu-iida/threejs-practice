@@ -124,7 +124,7 @@
 
     .landmark-label {
       position: absolute;
-      background-color: white;
+      background-color: rgba(255, 255, 255, 0.5);
       font-size: 14px;
       color: black;
       padding: 6px;
@@ -151,6 +151,13 @@
       border: 0px;
       z-index: 990;
       color: white;
+    }
+    #remarks a {
+      text-decoration: none;
+      color: white;
+    }
+    #remarks a:hover {
+      text-decoration: underline;
     }
 
 
@@ -214,7 +221,7 @@
 
   <div id="remarks">
     <h1>Bathymetric Data Visualization</h1>
-    <p>bathymetric data are collected by Deeper sonar</p>
+    <p>bathymetric data are collected by <a href="https://deepersonar.com/" target="_blank">Deeper Sonar</a></p>
   </div>
 
   <div id="threejsContainer"></div>

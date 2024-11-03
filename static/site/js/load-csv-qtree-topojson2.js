@@ -45,10 +45,10 @@ HTMLではこのようなimportmapを使う。
 
 
 const LANDMARKS = [
-  { lon: 139.60695032, lat: 35.16900046, depth: -10, name: 'ヤギ瀬' },
-  { lon: 139.61539000, lat: 35.16946800, depth: 0, name: 'みなとや' },
-  { lon: 139.61994200, lat: 35.16650700, depth: 0, name: '小網代湾' },
-  { lon: 139.61595853, lat: 35.17150509, depth: 0, name: '油壷湾' },
+  { lon: 139.60695032, lat: 35.16900046, depth: -10, name_ja: 'ヤギ瀬', name: 'yagise' },
+  { lon: 139.61539000, lat: 35.16946800, depth: 0, name_ja: 'みなとや', name: 'minatoya' },
+  { lon: 139.61994200, lat: 35.16650700, depth: 0, name_ja: '小網代湾', name: 'koamijiro' },
+  { lon: 139.61595853, lat: 35.17150509, depth: 0, name_ja: '油壷湾', name: 'aburatsubo' },
 
 
 ];
@@ -808,21 +808,50 @@ export class Main {
       const colors = [];
 
       quadtreeLeafNodes.forEach((quadtreeNode) => {
+
         // エリア内に点がない場合は無視する
         if (quadtreeNode.points.length < 1) {
           return;
         }
 
-        // そのエリアの中央の座標を計算
+        // エリア内に点が一つの場合は、その点を採用する
+        if (quadtreeNode.points.length === 1) {
+          const point = quadtreeNode.points[0];
+          point3d.push(new THREE.Vector3(point.lon, point.depth, point.lat));
+          // 深さに応じて頂点に色を付ける
+          const color = this.getDepthColor(point.depth);
+          colors.push(color.r, color.g, color.b);
+          return;
+        }
+
+        //
+        // エリア内に二個の点がある場合は、その二点の中点を採用する
+        //
+        if (quadtreeNode.points.length === 2) {
+          const point1 = quadtreeNode.points[0];
+          const point2 = quadtreeNode.points[1];
+          const lon = (point1.lon + point2.lon) / 2;
+          const lat = (point1.lat + point2.lat) / 2;
+          const depth = (point1.depth + point2.depth) / 2;
+          point3d.push(new THREE.Vector3(lon, depth, lat));
+          const color = this.getDepthColor(depth);
+          colors.push(color.r, color.g, color.b);
+          return;
+        }
+
+        // それ以上の場合は、エリアの中央の座標を計算して採用する
         const bounds = quadtreeNode.bounds;
-        const lon = (bounds.lon1 + bounds.lon2) / 2;
-        const lat = (bounds.lat2 + bounds.lat2) / 2;
+        const centerLon = (bounds.lon1 + bounds.lon2) / 2;
+        const centerLat = (bounds.lat2 + bounds.lat2) / 2;
 
         // エリア内の点の深さの平均値を計算
-        const depth = quadtreeNode.points.reduce((acc, cur) => acc + cur.depth, 0) / quadtreeNode.points.length;
+        // const depth = quadtreeNode.points.reduce((acc, cur) => acc + cur.depth, 0) / quadtreeNode.points.length;
+
+        // 逆距離加重法 IDW (Inverse Distance Weighting)を使って深さを計算する
+        const depth = this.calcIDW(centerLon, centerLat, quadtreeNode.points);
 
         // Vector3を格納
-        point3d.push(new THREE.Vector3(lon, depth, lat));
+        point3d.push(new THREE.Vector3(centerLon, depth, centerLat));
 
         // 深さに応じて頂点に色を付ける
         const color = this.getDepthColor(depth);
@@ -897,6 +926,31 @@ export class Main {
     // インスタンス変数に保存
     this.pointMeshList = pointMeshList;
     this.terrainMeshList = terrainMeshList;
+  }
+
+
+  calcIDW = (lon, lat, points) => {
+    // 逆距離加重法 IDW (Inverse Distance Weighting)
+    // https://en.wikipedia.org/wiki/Inverse_distance_weighting
+
+    // 逆距離の総和
+    let sumInvDist = 0;
+
+    // 逆距離の重み付き深さの総和
+    let sumWeightedDepth = 0;
+
+    // 逆距離の重み付き深さを計算
+    points.forEach((point) => {
+      const dist = Math.sqrt((lon - point.lon) ** 2 + (lat - point.lat) ** 2);
+      const invDist = 1 / dist;
+      sumInvDist += invDist;
+      sumWeightedDepth += invDist * point.depth;
+    });
+
+    // 逆距離加重法 IDW (Inverse Distance Weighting)で深さを計算
+    const depth = sumWeightedDepth / sumInvDist;
+
+    return depth;
   }
 
 
@@ -1252,14 +1306,22 @@ export class Main {
       // CSS2DRendererを使用してラベルを作成
       const div = document.createElement('div');
       div.className = 'landmark-label';
-      div.textContent = landmark.name;
+      div.textContent = navigator.language.startsWith('ja') ? landmark.name_ja : landmark.name;
       const cssObject = new CSS2DObject(div);
+
       cssObject.position.copy(position);
       cssObject.layers.set(LAYER);
+      // cssObject.center.x = 0;  // 1にすると右に寄る
+      cssObject.center.y = 1;     // 1にすると上に寄る
       this.scene.add(cssObject);
 
       // ラインを作成
-      const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+      const material = new THREE.LineBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.5,
+        depthWrite: false,
+      });
       const points = [];
       points.push(new THREE.Vector3(lon, landmark.depth, lat));
       points.push(new THREE.Vector3(lon, position.y, lat));
