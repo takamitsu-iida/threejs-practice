@@ -1343,37 +1343,39 @@ export class Main {
     // ラインのマテリアル
     const material = new THREE.LineBasicMaterial({ color: 0xffffff });
 
+    // 原点
+    const start = new THREE.Vector3(0, 1.1, 0);
+
     // 横線を追加
     {
-      const start = new THREE.Vector3(0, 1.1, 0);
       const end = new THREE.Vector3(kmToDisplayLength, 1.1, 0);
       const geometry = new THREE.BufferGeometry().setFromPoints([start, end]);
       const line = new THREE.Line(geometry, material);
       line.layers.set(LAYER);
       this.scene.add(line);
-    }
 
-    // 100mごとの目印を追加
-    for (let i = 1; i <= 10; i++) {
-      const markerPosition1 = new THREE.Vector3(i * kmToDisplayLength / 10, 1.1, 0);
-      const markerPosition2 = new THREE.Vector3(markerPosition1.x, markerPosition1.y + 1, markerPosition1.z)
-      const markerGeometry = new THREE.BufferGeometry().setFromPoints([markerPosition1, markerPosition2]);
-      const markerLine = new THREE.Line(markerGeometry, material);
-      markerLine.layers.set(LAYER);
-      this.scene.add(markerLine);
-    }
+      // 100mごとの目印を追加
+      for (let i = 1; i <= 10; i++) {
+        const markerPosition1 = new THREE.Vector3(i * kmToDisplayLength / 10, 1.1, 0);
+        const markerPosition2 = new THREE.Vector3(markerPosition1.x, markerPosition1.y + 1, markerPosition1.z)
+        const markerGeometry = new THREE.BufferGeometry().setFromPoints([markerPosition1, markerPosition2]);
+        const markerLine = new THREE.Line(markerGeometry, material);
+        markerLine.layers.set(LAYER);
+        this.scene.add(markerLine);
+      }
 
-    // ラベルを追加
-    {
+      // ラベルを追加
       const div = document.createElement('div');
       div.className = 'scale-label';
       div.textContent = '1km';
       const cssObject = new CSS2DObject(div);
-      cssObject.position.copy(lonEnd);
+
+      cssObject.position.copy(end);
       cssObject.position.y = 4;
       cssObject.layers.set(LAYER);
       this.scene.add(cssObject);
     }
+
 
     // 縦線を追加
     {
@@ -1382,29 +1384,28 @@ export class Main {
       const line = new THREE.Line(geometry, material);
       line.layers.set(LAYER);
       this.scene.add(line);
-    }
 
-    // 100mごとの目印を追加
-    for (let i = 1; i <= 10; i++) {
-      const markerPosition1 = new THREE.Vector3(0, 1.1, i * kmToDisplayLength / 10);
-      const markerPosition2 = new THREE.Vector3(markerPosition1.x, markerPosition1.y + 1, markerPosition1.z)
-      const markerGeometry = new THREE.BufferGeometry().setFromPoints([markerPosition1, markerPosition2]);
-      const markerLine = new THREE.Line(markerGeometry, material);
-      markerLine.layers.set(LAYER);
-      this.scene.add(markerLine);
-    }
+      // 100mごとの目印を追加
+      for (let i = 1; i <= 10; i++) {
+        const markerPosition1 = new THREE.Vector3(0, 1.1, i * kmToDisplayLength / 10);
+        const markerPosition2 = new THREE.Vector3(markerPosition1.x, markerPosition1.y + 1, markerPosition1.z)
+        const markerGeometry = new THREE.BufferGeometry().setFromPoints([markerPosition1, markerPosition2]);
+        const markerLine = new THREE.Line(markerGeometry, material);
+        markerLine.layers.set(LAYER);
+        this.scene.add(markerLine);
+      }
 
-    // ラベルを追加
-    {
+      // ラベルを追加
       const div = document.createElement('div');
       div.className = 'scale-label';
       div.textContent = '1km';
       const cssObject = new CSS2DObject(div);
-      cssObject.position.copy(latEnd);
+      cssObject.position.copy(end);
       cssObject.position.y = 4;
       cssObject.layers.set(LAYER);
       this.scene.add(cssObject);
     }
+
   }
 
 }
