@@ -47,6 +47,7 @@ export class Main {
 
   // マウス座標
   mousePosition;
+  previousMousePosition;
 
   // 水深のCSVデータを四分木に分割したインスタンス
   quadtree;
@@ -120,10 +121,6 @@ export class Main {
 
   // 地形図のポイントクラウド（guiで表示を操作するためにインスタンス変数にする）
   pointMeshList;
-
-  // 地形図のメッシュのリスト（guiで表示を操作するためにインスタンス変数にする）
-  terrainMeshList = [];
-
 
   constructor(params = {}) {
     this.params = Object.assign(this.params, params);
@@ -412,6 +409,7 @@ export class Main {
 
     // マウス座標
     this.mousePosition = new THREE.Vector2();
+    this.previousMousePosition = new THREE.Vector2();
 
     // 正規化したマウス座標を保存
     this.renderer.domElement.addEventListener("mousemove", (event) => {
@@ -726,23 +724,31 @@ export class Main {
 
 
   inverseNormalizeDepth = (depth) => {
-    if (depth < -200) {
-      depth = -200 + (depth + 200) * 10;
-    }
     if (depth < -500) {
       depth = -500 + (depth + 500) * 20;
     }
+    if (depth < -200) {
+      depth = -200 + (depth + 200) * 10;
+    }
+
+    depth = -1 * depth;
 
     return depth;
   }
 
-
   renderDepth = () => {
+    // マウス位置が変わっていない場合は処理をスキップ
+    if (this.mousePosition.equals(this.previousMousePosition)) {
+      return;
+    }
+
+    // 前回のマウス位置を更新
+    this.previousMousePosition.copy(this.mousePosition);
+
     // レイキャストを使用してマウスカーソルの位置を取得
     this.raycaster.setFromCamera(this.mousePosition, this.camera);
 
     // シーン全体を対象にレイキャストを行う
-    // const intersects = this.raycaster.intersectObject(this.terrainMesh);
     const intersects = this.raycaster.intersectObject(this.scene, true);
 
     if (intersects.length > 0) {
@@ -750,25 +756,19 @@ export class Main {
 
       // 水深データを取得
       const depth = this.inverseNormalizeDepth(intersect.point.y);
+      console.log(depth);
 
       // 緯度経度を取得
       const x = intersect.point.x;
       const z = intersect.point.z;
       const [lon, lat] = this.inverseNormalizeCoordinates(x, z);
 
-      if (depth < 0) {
-        this.depthContainer.textContent = `Depth: ${depth.toFixed(2)}m`;
-        this.coordinatesContainer.textContent = `Lon: ${lon.toFixed(8)}, Lat: ${lat.toFixed(8)}`;
+      this.depthContainer.textContent = `Depth: ${depth.toFixed(2)}m`;
+      this.coordinatesContainer.textContent = `Lon: ${lon.toFixed(8)}, Lat: ${lat.toFixed(8)}`;
 
-        // 凡例をハイライト
-        this.updateLegendHighlight(depth);
-      } else {
-        this.depthContainer.textContent = '';
-        this.coordinatesContainer.textContent = '';
+      // 凡例をハイライト
+      this.updateLegendHighlight(depth);
 
-        // ハイライトをクリア
-        this.clearLegendHighlight();
-      }
     } else {
       this.depthContainer.textContent = '';
       this.coordinatesContainer.textContent = '';
