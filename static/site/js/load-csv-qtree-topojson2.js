@@ -167,8 +167,10 @@ export class Main {
     // 四分木の分割パラメータ
     divideParam: 5,  // 見栄えに変化がないので5のままでよい（guiはdisableにしておく）
 
-    // 四分木の領域に5個以上の点がある場合にさらに小さく四分木分割する
-    maxPoints: 5,
+    // 四分木の領域に何個の点があった場合に、さらに小さく四分木分割するか
+    // この値を大きくすると、四分木の深さが浅くなり、描画するポイント数は減る
+    // 総数5万ポイントくらいに抑えるように調整する
+    maxPoints: 6,
 
     // ランドマークラベルの高さ
     labelY: 20,
@@ -578,24 +580,6 @@ export class Main {
       });
 
     gui
-      .add(this.params, "wireframe")
-      .name(navigator.language.startsWith("ja") ? "ワイヤーフレーム表示" : "wireframe")
-      .onChange(() => {
-        this.terrainMeshList.forEach((terrainMesh) => {
-          terrainMesh.material.wireframe = this.params.wireframe;
-        });
-      });
-
-    gui
-      .add(this.params, "showPointCloud")
-      .name(navigator.language.startsWith("ja") ? "ポイントクラウド表示" : "showPointCloud")
-      .onChange((value) => {
-        this.pointMeshList.forEach((pointMesh) => {
-          pointMesh.visible = value;
-        });
-      });
-
-    gui
       .add(this.params, "pointSize")
       .name(navigator.language.startsWith("ja") ? "ポイントサイズ" : "pointSize")
       .min(0.1)
@@ -627,6 +611,29 @@ export class Main {
         doLater(this.initContents, 100);
       });
 
+    const displayParams = {
+      'wireframe': () => {
+        this.params.wireframe = !this.params.wireframe;
+        this.terrainMeshList.forEach((terrainMesh) => {
+          terrainMesh.material.wireframe = this.params.wireframe;
+        });
+      },
+      'pointCloud': () => {
+        this.params.showPointCloud = !this.params.showPointCloud;
+        this.pointMeshList.forEach((pointMesh) => {
+          pointMesh.visible = this.params.showPointCloud;
+        });
+      },
+    };
+
+    gui
+      .add(displayParams, "wireframe")
+      .name(navigator.language.startsWith("ja") ? "ワイヤーフレーム表示" : "wireframe");
+
+    gui
+      .add(displayParams, "pointCloud")
+      .name(navigator.language.startsWith("ja") ? "ポイントクラウド表示" : "showPointCloud");
+
     const layers = {
       'landmark': () => { this.camera.layers.toggle(1); },
       'scale': () => { this.camera.layers.toggle(2); },
@@ -642,7 +649,12 @@ export class Main {
       .add(layers, 'scale')
       .name(navigator.language.startsWith("ja") ? "縮尺表示" : "show scale");
 
-    // gui.close();  // 初期状態で閉じた状態にする
+
+    // 画面が小さい場合は初期状態で閉じた状態にする
+    if (window.matchMedia('(max-width: 640px)').matches) {
+      gui.close();
+    }
+
   }
 
 
@@ -783,7 +795,6 @@ export class Main {
 
 
   initDelaunay = () => {
-    // 四分木で分割した領域の中央を一つの点とするポイントクラウドを作成する
 
     // 作成するポイントクラウドのリスト
     const pointMeshList = [];
@@ -797,78 +808,75 @@ export class Main {
     // 指定されている深さの四分木ノードを取得して、
     const quadtreeNodesAtDepth = this.quadtree.getNodesAtDepth(quadtreeDepth);
 
-    // その四分木ノードの中で、葉ノードを取得
+    // 作成するポイントクラウドのポイント数
+    let pointCount = 0;
+
+    // その四分木ノードの中にあるリーフノードに関して、
     quadtreeNodesAtDepth.forEach((quadtreeNodeAtDepth) => {
 
       // リーフノードの一覧を取得
       const quadtreeLeafNodes = quadtreeNodeAtDepth.getLeafNodes();
 
-      // Three.jsのVector3の配列
-      const point3d = [];
+      // 位置を保存するVector3の配列
+      const positions = [];
 
       // 頂点カラーの配列
       const colors = [];
 
       quadtreeLeafNodes.forEach((quadtreeNode) => {
 
-        // エリア内に点がない場合は無視する
         if (quadtreeNode.points.length < 1) {
+          // エリア内に点がない場合は無視する
           return;
         }
 
-        // エリア内に点が一つの場合は、その点を採用する
-        if (quadtreeNode.points.length === 1) {
-          const point = quadtreeNode.points[0];
-          point3d.push(new THREE.Vector3(point.lon, point.depth, point.lat));
-          // 深さに応じて頂点に色を付ける
-          const color = this.getDepthColor(point.depth);
-          colors.push(color.r, color.g, color.b);
+        if (quadtreeNode.points.length <= 2) {
+          // エリア内に点が2個以下の場合は、その点を採用する
+          for (let i = 0; i < quadtreeNode.points.length; i++) {
+            const point = quadtreeNode.points[i];
+
+            // 頂点の位置
+            positions.push(new THREE.Vector3(point.lon, point.depth, point.lat));
+
+            // 頂点の色
+            const color = this.getDepthColor(point.depth);
+            colors.push(color.r, color.g, color.b);
+
+            pointCount++;
+          }
           return;
         }
 
-        //
-        // エリア内に二個の点がある場合は、その二点の中点を採用する
-        //
-        if (quadtreeNode.points.length === 2) {
-          const point1 = quadtreeNode.points[0];
-          const point2 = quadtreeNode.points[1];
-          const lon = (point1.lon + point2.lon) / 2;
-          const lat = (point1.lat + point2.lat) / 2;
-          const depth = (point1.depth + point2.depth) / 2;
-          point3d.push(new THREE.Vector3(lon, depth, lat));
-          const color = this.getDepthColor(depth);
-          colors.push(color.r, color.g, color.b);
-          return;
-        }
+        // それ以上の場合は、領域の中央値を採用してポイント数を削減する
 
-        // それ以上の場合は、エリアの中央の座標を計算して採用する
         const bounds = quadtreeNode.bounds;
         const centerLon = (bounds.lon1 + bounds.lon2) / 2;
-        const centerLat = (bounds.lat2 + bounds.lat2) / 2;
+        const centerLat = (bounds.lat1 + bounds.lat2) / 2;
 
-        // エリア内の点の深さの平均値を計算
+        // エリア内の点の深さの平均値を計算する
         // const depth = quadtreeNode.points.reduce((acc, cur) => acc + cur.depth, 0) / quadtreeNode.points.length;
 
         // 逆距離加重法 IDW (Inverse Distance Weighting)を使って深さを計算する
         const depth = this.calcIDW(centerLon, centerLat, quadtreeNode.points);
 
-        // Vector3を格納
-        point3d.push(new THREE.Vector3(centerLon, depth, centerLat));
+        // 頂点の位置
+        positions.push(new THREE.Vector3(centerLon, depth, centerLat));
 
-        // 深さに応じて頂点に色を付ける
+        // 頂点の色
         const color = this.getDepthColor(depth);
         colors.push(color.r, color.g, color.b);
+
+        pointCount++;
+
       });
 
-      // エリア内に点がない場合は無視する
-      if (point3d.length < 1) {
+      // そのレベルの四分木ノードには頂点が存在しないこともある
+      if (positions.length < 1) {
         return;
       }
 
-      // console.log(`${point3d.length} points are created`);
-
       // ポイントクラウドのジオメトリを作成
-      const geometry = new THREE.BufferGeometry().setFromPoints(point3d);
+      const geometry = new THREE.BufferGeometry().setFromPoints(positions);
 
       // 頂点カラーを設定
       geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
@@ -893,7 +901,7 @@ export class Main {
 
       // XZ平面でデローネ三角形を形成する
       const delaunay = Delaunator.from(
-        point3d.map(v => {
+        positions.map(v => {
           return [v.x, v.z];
         })
       );
@@ -930,6 +938,11 @@ export class Main {
 
     });
 
+    // console.log(`${pointCount} points are created`);
+
+    // ポイント数をHTML要素に表示
+    document.getElementById('pointCountContainer').textContent = `${pointCount} points`;
+
     // インスタンス変数に保存
     this.pointMeshList = pointMeshList;
     this.terrainMeshList = terrainMeshList;
@@ -962,7 +975,7 @@ export class Main {
 
 
   depthSteps = [
-    -60,-55, -50, -45, -40, -35, -30, -25, -20, -16, -12, -10, -8, -6, -5, -4, -3, -2, -1,
+    -60, -55, -50, -45, -40, -35, -30, -25, -20, -16, -12, -10, -8, -6, -5, -4, -3, -2, -1,
   ];
 
 
@@ -1418,16 +1431,29 @@ export class Main {
 
 class QuadtreeNode {
 
-  bounds;  // { lon1, lat1, lon2, lat2 }
+  // 領域を表すオブジェクト
+  // X軸 = Longitude(経度)、Z軸 = Latitude(緯度)
+  // { lon1, lat1, lon2, lat2 }
+  bounds;
+
+  // 階層の深さ
   depth;
+
+  // データ配列
   points;
+
+  // 子ノードの配列
   children;
 
-  constructor(bounds, depth = 0) {
+  // 親ノードへの参照
+  parent;
+
+  constructor(bounds, depth = 0, parent = null) {
     this.bounds = bounds;
     this.depth = depth;
     this.points = [];
     this.children = [];
+    this.parent = parent;
   }
 
   isLeaf() {
@@ -1447,10 +1473,10 @@ class QuadtreeNode {
     //  | 2 | 3 |
     //  +---+---+
 
-    this.children.push(new QuadtreeNode({ lon1: lon1, lat1: lat1, lon2: midLon, lat2: midLat }, this.depth + 1));
-    this.children.push(new QuadtreeNode({ lon1: midLon, lat1: lat1, lon2: lon2, lat2: midLat }, this.depth + 1));
-    this.children.push(new QuadtreeNode({ lon1: lon1, lat1: midLat, lon2: midLon, lat2: lat2 }, this.depth + 1));
-    this.children.push(new QuadtreeNode({ lon1: midLon, lat1: midLat, lon2: lon2, lat2: lat2 }, this.depth + 1));
+    this.children.push(new QuadtreeNode({ lon1: lon1, lat1: lat1, lon2: midLon, lat2: midLat }, this.depth + 1, this));
+    this.children.push(new QuadtreeNode({ lon1: midLon, lat1: lat1, lon2: lon2, lat2: midLat }, this.depth + 1, this));
+    this.children.push(new QuadtreeNode({ lon1: lon1, lat1: midLat, lon2: midLon, lat2: lat2 }, this.depth + 1, this));
+    this.children.push(new QuadtreeNode({ lon1: midLon, lat1: midLat, lon2: lon2, lat2: lat2 }, this.depth + 1, this));
   }
 
   insert(point) {
@@ -1460,6 +1486,7 @@ class QuadtreeNode {
 
     if (this.isLeaf()) {
       if (this.points.length < Quadtree.MAX_POINTS || this.depth >= Quadtree.MAX_DEPTH) {
+        point.quadtreeNode = this;  // ポイントから四分木ノードを辿れるように参照を設定
         this.points.push(point);
         return true;
       } else {
