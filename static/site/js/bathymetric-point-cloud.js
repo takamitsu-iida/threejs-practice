@@ -577,6 +577,51 @@ export class Main {
   };
 
 
+  getFilesToLoad = (lon, lat) => {
+    // 表示領域に基づいて必要なファイルを決定するロジックを実装
+    // 例: 緯度経度に基づいてファイル名を決定
+    const files = [];
+    const lonIndex = Math.floor(lon);
+    const latIndex = Math.floor(lat);
+    files.push(`data/mesh/mesh_${latIndex}_${lonIndex}.txt`);
+    return files;
+  }
+
+
+  loadMeshFiles = async (lon, lat) => {
+    // 表示領域に基づいて必要なファイルを決定
+    const filesToLoad = this.getFilesToLoad(lon, lat);
+
+    // ファイルをロードしてポイントクラウドを更新
+    for (const file of filesToLoad) {
+      await this.loadMeshData(file);
+    }
+
+    // ポイントクラウドを更新
+    this.createPointCloud();
+  }
+
+
+  loadMeshData = async (path) => {
+    try {
+      const response = await fetch(path);
+      if (!response.ok) {
+        throw new Error(`HTTP status: ${response.status}`);
+      }
+
+      // テキストデータを取得
+      const text = await response.text();
+
+      // テキストデータをパース
+      this.params.depthMapData = this.parseText(text);
+
+    } catch (error) {
+      const errorMessage = `Error while loading ${path}: ${error}`;
+      console.error(errorMessage);
+    }
+  }
+
+
   depthSteps = [
     10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 120, 140, 160, 200, 300
   ];
