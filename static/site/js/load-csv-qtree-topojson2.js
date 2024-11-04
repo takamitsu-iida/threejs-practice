@@ -138,6 +138,9 @@ export class Main {
     // ポイントクラウドのパーティクルサイズ
     pointSize: 0.2,
 
+    // ポイントクラウドの数（readonly）
+    pointCount: 0,
+
     // ワイヤーフレーム表示にする？
     wireframe: false,
 
@@ -265,6 +268,9 @@ export class Main {
 
     // 縮尺を表示
     this.initScale();
+
+    // 水面を表す平面を表示（これを表示すると見づらい上に、レイキャスターの処理を複雑にする）
+    // this.initWaterSurface();
 
     // フレーム毎の処理
     this.render();
@@ -570,16 +576,6 @@ export class Main {
       });
 
     gui
-      .add(this.params, "autoRotateSpeed")
-      .name(navigator.language.startsWith("ja") ? "回転スピード" : "autoRotateSpeed")
-      .min(1.0)
-      .max(10.0)
-      .step(0.1)
-      .onChange((value) => {
-        this.controller.autoRotateSpeed = value;
-      });
-
-    gui
       .add(this.params, "pointSize")
       .name(navigator.language.startsWith("ja") ? "ポイントサイズ" : "pointSize")
       .min(0.1)
@@ -602,6 +598,12 @@ export class Main {
       });
 
     gui
+      .add(this.params, "pointCount")
+      .name(navigator.language.startsWith("ja") ? "ポイントクラウド数" : "pointCount")
+      .listen()
+      .disable();
+
+    gui
       .add(this.params, "quadtreeDepth")
       .name(navigator.language.startsWith("ja") ? "表示対象の四分木の深さ" : "quadtreeDepth")
       .min(0)
@@ -611,6 +613,8 @@ export class Main {
         doLater(this.initContents, 100);
       });
 
+    const displayFolder = gui.addFolder(navigator.language.startsWith("ja") ? "表示切り替え" : "Display");
+
     const displayParams = {
       'wireframe': () => {
         this.params.wireframe = !this.params.wireframe;
@@ -618,37 +622,38 @@ export class Main {
           terrainMesh.material.wireframe = this.params.wireframe;
         });
       },
+
       'pointCloud': () => {
         this.params.showPointCloud = !this.params.showPointCloud;
         this.pointMeshList.forEach((pointMesh) => {
           pointMesh.visible = this.params.showPointCloud;
         });
       },
+
+      'landmark': () => {
+        this.camera.layers.toggle(1);
+      },
+
+      'scale': () => {
+        this.camera.layers.toggle(2);
+      },
     };
 
-    gui
+    displayFolder
       .add(displayParams, "wireframe")
       .name(navigator.language.startsWith("ja") ? "ワイヤーフレーム表示" : "wireframe");
 
-    gui
+    displayFolder
       .add(displayParams, "pointCloud")
       .name(navigator.language.startsWith("ja") ? "ポイントクラウド表示" : "showPointCloud");
 
-    const layers = {
-      'landmark': () => { this.camera.layers.toggle(1); },
-      'scale': () => { this.camera.layers.toggle(2); },
-      'enable all': () => { this.camera.layers.enableAll(); },
-      'disable all': () => { this.camera.layers.disableAll(); }
-    };
-
-    gui
-      .add(layers, 'landmark')
+    displayFolder
+      .add(displayParams, 'landmark')
       .name(navigator.language.startsWith("ja") ? "ランドマーク表示" : "show landmark");
 
-    gui
-      .add(layers, 'scale')
+    displayFolder
+      .add(displayParams, 'scale')
       .name(navigator.language.startsWith("ja") ? "縮尺表示" : "show scale");
-
 
     // 画面が小さい場合は初期状態で閉じた状態にする
     if (window.matchMedia('(max-width: 640px)').matches) {
@@ -755,6 +760,23 @@ export class Main {
   };
 
 
+  initWaterSurface = () => {
+    const width = this.params.xzGridSize;
+    const height = this.params.xzGridSize;
+    const geometry = new THREE.PlaneGeometry(width, height, 1, 1);
+    const material = new THREE.MeshBasicMaterial({
+      color: 0x0000ff,
+      transparent: true,
+      depthWrite: false,
+      opacity: 0.2,
+    });
+    const plane = new THREE.Mesh(geometry, material);
+    plane.rotation.x = -Math.PI / 2;
+    plane.position.y = 0;
+    this.scene.add(plane);
+  }
+
+
   initQuadTree = () => {
 
     const minLon = this.params.normalizedMinLon;
@@ -809,7 +831,7 @@ export class Main {
     const quadtreeNodesAtDepth = this.quadtree.getNodesAtDepth(quadtreeDepth);
 
     // 作成するポイントクラウドのポイント数
-    let pointCount = 0;
+    this.params.pointCount = 0;
 
     // その四分木ノードの中にあるリーフノードに関して、
     quadtreeNodesAtDepth.forEach((quadtreeNodeAtDepth) => {
@@ -842,7 +864,7 @@ export class Main {
             const color = this.getDepthColor(point.depth);
             colors.push(color.r, color.g, color.b);
 
-            pointCount++;
+            this.params.pointCount++;
           }
           return;
         }
@@ -866,7 +888,7 @@ export class Main {
         const color = this.getDepthColor(depth);
         colors.push(color.r, color.g, color.b);
 
-        pointCount++;
+        this.params.Count++;
 
       });
 
@@ -939,9 +961,6 @@ export class Main {
     });
 
     // console.log(`${pointCount} points are created`);
-
-    // ポイント数をHTML要素に表示
-    document.getElementById('pointCountContainer').textContent = `${pointCount} points`;
 
     // インスタンス変数に保存
     this.pointMeshList = pointMeshList;
@@ -1276,8 +1295,8 @@ export class Main {
       const [lon, lat] = this.inverseNormalizeCoordinates(x, z);
 
       if (depth < 0) {
-        this.depthContainer.textContent = `Depth: ${depth.toFixed(2)}m`;
-        this.coordinatesContainer.textContent = `Lon: ${lon.toFixed(8)}, Lat: ${lat.toFixed(8)}`;
+        this.depthContainer.textContent = `Depth: ${depth.toFixed(1)}m`;
+        this.coordinatesContainer.textContent = `${lon.toFixed(10)}, ${lat.toFixed(10)}`;
 
         // 凡例をハイライト
         this.updateLegendHighlight(depth);
