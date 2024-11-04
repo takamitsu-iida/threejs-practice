@@ -42,15 +42,20 @@ export class Main {
   controller;
   statsjs;
 
-  // マウス座標を取得するためのraycaster
-  raycaster;
+  // マウス位置にあるオブジェクトを取得するためのraycaster
+  raycaster = new THREE.Raycaster();
 
   // マウス座標
-  mousePosition;
-  previousMousePosition;
+  mousePosition = new THREE.Vector2();
 
-  // 水深のCSVデータを四分木に分割したインスタンス
-  quadtree;
+  // マウス座標（1フレーム前）
+  previousMousePosition = new THREE.Vector2();
+
+  // カメラの向き
+  cameraDirection = new THREE.Vector3();
+
+  // カメラの向き（1フレーム前）
+  previousCameraDirection = new THREE.Vector3();
 
   // レンダリング用のパラメータ
   renderParams = {
@@ -67,7 +72,7 @@ export class Main {
     xzGridSize: 800,  // 800を指定する場合は -400～400 の範囲に描画する
 
     // xzGridSizeにあわせるために、どのくらい緯度経度の値を拡大するか（自動計算）
-    xzScale: 10000,  // これは仮の値、概ね10000くらいがいい感じ
+    xzScale: 10000,  // これは仮の値
 
     // 水深データのテキストファイルのURL
     // depthMapPath: "./static/data/mesh500_35_139.txt",
@@ -84,7 +89,10 @@ export class Main {
     showPointCloud: true,
 
     // ポイントクラウドのパーティクルサイズ
-    pointSize: 0.2,
+    pointSize: 1.0,
+
+    // ポイントクラウドのパーティクルの数(readonly)
+    pointCount: 0,
 
     // ワイヤーフレーム表示にする？
     wireframe: false,
@@ -105,18 +113,6 @@ export class Main {
     normalizedMinLon: 0,
     normalizedMaxLon: 0,
 
-    // 画面表示する四分木の深さ
-    // 0の場合は1つのエリアにまとめる
-    // 1の場合は4^1=4つのエリアに分割される
-    // 2の場合は4^2=16個のエリアに分割される
-    // 3の場合は4^3=64個のエリアに分割される
-    quadtreeDepth: 0,
-
-    // 四分木の分割パラメータ
-    divideParam: 5,  // 見栄えに変化がないので5のままでよい（guiはdisableにしておく）
-
-    // 四分木の領域に5個以上の点がある場合にさらに小さく四分木分割する
-    maxPoints: 5,
   }
 
   // 地形図のポイントクラウド（guiで表示を操作するためにインスタンス変数にする）
@@ -238,6 +234,9 @@ export class Main {
     let minLon = 9999;
     let maxLon = -9999;
 
+    // 数が多すぎるので、3の倍数のときは省略
+    const step = 3;
+
     const headers = ['type', 'lat', 'lon', 'depth'];
 
     for (let i = 0; i < lines.length; i++) {
@@ -297,7 +296,21 @@ export class Main {
     let normalizedMinLon = 9999;
     let normalizedMaxLon = -9999;
 
-    this.params.depthMapData.forEach((d) => {
+    let step = 1;
+    if (this.params.depthMapData.length > 50000) {
+      // データ量に応じて間引く量を調整する
+      if (this.params.depthMapData.length > 100000) {
+        step = 3;
+      } else if (this.params.depthMapData.length > 50000) {
+        step = 2;
+      }
+    }
+
+    this.params.depthMapData.forEach((d, index) => {
+      if (index % step !== 0) {
+        return;
+      }
+
       // 経度(lon)はX軸に対応する
       // センターに寄せて、スケールをかける
       const lon = (d.lon - lonCenter) * scale;
@@ -325,6 +338,8 @@ export class Main {
     this.params.normalizedMinLon = normalizedMinLon;
     this.params.normalizedMaxLon = normalizedMaxLon;
     // console.log(`normalizedMinLat: ${this.params.normalizedMinLat}\nnormalizedMaxLat: ${this.params.normalizedMaxLat}\nnormalizedMinLon: ${this.params.normalizedMinLon}\nnormalizedMaxLon: ${this.params.normalizedMaxLon}`);
+
+    this.params.pointCount = normalizeDepthMapData.length;
   }
 
 
@@ -404,13 +419,6 @@ export class Main {
     light.position.set(-50, 0, 0);
     this.scene.add(light);
 
-    // レイキャスター
-    this.raycaster = new THREE.Raycaster();
-
-    // マウス座標
-    this.mousePosition = new THREE.Vector2();
-    this.previousMousePosition = new THREE.Vector2();
-
     // 正規化したマウス座標を保存
     this.renderer.domElement.addEventListener("mousemove", (event) => {
       this.mousePosition.x = (event.clientX / this.sizes.width) * 2 - 1;
@@ -456,29 +464,10 @@ export class Main {
       });
 
     gui
-      .add(this.params, "autoRotateSpeed")
-      .name(navigator.language.startsWith("ja") ? "回転スピード" : "autoRotateSpeed")
-      .min(1.0)
-      .max(10.0)
-      .step(0.1)
-      .onChange((value) => {
-        this.controller.autoRotateSpeed = value;
-      });
-
-    gui
-      .add(this.params, "showPointCloud")
-      .name(navigator.language.startsWith("ja") ? "ポイントクラウド表示" : "showPointCloud")
-      .onChange((value) => {
-        this.pointMeshList.forEach((pointMesh) => {
-          pointMesh.visible = value;
-        });
-      });
-
-    gui
       .add(this.params, "pointSize")
       .name(navigator.language.startsWith("ja") ? "ポイントサイズ" : "pointSize")
       .min(0.1)
-      .max(1.0)
+      .max(2.0)
       .step(0.1)
       .onChange((value) => {
         this.pointMeshList.forEach((pointMesh) => {
@@ -486,15 +475,11 @@ export class Main {
         });
       });
 
-    const layers = {
-      'scale': () => { this.camera.layers.toggle(1); },
-      'enable all': () => { this.camera.layers.enableAll(); },
-      'disable all': () => { this.camera.layers.disableAll(); }
-    };
-
     gui
-      .add(layers, 'scale')
-      .name(navigator.language.startsWith("ja") ? "縮尺表示" : "show scale");
+      .add(this.params, "pointCount")
+      .name(navigator.language.startsWith("ja") ? "ポイント数" : "pointCount")
+      .listen()
+      .disable();
 
     gui.close();  // 初期状態で閉じた状態にする
   }
@@ -538,7 +523,7 @@ export class Main {
       this.renderDepth();
 
       // 方位磁針を更新
-      this.updateCompass();
+      this.renderCompass();
     }
 
     this.renderParams.delta %= this.renderParams.interval;
@@ -653,37 +638,6 @@ export class Main {
   }
 
 
-  updateLegendHighlight = (depth) => {
-    this.clearLegendHighlight();
-
-    const depthSteps = this.depthSteps;
-
-    depth *= -1;
-
-    // depthに最も近いdepthStepsの値を見つける
-    let closestDepth = depthSteps[0];
-    let minDiff = Math.abs(depth - closestDepth);
-    for (let i = 1; i < depthSteps.length; i++) {
-      const diff = Math.abs(depth - depthSteps[i]);
-      if (diff < minDiff) {
-        closestDepth = depthSteps[i];
-        minDiff = diff;
-      }
-    }
-
-    const legendItem = document.getElementById(`legend-${closestDepth}`);
-    if (legendItem) {
-      legendItem.classList.add('highlight');
-    }
-  }
-
-
-  clearLegendHighlight = () => {
-    const highlightedItems = document.querySelectorAll('.highlight');
-    highlightedItems.forEach(item => item.classList.remove('highlight'));
-  }
-
-
   // 経度経度を中央寄せして正規化する
   normalizeCoordinates = ([lon, lat]) => {
     const scale = this.params.xzScale;
@@ -756,7 +710,6 @@ export class Main {
 
       // 水深データを取得
       const depth = this.inverseNormalizeDepth(intersect.point.y);
-      console.log(depth);
 
       // 緯度経度を取得
       const x = intersect.point.x;
@@ -766,25 +719,27 @@ export class Main {
       this.depthContainer.textContent = `Depth: ${depth.toFixed(2)}m`;
       this.coordinatesContainer.textContent = `Lon: ${lon.toFixed(8)}, Lat: ${lat.toFixed(8)}`;
 
-      // 凡例をハイライト
-      this.updateLegendHighlight(depth);
-
     } else {
       this.depthContainer.textContent = '';
       this.coordinatesContainer.textContent = '';
-
-      // ハイライトをクリア
-      this.clearLegendHighlight();
     }
   }
 
 
-  updateCompass = () => {
-    const cameraDirection = new THREE.Vector3();
-    this.camera.getWorldDirection(cameraDirection);
+  renderCompass = () => {
+    // カメラの向きを取得
+    this.camera.getWorldDirection(this.cameraDirection);
+
+    // 1フレーム前とカメラの向きが変わっていない場合は処理をスキップ
+    if (this.cameraDirection.equals(this.previousCameraDirection)) {
+      return;
+    }
+
+    // 前回のカメラの向きを更新
+    this.previousCameraDirection.copy(this.cameraDirection);
 
     // カメラの方向を方位磁針の回転角度に変換
-    const angle = Math.atan2(cameraDirection.x, cameraDirection.z);
+    const angle = Math.atan2(this.cameraDirection.x, this.cameraDirection.z);
     const degrees = THREE.MathUtils.radToDeg(angle) + 180;  // 0度が北を向くように調整
 
     // 方位磁針の回転を更新
