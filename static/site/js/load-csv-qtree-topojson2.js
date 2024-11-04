@@ -81,16 +81,25 @@ export class Main {
   controller;
   statsjs;
 
-  // マウス座標を取得するためのraycaster
-  raycaster;
+  // マウス座標にあるオブジェクトを取得するためのraycaster
+  raycaster = new THREE.Raycaster();
 
-  // マウス座標
-  mousePosition;
+  // マウス座標(renderDepthで利用)
+  mousePosition = new THREE.Vector2();
 
-  // CSS2DRenderer
+  // 前フレーム時点でのマウス座標(renderDepthで利用)
+  previousMousePosition = new THREE.Vector2();
+
+  // カメラの向き(renderCompassで利用)
+  cameraDirection = new THREE.Vector3();
+
+  // 前フレーム時点でのカメラの向き(renderDepthで利用)
+  previousCameraDirection = new THREE.Vector3();
+
+  // ラベル表示用CSS2DRenderer
   cssRenderer;
 
-  // 水深のCSVデータを四分木に分割したインスタンス
+  // 水深のCSVデータを四分木に分割したQuadtreeクラスのインスタンス
   quadtree;
 
   // レンダリング用のパラメータ
@@ -107,13 +116,14 @@ export class Main {
     // 持っているGPSデータに応じて調整する
     xzGridSize: 200,  // 200を指定する場合は -100～100 の範囲に描画する
 
-    // xzGridSizeにあわせるために、どのくらい緯度経度の値を拡大するか（自動計算）
-    xzScale: 10000,  // これは仮の値、概ね10000くらいがいい感じ
+    // xzGridSizeにあわせるために、どのくらい緯度経度の値を拡大するか（自動で計算する）
+    xzScale: 10000,  // これは仮の値で、CSVデータを読み込んだ後に正規化する
 
     // 水深データのCSVファイルのURL
     depthMapPath: "./static/data/depth_map_data_edited.csv",
 
-    // CSVテキストをパースしたデータ配列
+    // CSVテキストをパースして作成するデータ配列
+    // [ {lat: 35.16900046, lon: 139.60695032, depth: -10.0}, {...}, ... ]
     depthMapData: null,
 
     // それを正規化したデータの配列
@@ -129,7 +139,7 @@ export class Main {
     // topojsonデータに含まれるobjectName（三浦市のデータなら"miura"）
     objectName: "miura",
 
-    // topojsonを変換してGeoJSONデータにしたもの
+    // topojsonを変換してGeoJSONデータにしたもの（いまは未使用）
     geojsonData: null,
 
     // ポイントクラウドを表示するか？
@@ -168,7 +178,8 @@ export class Main {
     quadtreeDepth: 0,
 
     // 四分木の分割パラメータ
-    divideParam: 5,  // 見栄えに変化がないので5のままでよい（guiはdisableにしておく）
+    // maxDepthを決めるためのパラメータ
+    divideParam: 5,  // 見栄えに変化がないので5のままでよいかな？
 
     // 四分木の領域に何個の点があった場合に、さらに小さく四分木分割するか
     // この値を大きくすると、四分木の深さが浅くなり、描画するポイント数は減る
@@ -268,9 +279,6 @@ export class Main {
 
     // 縮尺を表示
     this.initScale();
-
-    // 水面を表す平面を表示（これを表示すると見づらい上に、レイキャスターの処理を複雑にする）
-    // this.initWaterSurface();
 
     // フレーム毎の処理
     this.render();
@@ -518,12 +526,6 @@ export class Main {
     light.position.set(-50, 0, 0);
     this.scene.add(light);
 
-    // レイキャスター
-    this.raycaster = new THREE.Raycaster();
-
-    // マウス座標
-    this.mousePosition = new THREE.Vector2();
-
     // 正規化したマウス座標を保存
     this.renderer.domElement.addEventListener("mousemove", (event) => {
       this.mousePosition.x = (event.clientX / this.sizes.width) * 2 - 1;
@@ -704,7 +706,7 @@ export class Main {
       this.renderDepth();
 
       // 方位磁針を更新
-      this.updateCompass();
+      this.renderCompass();
     }
 
     this.renderParams.delta %= this.renderParams.interval;
@@ -760,23 +762,6 @@ export class Main {
   };
 
 
-  initWaterSurface = () => {
-    const width = this.params.xzGridSize;
-    const height = this.params.xzGridSize;
-    const geometry = new THREE.PlaneGeometry(width, height, 1, 1);
-    const material = new THREE.MeshBasicMaterial({
-      color: 0x0000ff,
-      transparent: true,
-      depthWrite: false,
-      opacity: 0.2,
-    });
-    const plane = new THREE.Mesh(geometry, material);
-    plane.rotation.x = -Math.PI / 2;
-    plane.position.y = 0;
-    this.scene.add(plane);
-  }
-
-
   initQuadTree = () => {
 
     const minLon = this.params.normalizedMinLon;
@@ -807,11 +792,10 @@ export class Main {
     // normalizedDepthMapDataは配列で、各要素は以下のようなオブジェクト
     // [ {lat: 67.88624331335313, lon: -81.94761236723025, depth: -21.1785}, {...}, ... ]
     this.params.normalizedDepthMapData.forEach((d) => {
-      // ルート領域にデータを追加する
-      quadtree.insert(d);
+      quadtree.insert(d);  // ルート領域にデータを追加する
     });
 
-    // 保存しておく
+    // インスタンス変数に保存
     this.quadtree = quadtree;
   }
 
@@ -1276,6 +1260,14 @@ export class Main {
 
 
   renderDepth = () => {
+    // マウス位置が変わっていない場合は処理をスキップ
+    if (this.mousePosition.equals(this.previousMousePosition)) {
+      return;
+    }
+
+    // 前回のマウス位置を更新
+    this.previousMousePosition.copy(this.mousePosition);
+
     // レイキャストを使用してマウスカーソルの位置を取得
     this.raycaster.setFromCamera(this.mousePosition, this.camera);
 
@@ -1317,12 +1309,20 @@ export class Main {
   }
 
 
-  updateCompass = () => {
-    const cameraDirection = new THREE.Vector3();
-    this.camera.getWorldDirection(cameraDirection);
+  renderCompass = () => {
+    // カメラの向きを取得
+    this.camera.getWorldDirection(this.cameraDirection);
+
+    // 前フレーム時点のカメラの向きと変更がなければ処理をスキップ
+    if (this.cameraDirection.equals(this.previousCameraDirection)) {
+      return;
+    }
+
+    // 前回のカメラの向きを更新
+    this.previousCameraDirection.copy(this.cameraDirection);
 
     // カメラの方向を方位磁針の回転角度に変換
-    const angle = Math.atan2(cameraDirection.x, cameraDirection.z);
+    const angle = Math.atan2(this.cameraDirection.x, this.cameraDirection.z);
     const degrees = THREE.MathUtils.radToDeg(angle) + 180;  // 0度が北を向くように調整
 
     // 方位磁針の回転を更新
