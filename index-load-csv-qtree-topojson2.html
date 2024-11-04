@@ -85,18 +85,22 @@
       border-radius: 5px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     }
+
     .legend-item {
       display: flex;
       align-items: center;
       margin-bottom: 5px;
     }
+
     .legend-color {
       width: 20px;
       height: 20px;
       margin-right: 10px;
     }
+
     .highlight {
-      outline: 2px solid red; /* 枠を描画 */
+      outline: 2px solid red;
+      /* 枠を描画 */
     }
 
     #compassContainer {
@@ -152,10 +156,12 @@
       z-index: 990;
       color: white;
     }
+
     #remarks a {
       text-decoration: none;
       color: white;
     }
+
     #remarks a:hover {
       text-decoration: underline;
     }
@@ -170,7 +176,7 @@
       color: white;
     }
 
-   /*
+    /*
     ネットワーク経由でデータを取得する場合にロード中を表示
     <div id="loadingContainer">
       <div id="loading"></div>
@@ -216,6 +222,25 @@
     @keyframes l3 {
       to {
         transform: rotate(1turn)
+      }
+    }
+
+    /* 画面サイズが640px以下の場合 */
+    @media (max-width: 640px) {
+      #remarks {
+        display: none;
+      }
+
+      #legendContainer {
+        display: none;
+      }
+
+      #depthContainer {
+        font-size: 1.2rem;
+      }
+
+      #coordinatesContainer {
+        font-size: 1.0rem;
       }
     }
   </style>
