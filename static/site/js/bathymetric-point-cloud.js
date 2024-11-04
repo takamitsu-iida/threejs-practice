@@ -15,6 +15,11 @@ import Stats from "three/libs/stats.module.js";
 // このサイトで領域を選択してダウンロードできる
 
 
+// タイル表示したい
+// https://github.com/tentone/geo-three
+
+
+
 export class Main {
 
   // Three.jsを表示するコンテナのHTML要素
