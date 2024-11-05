@@ -118,7 +118,7 @@ TODO
 - ポイント数が5万を超えないように、間引きと補間を自動調整できるようにしたい
 - topojsonを使ってしまうと、その場所専用になってしまうのでGoogle Mapと連携できないか模索したい
 
-Google Mapとの連携はこれを表示使えばいいのかな？
+Google Mapとの連携はこれを使えばいいのかな？
 
 https://github.com/googlemaps/js-three?tab=readme-ov-file
 
