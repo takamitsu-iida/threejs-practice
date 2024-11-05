@@ -40,17 +40,14 @@ HTMLではこのようなimportmapを使う。
     }
   }
 </script>
-
 */
 
 
 const LANDMARKS = [
-  { lon: 139.60695032, lat: 35.16900046, depth: -10, name_ja: 'ヤギ瀬', name: 'yagise' },
-  { lon: 139.61539000, lat: 35.16946800, depth: 0, name_ja: 'みなとや', name: 'minatoya' },
-  { lon: 139.61994200, lat: 35.16650700, depth: 0, name_ja: '小網代湾', name: 'koamijiro' },
-  { lon: 139.61595853, lat: 35.17150509, depth: 0, name_ja: '油壷湾', name: 'aburatsubo' },
-
-
+  { lon: 139.60695032, lat: 35.16200000, depth: -10, name_ja: 'ヤギ瀬', name: 'Yagise' },
+  { lon: 139.61539000, lat: 35.16160000, depth: 0, name_ja: 'みなとや', name: 'Minatoya' },
+  { lon: 139.61994200, lat: 35.16450000, depth: 0, name_ja: '小網代湾', name: 'Koamijiro' },
+  { lon: 139.61595853, lat: 35.15950000, depth: 0, name_ja: '油壷湾', name: 'Aburatsubo' },
 ];
 
 
@@ -364,8 +361,11 @@ export class Main {
   }
 
 
-  // 経度経度を画面表示用に正規化する
-  normalizeCoordinates = ([lon, lat]) => {
+  // Topojsonの経度経度を画面表示用に正規化する
+  // Topojsonで作成するシェイプはXY平面からXZ平面に向きを変えるときに
+  // geometry.rotateX(-Math.PI / 2);
+  // という向きに回転させるので、latをマイナスにする必要はない
+  normalizeTopojsonCoordinates = ([lon, lat]) => {
     const scale = this.params.xzScale;
     const latCenter = (this.params.maxLat + this.params.minLat) / 2;
     const lonCenter = (this.params.maxLon + this.params.minLon) / 2;
@@ -376,17 +376,28 @@ export class Main {
   }
 
 
-  // 元の座標系に戻す
+  // normalizeDepthMapData()で行っている正規化をメソッド化
+  normalizeCoordinates = ([lon, lat]) => {
+    const scale = this.params.xzScale;
+    const latCenter = (this.params.maxLat + this.params.minLat) / 2;
+    const lonCenter = (this.params.maxLon + this.params.minLon) / 2;
+    return [
+      (lon - lonCenter) * scale,
+      -1 * (lat - latCenter) * scale
+    ];
+  }
+
+
+  // normalizeDepthMapData()で行っている正規化の逆変換
   inverseNormalizeCoordinates = (x, z) => {
     const scale = this.params.xzScale;
     const latCenter = (this.params.maxLat + this.params.minLat) / 2;
     const lonCenter = (this.params.maxLon + this.params.minLon) / 2;
     return [
       x / scale + lonCenter,
-      z / scale + latCenter
+      -1 * z / scale + latCenter
     ];
   }
-
 
 
   normalizeDepthMapData = () => {
@@ -1140,8 +1151,9 @@ export class Main {
 
         const coordinates = feature.geometry.coordinates;
 
-        let coord = coordinates[0];
-        coord = this.normalizeCoordinates(coord);
+        let coord;
+        coord = coordinates[0];
+        coord = this.normalizeTopojsonCoordinates(coord);
 
         // パスを開始
         shape.moveTo(
@@ -1151,7 +1163,7 @@ export class Main {
 
         for (let i = 1; i < coordinates.length; i++) {
           coord = coordinates[i];
-          coord = this.normalizeCoordinates(coord);
+          coord = this.normalizeTopojsonCoordinates(coord);
 
           // 線分を追加
           shape.lineTo(
@@ -1169,8 +1181,9 @@ export class Main {
 
         const coordinates = feature.geometry.coordinates[0];
 
-        let coord = coordinates[0];
-        coord = this.normalizeCoordinates(coord);
+        let coord;
+        coord = coordinates[0];
+        coord = this.normalizeTopojsonCoordinates(coord);
 
         shape.moveTo(
           coord[0],
@@ -1179,7 +1192,7 @@ export class Main {
 
         for (let i = 1; i < coordinates.length; i++) {
           coord = coordinates[i];
-          coord = this.normalizeCoordinates(coord);
+          coord = this.normalizeTopojsonCoordinates(coord);
           shape.lineTo(
             coord[0],
             coord[1]
@@ -1195,8 +1208,9 @@ export class Main {
           const shape = new THREE.Shape();
           const coordinates = polygon[0];
 
-          let coord = coordinates[0];
-          coord = this.normalizeCoordinates(coord);
+          let coord;
+          coord = coordinates[0];
+          coord = this.normalizeTopojsonCoordinates(coord);
 
           shape.moveTo(
             coord[0],
@@ -1205,7 +1219,7 @@ export class Main {
 
           for (let i = 1; i < coordinates.length; i++) {
             coord = coordinates[i];
-            coord = this.normalizeCoordinates(coord);
+            coord = this.normalizeTopojsonCoordinates(coord);
             shape.lineTo(
               coord[0],
               coord[1]
@@ -1253,11 +1267,11 @@ export class Main {
 
       // クリッピングして表示領域を制限する
       clippingPlanes: [
-        new THREE.Plane(new THREE.Vector3(0, 0, 1), clippingSize),   // Z座標がxzGridSize以下を表示
-        new THREE.Plane(new THREE.Vector3(0, 0, -1), clippingSize),  // Z座標が-xzGridSize以上を表示
-        new THREE.Plane(new THREE.Vector3(-1, 0, 0), clippingSize),  // X座標がxzGridSize以下を表示
-        new THREE.Plane(new THREE.Vector3(1, 0, 0), clippingSize),   // X座標が-xzGridSize以上を表示
-        new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),              // Y座標が0以上を表示
+        new THREE.Plane(new THREE.Vector3(0, 0, 1), clippingSize * 2),   // Z座標がxzGridSize * 2以下を表示
+        new THREE.Plane(new THREE.Vector3(0, 0, -1), clippingSize * 2),  // Z座標が-xzGridSize * 2以上を表示
+        new THREE.Plane(new THREE.Vector3(-1, 0, 0), clippingSize),      // X座標がxzGridSize以下を表示
+        new THREE.Plane(new THREE.Vector3(1, 0, 0), clippingSize),       // X座標が-xzGridSize以上を表示
+        new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),                  // Y座標が0以上を表示
       ],
     });
 
