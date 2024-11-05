@@ -276,4 +276,74 @@ export class Main {
     this.renderer.setSize(this.sizes.width, this.sizes.height);
   };
 
+
+
+
+  initMap = () => {
+    // Google Mapsの初期設定
+    map = new google.maps.Map(document.getElementById('map'), {
+      center: { lat: 35.6895, lng: 139.6917 }, // 東京の中心座標
+      zoom: 15,
+      mapTypeId: 'satellite',
+    });
+
+    // Three.jsのシーンを作成
+    scene = new THREE.Scene();
+
+    // Three.jsのカメラを作成
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, 100);
+
+    // Three.jsのレンダラーを作成
+    renderer = new THREE.WebGLRenderer({ alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.domElement.style.position = 'absolute';
+    renderer.domElement.style.top = 0;
+    renderer.domElement.style.left = 0;
+
+    // Google Mapsのオーバーレイビューを作成
+    const overlay = new google.maps.OverlayView();
+    overlay.onAdd = function () {
+      const panes = this.getPanes();
+      panes.overlayLayer.appendChild(renderer.domElement);
+    };
+    overlay.draw = function () {
+      const overlayProjection = this.getProjection();
+      const bounds = map.getBounds();
+      if (!bounds) return;
+
+      const topLeft = overlayProjection.fromLatLngToDivPixel(bounds.getNorthEast());
+      const bottomRight = overlayProjection.fromLatLngToDivPixel(bounds.getSouthWest());
+
+      const width = bottomRight.x - topLeft.x;
+      const height = bottomRight.y - topLeft.y;
+
+      renderer.setSize(width, height);
+      renderer.domElement.style.left = `${topLeft.x}px`;
+      renderer.domElement.style.top = `${topLeft.y}px`;
+
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+
+      renderer.render(scene, camera);
+    };
+    overlay.setMap(map);
+
+    // Three.jsのオブジェクトを追加
+    const geometry = new THREE.BoxGeometry(10, 10, 10);
+    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    const cube = new THREE.Mesh(geometry, material);
+    scene.add(cube);
+
+    // Three.jsのコントロールを追加
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.addEventListener('change', () => renderer.render(scene, camera));
+
+    // ウィンドウリサイズ時の処理
+    window.addEventListener('resize', onWindowResize, false);
+  }
+
+
+
+
 }
