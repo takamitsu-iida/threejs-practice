@@ -123,12 +123,9 @@ export class Main {
     depthMapPath: "./static/data/depth_map_data_edited.csv",
 
     // CSVテキストをパースして作成するデータ配列
+    // 画面表示に適した値に正規化するのでCSVの値とは異なることに注意
     // [ {lat: 35.16900046, lon: 139.60695032, depth: -10.0}, {...}, ... ]
     depthMapData: null,
-
-    // それを正規化したデータの配列
-    // TODO: 一つにまとめてもいいかも
-    normalizedDepthMapData: null,
 
     // 三浦市のtopojsonファイルのURL
     topojsonPath: "./static/data/aburatsubo.json",
@@ -150,6 +147,9 @@ export class Main {
 
     // ポイントクラウドの数（readonly）
     pointCount: 0,
+
+    // CSVに何個のデータがあるか（CSV読み取り時に自動計算）
+    totalPointCount: 0,
 
     // ワイヤーフレーム表示にする？
     wireframe: false,
@@ -232,6 +232,9 @@ export class Main {
       event.target.remove();
     });
 
+    // 緯度経度の値を正規化する
+    this.normalizeDepthMapData();
+
     // scene, camera, renderer, controllerを初期化
     this.initThreejs();
 
@@ -258,9 +261,6 @@ export class Main {
 
     // 全てを削除した状態で描画
     this.renderer.render(this.scene, this.camera);
-
-    // 緯度経度の値を正規化
-    this.normalizeDepthMapData();
 
     // 正規化したデータを四分木に分割する
     this.initQuadTree();
@@ -351,6 +351,9 @@ export class Main {
     this.params.minLon = minLon;
     this.params.maxLon = maxLon;
 
+    // 全部で何個のデータがあるか
+    this.params.totalPointCount = dataList.length;
+
     // 緯度の差分、経度の差分で大きい方を取得
     const diffSize = Math.max(maxLat - minLat, maxLon - minLon);
 
@@ -359,6 +362,31 @@ export class Main {
 
     return dataList;
   }
+
+
+  // 経度経度を画面表示用に正規化する
+  normalizeCoordinates = ([lon, lat]) => {
+    const scale = this.params.xzScale;
+    const latCenter = (this.params.maxLat + this.params.minLat) / 2;
+    const lonCenter = (this.params.maxLon + this.params.minLon) / 2;
+    return [
+      (lon - lonCenter) * scale,
+      (lat - latCenter) * scale
+    ];
+  }
+
+
+  // 元の座標系に戻す
+  inverseNormalizeCoordinates = (x, z) => {
+    const scale = this.params.xzScale;
+    const latCenter = (this.params.maxLat + this.params.minLat) / 2;
+    const lonCenter = (this.params.maxLon + this.params.minLon) / 2;
+    return [
+      x / scale + lonCenter,
+      z / scale + latCenter
+    ];
+  }
+
 
 
   normalizeDepthMapData = () => {
@@ -370,17 +398,15 @@ export class Main {
     // 拡大率
     const scale = this.params.xzScale;
 
-    // 既存データを上書きで正規化した方が手っ取り早いが、
-    // ここでは元のデータを残して新しい配列を作成する
-    // データ量が少ないうちは問題ないが、データ量が多い場合はメモリを圧迫するので注意
-    const normalizeDepthMapData = [];
-
+    // 正規化後の最小緯度、最大緯度、最小経度、最大経度
     let normalizedMinLat = 9999;
     let normalizedMaxLat = -9999;
     let normalizedMinLon = 9999;
     let normalizedMaxLon = -9999;
 
+    // params.depthMapDataを上書きで正規化する
     this.params.depthMapData.forEach((d) => {
+
       // 経度(lon)はX軸に対応する
       // センターに寄せて、スケールをかける
       const lon = (d.lon - lonCenter) * scale;
@@ -393,22 +419,23 @@ export class Main {
       // 深さなので、マイナスをかける
       const depth = -1 * d.depth;
 
-      normalizeDepthMapData.push({ lat: lat, lon: lon, depth: depth });
+      // 正規化したデータを保存
+      d.lat = lat;
+      d.lon = lon;
+      d.depth = depth;
 
+      // 最小緯度、最大緯度、最小経度、最大経度を更新
       normalizedMinLat = Math.min(normalizedMinLat, lat);
       normalizedMaxLat = Math.max(normalizedMaxLat, lat);
       normalizedMinLon = Math.min(normalizedMinLon, lon);
       normalizedMaxLon = Math.max(normalizedMaxLon, lon);
     });
 
-    this.params.normalizedDepthMapData = normalizeDepthMapData;
-
     this.params.normalizedMinLat = normalizedMinLat;
     this.params.normalizedMaxLat = normalizedMaxLat;
     this.params.normalizedMinLon = normalizedMinLon;
     this.params.normalizedMaxLon = normalizedMaxLon;
     // console.log(`normalizedMinLat: ${this.params.normalizedMinLat}\nnormalizedMaxLat: ${this.params.normalizedMaxLat}\nnormalizedMinLon: ${this.params.normalizedMinLon}\nnormalizedMaxLon: ${this.params.normalizedMaxLon}`);
-
   }
 
 
@@ -599,9 +626,16 @@ export class Main {
         doLater(this.initContents, 100);
       });
 
+
+    gui
+      .add(this.params, "totalPointCount")
+      .name(navigator.language.startsWith("ja") ? "総ポイント数" : "totalPointCount")
+      .listen()
+      .disable();
+
     gui
       .add(this.params, "pointCount")
-      .name(navigator.language.startsWith("ja") ? "ポイントクラウド数" : "pointCount")
+      .name(navigator.language.startsWith("ja") ? "表示ポイント数" : "pointCount")
       .listen()
       .disable();
 
@@ -789,9 +823,9 @@ export class Main {
     // ルート領域を作成
     const quadtree = new Quadtree(bounds);
 
-    // normalizedDepthMapDataは配列で、各要素は以下のようなオブジェクト
+    // depthMapDataは配列で、各要素は以下のようなオブジェクト
     // [ {lat: 67.88624331335313, lon: -81.94761236723025, depth: -21.1785}, {...}, ... ]
-    this.params.normalizedDepthMapData.forEach((d) => {
+    this.params.depthMapData.forEach((d) => {
       quadtree.insert(d);  // ルート領域にデータを追加する
     });
 
@@ -1185,30 +1219,6 @@ export class Main {
     });
 
     return shapes;
-  }
-
-
-  // 経度経度を画面表示用に正規化する
-  normalizeCoordinates = ([lon, lat]) => {
-    const scale = this.params.xzScale;
-    const latCenter = (this.params.maxLat + this.params.minLat) / 2;
-    const lonCenter = (this.params.maxLon + this.params.minLon) / 2;
-    return [
-      (lon - lonCenter) * scale,
-      (lat - latCenter) * scale
-    ];
-  }
-
-
-  // 元の座標系に戻す
-  inverseNormalizeCoordinates = (x, z) => {
-    const scale = this.params.xzScale;
-    const latCenter = (this.params.maxLat + this.params.minLat) / 2;
-    const lonCenter = (this.params.maxLon + this.params.minLon) / 2;
-    return [
-      x / scale + lonCenter,
-      z / scale + latCenter
-    ];
   }
 
 
