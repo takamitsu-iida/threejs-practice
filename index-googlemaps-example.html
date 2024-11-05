@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="shortcut icon" type="image/x-icon" href="./static/site/img/favicon.ico">
+
+  <title>Google maps overlay</title>
+
+  <style type="text/css">
+    * {
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 62.5%;
+    }
+
+    body {
+      font-size: 1.4em;
+      font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+      overflow: hidden;
+    }
+
+    #threejsContainer {
+      /* absoluteは位置指定可能な浮き上がった要素 */
+      position: absolute;
+      /* top, leftは親要素からの相対位置 */
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #statsjsContainer {
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      margin: 0px;
+      padding: 0px;
+      border: 0px;
+      z-index: 990;
+    }
+
+    #guiContainer {
+      position: absolute;
+      top: 0px;
+      right: 0px;
+      margin: 0px;
+      padding: 0px;
+      border: 0px;
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <div id="threejsContainer"></div>
+  <div id="statsjsContainer"></div>
+  <div id="guiContainer"></div>
+
+</body>
+
+<!-- topojson -->
+<script src="./static/libs/topojson/topojson.min.js"></script>
+
+<!-- three.js -->
+<script type="importmap">
+  {
+    "imports": {
+      "three": "./static/build/three.module.js",
+      "three/libs/": "./static/libs/",
+      "three/controls/": "./static/controls/",
+      "@googlemaps/three": "./static/libs/googlemaps/index.esm.js"
+    }
+  }
+</script>
+
+<script type="module">
+  import WebGL from './static/libs/capabilities/WebGL.js';
+  import { Main } from "./static/site/js/googlemaps-example.js";
+
+  window.addEventListener("load", () => {
+    if (WebGL.isWebGL2Available()) {
+      new Main();
+    } else {
+      document.getElementById("threejsContainer").appendChild(WebGL.getWebGLErrorMessage());
+    }
+  });
+</script>
+
+</html>
