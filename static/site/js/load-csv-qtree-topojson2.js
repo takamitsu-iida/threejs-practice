@@ -1233,7 +1233,7 @@ export class Main {
     // ExtrudeGeometryに渡すdepthパラメータ（厚み）
     const depth = 1.0;
 
-    // カスタムジオメトリを作成
+    // ExtrudeGeometryで厚みを持たせる
     const geometry = new THREE.ExtrudeGeometry(shapes, {
       depth: depth,
       bevelEnabled: true,   // エッジを斜めにする
@@ -1244,15 +1244,18 @@ export class Main {
 
     // XZ平面化
     // 回転の向きに注意！
-    // Lat方向の座標をマイナスに正規化しているので、奥側に倒すように回転させる
+    // Lat方向（Z軸方向）の座標をマイナスに正規化しているので、奥側に倒すように回転させる
+    // つまり、画面には裏面が見えている
     geometry.rotateX(Math.PI / 2);
 
-    // 地図領域は海底地形図の倍の大きさになるようにクリッピングする
+    // 地図は大きすぎるので海底地形図の倍の大きさになるようにクリッピングする
     const clippingSize = this.params.xzGridSize;
 
     // マテリアル、ここでは適当にMeshStandardMaterialを使う
     const material = new THREE.MeshStandardMaterial({
       color: 0xf0f0f0,
+
+      // 透明にしない
       // transparent: true,
       // depthWrite: false,
       // opacity: 0.9,
@@ -1276,12 +1279,12 @@ export class Main {
 
 
   renderDepth = () => {
-    // マウス位置が変わっていない場合は処理をスキップ
+    // 前フレーム時点でのマウス位置から変わっていないなら処理をスキップ
     if (this.mousePosition.equals(this.previousMousePosition)) {
       return;
     }
 
-    // 前回のマウス位置を更新
+    // 前フレーム時点のマウス位置を更新
     this.previousMousePosition.copy(this.mousePosition);
 
     // レイキャストを使用してマウスカーソルの位置を取得
@@ -1396,7 +1399,7 @@ export class Main {
     // ラインのマテリアル
     const material = new THREE.LineBasicMaterial({ color: 0xffffff });
 
-    // 原点
+    // 開始点は原点からちょっと浮かせる（地図が厚みを持っているため）
     const start = new THREE.Vector3(0, 1.1, 0);
 
     // 横線を追加
