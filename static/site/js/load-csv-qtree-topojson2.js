@@ -343,10 +343,12 @@ export class Main {
     // console.log(`minLat: ${minLat}\nmaxLat: ${maxLat}\nminLon: ${minLon}\nmaxLon: ${maxLon}`);
 
     // 後から参照できるように保存しておく
-    this.params.minLat = minLat;
-    this.params.maxLat = maxLat;
     this.params.minLon = minLon;
     this.params.maxLon = maxLon;
+    this.params.minLat = minLat;
+    this.params.maxLat = maxLat;
+    this.params.centerLon = (minLon + maxLon) / 2;
+    this.params.centerLat = (minLat + maxLat) / 2;
 
     // 全部で何個のデータがあるか
     this.params.totalPointCount = dataList.length;
@@ -364,26 +366,27 @@ export class Main {
   // Topojsonの経度経度を画面表示用に正規化する
   // Topojsonで作成するシェイプはXY平面からXZ平面に向きを変えるときに
   // geometry.rotateX(-Math.PI / 2);
-  // という向きに回転させるので、latをマイナスにする必要はない
+  // という向きで回転させるので、latをマイナスにする必要はない
   normalizeTopojsonCoordinates = ([lon, lat]) => {
     const scale = this.params.xzScale;
-    const latCenter = (this.params.maxLat + this.params.minLat) / 2;
-    const lonCenter = (this.params.maxLon + this.params.minLon) / 2;
+    const centerLon = this.params.centerLon;
+    const centerLat = this.params.centerLat;
     return [
-      (lon - lonCenter) * scale,
-      (lat - latCenter) * scale
+      (lon - centerLon) * scale,
+      (lat - centerLat) * scale
     ];
   }
 
 
   // normalizeDepthMapData()で行っている正規化をメソッド化
+  // Three.jsのZ軸の向きが手前方向なので、緯度方向はマイナスにする必要がある
   normalizeCoordinates = ([lon, lat]) => {
     const scale = this.params.xzScale;
-    const latCenter = (this.params.maxLat + this.params.minLat) / 2;
-    const lonCenter = (this.params.maxLon + this.params.minLon) / 2;
+    const centerLon = this.params.centerLon;
+    const centerLat = this.params.centerLat;
     return [
-      (lon - lonCenter) * scale,
-      -1 * (lat - latCenter) * scale
+      (lon - centerLon) * scale,
+      -1 * (lat - centerLat) * scale
     ];
   }
 
@@ -391,20 +394,20 @@ export class Main {
   // normalizeDepthMapData()で行っている正規化の逆変換
   inverseNormalizeCoordinates = (x, z) => {
     const scale = this.params.xzScale;
-    const latCenter = (this.params.maxLat + this.params.minLat) / 2;
-    const lonCenter = (this.params.maxLon + this.params.minLon) / 2;
+    const centerLon = this.params.centerLon;
+    const centerLat = this.params.centerLat;
     return [
-      x / scale + lonCenter,
-      -1 * z / scale + latCenter
+      x / scale + centerLon,
+      -1 * z / scale + centerLat
     ];
   }
 
 
   normalizeDepthMapData = () => {
 
-    // 緯度経度の中央値を調べる
-    const lonCenter = (this.params.minLon + this.params.maxLon) / 2;
-    const latCenter = (this.params.minLat + this.params.maxLat) / 2;
+    // 緯度経度の中央値を取り出す
+    const centerLon = this.params.centerLon;
+    const centerLat = this.params.centerLat;
 
     // 拡大率
     const scale = this.params.xzScale;
@@ -420,17 +423,17 @@ export class Main {
 
       // 経度(lon)はX軸に対応する
       // センターに寄せて、スケールをかける
-      const lon = (d.lon - lonCenter) * scale;
+      const lon = (d.lon - centerLon) * scale;
 
       // 緯度(lat)はZ軸に対応する
       // Three.jsのZ軸の向きと、地図の南北は逆になるのでマイナスをかける
-      const lat = -1 * (d.lat - latCenter) * scale;
+      const lat = -1 * (d.lat - centerLat) * scale;
 
       // 深さ(depth)はY軸に対応する
       // 深さなので、マイナスをかける
       const depth = -1 * d.depth;
 
-      // 正規化したデータを保存
+      // 正規化したデータを上書きで保存
       d.lat = lat;
       d.lon = lon;
       d.depth = depth;
