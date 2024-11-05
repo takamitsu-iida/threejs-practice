@@ -363,23 +363,13 @@ export class Main {
   }
 
 
-  // Topojsonの経度経度を画面表示用に正規化する
-  // Topojsonで作成するシェイプはXY平面からXZ平面に向きを変えるときに
-  // geometry.rotateX(-Math.PI / 2);
-  // という向きで回転させるので、latをマイナスにする必要はない
-  normalizeTopojsonCoordinates = ([lon, lat]) => {
-    const scale = this.params.xzScale;
-    const centerLon = this.params.centerLon;
-    const centerLat = this.params.centerLat;
-    return [
-      (lon - centerLon) * scale,
-      (lat - centerLat) * scale
-    ];
-  }
-
-
   // normalizeDepthMapData()で行っている正規化をメソッド化
   // Three.jsのZ軸の向きが手前方向なので、緯度方向はマイナスにする必要がある
+  // これでTopojsonの座標を正規化した場合、
+  // シェイプをXY平面からXZ平面に向きを変えるときに
+  //   geometry.rotateX(Math.PI / 2);
+  // という向きにしないと、地図が上下逆さまになる
+  //
   normalizeCoordinates = ([lon, lat]) => {
     const scale = this.params.xzScale;
     const centerLon = this.params.centerLon;
@@ -1156,7 +1146,7 @@ export class Main {
 
         let coord;
         coord = coordinates[0];
-        coord = this.normalizeTopojsonCoordinates(coord);
+        coord = this.normalizeCoordinates(coord);
 
         // パスを開始
         shape.moveTo(
@@ -1166,7 +1156,7 @@ export class Main {
 
         for (let i = 1; i < coordinates.length; i++) {
           coord = coordinates[i];
-          coord = this.normalizeTopojsonCoordinates(coord);
+          coord = this.normalizeCoordinates(coord);
 
           // 線分を追加
           shape.lineTo(
@@ -1186,7 +1176,7 @@ export class Main {
 
         let coord;
         coord = coordinates[0];
-        coord = this.normalizeTopojsonCoordinates(coord);
+        coord = this.normalizeCoordinates(coord);
 
         shape.moveTo(
           coord[0],
@@ -1195,7 +1185,7 @@ export class Main {
 
         for (let i = 1; i < coordinates.length; i++) {
           coord = coordinates[i];
-          coord = this.normalizeTopojsonCoordinates(coord);
+          coord = this.normalizeCoordinates(coord);
           shape.lineTo(
             coord[0],
             coord[1]
@@ -1213,7 +1203,7 @@ export class Main {
 
           let coord;
           coord = coordinates[0];
-          coord = this.normalizeTopojsonCoordinates(coord);
+          coord = this.normalizeCoordinates(coord);
 
           shape.moveTo(
             coord[0],
@@ -1222,7 +1212,7 @@ export class Main {
 
           for (let i = 1; i < coordinates.length; i++) {
             coord = coordinates[i];
-            coord = this.normalizeTopojsonCoordinates(coord);
+            coord = this.normalizeCoordinates(coord);
             shape.lineTo(
               coord[0],
               coord[1]
@@ -1253,10 +1243,9 @@ export class Main {
     });
 
     // XZ平面化
-    geometry.rotateX(-Math.PI / 2);
-
-    // 上下位置を調整（このあと下半分はクリッピングする）
-    geometry.translate(0, -depth / 2, 0);
+    // 回転の向きに注意！
+    // Lat方向の座標をマイナスに正規化しているので、奥側に倒すように回転させる
+    geometry.rotateX(Math.PI / 2);
 
     // 地図領域は海底地形図の倍の大きさになるようにクリッピングする
     const clippingSize = this.params.xzGridSize;
