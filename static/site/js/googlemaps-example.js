@@ -75,27 +75,25 @@ export class Main {
     // 全てを削除した状態で描画
     this.renderer.render(this.scene, this.camera);
 
-    const map = new google.maps.Map(document.getElementById("map"), {
-      center: { lat: 35.689, lng: 139.692 },
-      zoom: 16,
-      mapTypeId: "satellite",
-    });
-
-    const overlay = new ThreeJSOverlayView({
-      map,
-      upAxis: "Z",
-      anchor: { lat: 35.689, lng: 139.692, altitude: 0 },
-    });
-
-
-    overlay.setAnchor({ lat: 35.689, lng: 139.692, altitude: 0 });
-    overlay.setUpAxis("Z");
-    // can also be specified as Vector3:
-    overlay.setUpAxis(new Vector3(0, 0, 1));
+    this.initMap();
 
     // フレーム毎の処理
     this.render();
   }
+
+
+  initMap = () => {
+
+      // Google Mapsのオーバーレイビューを作成
+      overlay = new google.maps.OverlayView();
+      overlay.onAdd = function () {
+        const panes = this.getPanes();
+        panes.overlayLayer.appendChild(renderer.domElement);
+      };
+
+
+  }
+
 
 
   initThreejs = () => {

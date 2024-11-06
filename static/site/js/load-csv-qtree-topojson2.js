@@ -171,12 +171,12 @@ export class Main {
     normalizedCenterLon: 0,
     normalizedCenterLat: 0,
 
-    // 画面表示する四分木の深さ
-    // 0の場合は1つのエリアにまとめる
-    // 1の場合は4^1=4つのエリアに分割される
-    // 2の場合は4^2=16個のエリアに分割される
-    // 3の場合は4^3=64個のエリアに分割される
+    // 画面表示対象の四分木の深さ
     quadtreeDepth: 0,
+
+    // どこまで深く四分木を分割するか（自動計算）
+    // 1m以下になるまで四分木で分割する
+    maxQuadtreeDepth: 5,
 
     // 四分木の分割パラメータ
     // maxDepthを決めるためのパラメータ
@@ -362,6 +362,15 @@ export class Main {
 
     // このdiffSizeがxzGridSizeになるように係数を計算
     this.params.xzScale = this.params.xzGridSize / diffSize;
+
+    // 四分木で領域を分割するときに、何回分割すれば領域が10m以下になるか
+    // 地球の半径を6371kmとして、1度の差分は6371 * 2 * Math.PI / 360 km
+     // 1度は約111km なので、1m以下にするために1000を掛ける
+    const maxDepth = Math.ceil(Math.log2(diffSize* 111 * 1000 / 10));
+
+    // 最大で10分割に制限しておく
+    this.params.maxQuadtreeDepth = Math.min(maxDepth, 10);
+    // console.log(`maxDepth: ${maxDepth}`);
 
     return dataList;
   }
@@ -654,7 +663,7 @@ export class Main {
       .add(this.params, "quadtreeDepth")
       .name(navigator.language.startsWith("ja") ? "表示対象の四分木の深さ" : "quadtreeDepth")
       .min(0)
-      .max(5)
+      .max(6)
       .step(1)
       .onFinishChange(() => {
         doLater(this.initContents, 100);
@@ -814,11 +823,8 @@ export class Main {
     const maxLon = this.params.normalizedMaxLon;
     const maxLat = this.params.normalizedMaxLat;
 
-    // 四分木の分割パラメータを調整する
-    const divideParam = this.params.divideParam;
-    const maxDivision = Math.ceil(Math.max((maxLon - minLon) / divideParam, (maxLat - minLat) / divideParam));
-    // console.log(`maxdivision: ${maxDivision}`);
-    Quadtree.MAX_DIVISION = maxDivision;
+    // 最大の分割数
+    Quadtree.MAX_DIVISION = this.params.maxQuadtreeDepth;
 
     // 領域内に含まれる最大の点の数、これを超えていたらさらに小さく分割する
     Quadtree.MAX_POINTS = this.params.maxPoints;
