@@ -134,9 +134,6 @@ export class Main {
     // lil-guiを初期化
     this.initGui();
 
-    // 色の凡例を初期化
-    this.initLegend();
-
     // コンテンツを初期化
     this.initContents();
   }
@@ -461,9 +458,6 @@ export class Main {
       this.renderer.clear();
 
       // 再描画
-      this.renderer.render(this.uiScene, this.uiCamera);
-
-      // UIシーンをレンダリング
       this.renderer.render(this.scene, this.camera);
     }
 
@@ -725,72 +719,6 @@ export class Main {
     }
     return color;
   }
-
-
-  initLegend = () => {
-
-    // 色の凡例を表示するシーン
-    this.uiScene = new THREE.Scene();
-
-    // 色の凡例を表示する平行投影カメラ
-    this.uiCamera = new THREE.OrthographicCamera(
-      -1,  // left
-      1,   // right
-      1,   // top
-      -1,  // bottom
-      0,   // near
-      2    // far
-    );
-
-    // カメラの位置を変えることでスプライトの表示位置を変える
-    this.uiCamera.position.set(0.9, 0, 1.0);
-
-    // 凡例の幅と高さ
-    const width = 50;
-    const height = 500;
-
-    // キャンバスを作成
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-
-    // グラデーションを作成
-    const gradient = context.createLinearGradient(0, 0, 0, height);
-    const depthSteps = [
-      -1, -2, -3, -4, -5, -6, -8, -10, -12, -16, -20, -25, -30, -35, -40, -45, -50, -55, -60
-    ];
-
-    depthSteps.forEach((depth, index) => {
-      const color = this.getDepthColor(depth);
-      gradient.addColorStop(index / (depthSteps.length - 1), `#${color.getHexString()}`);
-    });
-
-    // グラデーションを塗りつぶす
-    context.fillStyle = gradient;
-    context.fillRect(0, 0, width, height);
-
-    // 深さのラベルを追加
-    context.fillStyle = '#000';
-    context.font = '10px Arial';
-    context.textAlign = 'right';
-    context.textBaseline = 'middle';
-    depthSteps.forEach((depth, index) => {
-      const y = (index / (depthSteps.length - 1)) * height;
-      context.fillText(`${depth}m`, width - 10, y + 10);
-    });
-
-    // スプライトを作成
-    const texture = new THREE.CanvasTexture(canvas);
-    const material = new THREE.SpriteMaterial({ map: texture });
-    const sprite = new THREE.Sprite(material);
-    sprite.material.map.colorSpace = THREE.SRGBColorSpace;
-    sprite.scale.x = 0.125;
-
-    // シーンに追加
-    this.uiScene.add(sprite);
-  }
-
 
 }
 
