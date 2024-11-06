@@ -12,7 +12,7 @@ Github Pagesを使うために公開範囲をPublicにしていますが、こ�
 どうしても図としての表現が困難になってくるのと、
 JavaScriptだけで描画すると重たくなってしまうのを解決したい。
 
-試しに5-Stage CLOS ネットワークを3D作図したものがこれです。
+試しに5-Stage CLOS ネットワークを3D作図したものがこれです（画像クリックでライブデモ）。
 
 [![ScreenImage](./asset/index-nwdiagram.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-nwdiagram.html)
 
@@ -94,6 +94,8 @@ JavaScriptだけで描画すると重たくなってしまうのを解決した�
 
 なかなかいい感じに仕上がったと思います。
 
+でも冷静に考えてみると、毎回10万行のCSVをダウンロードしてブラウザの中でデータの間引きと補間を実行するのは無駄なので、事前にデータ処理をすませておくべきですね。
+
 <br>
 
 [![ScreenImage](./asset/index-load-csv-qtree-topojson2.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-csv-qtree-topojson2.html)
@@ -113,12 +115,12 @@ JavaScriptだけで描画すると重たくなってしまうのを解決した�
 
 TODO
 
-- 釣りに行ってデータ収集する
+- ボート釣りに行って水深データを収集する
 - 四分木の実装をもう少しまともにしたい（線形四分木にした方がいいかな？）
-- ポイント数が5万を超えないように、間引きと補間を自動調整できるようにしたい（ズームレベルに応じて表示するポイント数を変更したい）
-- topojsonを使ってしまうと、その場所専用になってしまうのでGoogle Mapと連携できないか模索したい
+- ポイント数が5万を超えないように、間引きと補間をうまく調整できるようにしたい
+- topojsonを使ってしまうとその場所専用になってしまうのでGoogle Mapsと連携できないか模索したい
 
-Google Mapとの連携はこれを使えばいいのかな？
+Google Mapsとの連携はこれを使えばいいのかな？
 
 https://github.com/googlemaps/js-three?tab=readme-ov-file
 
