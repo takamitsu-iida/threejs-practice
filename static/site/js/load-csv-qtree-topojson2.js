@@ -155,17 +155,21 @@ export class Main {
     autoRotate: false,
     autoRotateSpeed: 1.0,
 
-    // 緯度経度の最大値、最小値（CSVから自動で読み取る）
-    minLat: 0,
-    maxLat: 0,
+    // 緯度経度の最小値、最大値、中央値（CSVから自動で読み取る）
     minLon: 0,
+    minLat: 0,
     maxLon: 0,
+    maxLat: 0,
+    centerLon: 0,
+    centerLat: 0,
 
-    // 正規化した緯度経度の最大値、最小値（自動計算）
-    normalizedMinLat: 0,
-    normalizedMaxLat: 0,
+    // 画面表示用に正規化した緯度経度の最大値、最小値（自動計算）
     normalizedMinLon: 0,
+    normalizedMinLat: 0,
     normalizedMaxLon: 0,
+    normalizedMaxLat: 0,
+    normalizedCenterLon: 0,
+    normalizedCenterLat: 0,
 
     // 画面表示する四分木の深さ
     // 0の場合は1つのエリアにまとめる
@@ -435,10 +439,13 @@ export class Main {
       normalizedMaxLon = Math.max(normalizedMaxLon, lon);
     });
 
+    // 正規化した最小値、最大値、中央値を保存しておく
     this.params.normalizedMinLat = normalizedMinLat;
     this.params.normalizedMaxLat = normalizedMaxLat;
     this.params.normalizedMinLon = normalizedMinLon;
     this.params.normalizedMaxLon = normalizedMaxLon;
+    this.params.normalizedCenterLon = (normalizedMinLon + normalizedMaxLon) / 2;
+    this.params.normalizedCenterLat = (normalizedMinLat + normalizedMaxLat) / 2;
     // console.log(`normalizedMinLat: ${this.params.normalizedMinLat}\nnormalizedMaxLat: ${this.params.normalizedMaxLat}\nnormalizedMinLon: ${this.params.normalizedMinLon}\nnormalizedMaxLon: ${this.params.normalizedMaxLon}`);
   }
 
@@ -563,7 +570,7 @@ export class Main {
       this.mousePosition.y = -(event.clientY / this.sizes.height) * 2 + 1;
     }, false);
 
-    // CSS2DRenderer
+    // ラベル表示に利用するCSS2DRendererを初期化
     this.cssRenderer = new CSS2DRenderer();
     this.cssRenderer.setSize(this.sizes.width, this.sizes.height);
     this.cssRenderer.domElement.style.position = 'absolute';
@@ -795,7 +802,7 @@ export class Main {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(this.sizes.width, this.sizes.height);
 
-    // CSS2DRendererもリサイズする
+    // CSS2DRendererにもサイズを反映する
     this.cssRenderer.setSize(this.sizes.width, this.sizes.height);
   };
 
