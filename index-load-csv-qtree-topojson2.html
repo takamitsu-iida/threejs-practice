@@ -127,6 +127,7 @@
       background-size: contain;
       background-repeat: no-repeat;
       transform-origin: center;
+      pointer-events: none;
     }
 
     .landmark-label {
@@ -137,7 +138,6 @@
       padding: 6px;
       border-radius: 3px;
       pointer-events: none;
-      transform: translateY(50%);
     }
 
     .scale-label {
@@ -291,7 +291,26 @@
 
   window.addEventListener("load", () => {
     if (WebGL.isWebGL2Available()) {
-      new Main();
+      const landmarks = [
+        { lon: 139.60695032, lat: 35.16200000, depth: -10, name_ja: 'ヤギ瀬', name: 'Yagise' },
+        { lon: 139.61539000, lat: 35.16160000, depth: 0, name_ja: 'みなとや', name: 'Minatoya' },
+        { lon: 139.61994200, lat: 35.16450000, depth: 0, name_ja: '小網代湾', name: 'Koamijiro' },
+        { lon: 139.61595853, lat: 35.15950000, depth: 0, name_ja: '油壷湾', name: 'Aburatsubo' },
+      ];
+
+      const params = {
+        landmarks: landmarks,  // default: []
+        depthMapPath: "./static/data/depth_map_data_edited.csv",
+        topojsonPath: "./static/data/aburatsubo.json",
+        topojsonObjectName: "miura",
+        wireframe: false,
+        autoRotate: false,
+        showPointCloud: true,
+        showLandmarks: true,
+        showScale: true,
+        showCompass: true,
+      };
+      new Main(params);
     } else {
       document.getElementById("threejsContainer").appendChild(WebGL.getWebGLErrorMessage());
     }

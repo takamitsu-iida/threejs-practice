@@ -42,15 +42,6 @@ HTMLではこのようなimportmapを使う。
 </script>
 */
 
-
-const LANDMARKS = [
-  { lon: 139.60695032, lat: 35.16200000, depth: -10, name_ja: 'ヤギ瀬', name: 'Yagise' },
-  { lon: 139.61539000, lat: 35.16160000, depth: 0, name_ja: 'みなとや', name: 'Minatoya' },
-  { lon: 139.61994200, lat: 35.16450000, depth: 0, name_ja: '小網代湾', name: 'Koamijiro' },
-  { lon: 139.61595853, lat: 35.15950000, depth: 0, name_ja: '油壷湾', name: 'Aburatsubo' },
-];
-
-
 export class Main {
 
   // Three.jsを表示するコンテナのHTML要素
@@ -69,6 +60,7 @@ export class Main {
   coordinatesContainer;
 
   // 方位磁針を表示するHTML要素
+  compassContainer;
   compassElement;
 
   // Three.jsの各種インスタンス
@@ -88,10 +80,10 @@ export class Main {
   previousMousePosition = new THREE.Vector2();
 
   // カメラの向き(renderCompassで利用)
-  cameraDirection = new THREE.Vector3();
+  cameraDirection;
 
-  // 前フレーム時点でのカメラの向き(renderDepthで利用)
-  previousCameraDirection = new THREE.Vector3();
+  // 前フレーム時点でのカメラの向き(renderCompassで利用)
+  previousCameraDirection;
 
   // ラベル表示用CSS2DRenderer
   cssRenderer;
@@ -131,7 +123,7 @@ export class Main {
     topojsonData: null,
 
     // topojsonデータに含まれるobjectName（三浦市のデータなら"miura"）
-    objectName: "miura",
+    topojsonObjectName: "miura",
 
     // topojsonを変換してGeoJSONデータにしたもの（いまは未使用）
     geojsonData: null,
@@ -178,17 +170,27 @@ export class Main {
     // 1m以下になるまで四分木で分割する
     maxQuadtreeDepth: 5,
 
-    // 四分木の分割パラメータ
-    // maxDepthを決めるためのパラメータ
-    divideParam: 5,  // 見栄えに変化がないので5のままでよいかな？
-
     // 四分木の領域に何個の点があった場合に、さらに小さく四分木分割するか
     // この値を大きくすると、四分木の深さが浅くなり、描画するポイント数は減る
     // 総数5万ポイントくらいに抑えるように調整する
     maxPoints: 6,
 
+    // ランドマークのオブジェクト配列
+    // [{ lon: 139.60695032, lat: 35.16200000, depth: -10, name_ja: 'ヤギ瀬', name: 'Yagise' },
+    //  { lon: 139.61539000, lat: 35.16160000, depth: 0, name_ja: 'みなとや', name: 'Minatoya' },...]
+    landmarks: [],
+
+    // ランドマークを表示する？
+    showLandmarks: true,
+
     // ランドマークラベルの高さ
     labelY: 20,
+
+    // 縮尺を表示する？
+    showScale: true,
+
+    // コンパスを表示する？
+    showCompass: true,
   }
 
   // 地形図のポイントクラウド（guiで表示を操作するためにインスタンス変数にする）
@@ -270,7 +272,7 @@ export class Main {
     this.initDelaunay();
 
     // topojsonデータからシェイプを作成
-    const shapes = this.createShapesFromTopojson(this.params.topojsonData, this.params.objectName);
+    const shapes = this.createShapesFromTopojson(this.params.topojsonData, this.params.topojsonObjectName);
 
     // シェイプの配列からメッシュを作成
     this.createMeshFromShapes(shapes);
@@ -280,6 +282,9 @@ export class Main {
 
     // 縮尺を表示
     this.initScale();
+
+    // 方位磁針を表示
+    this.initCompass();
 
     // フレーム毎の処理
     this.render();
@@ -479,8 +484,8 @@ export class Main {
         new Error('No objects property in jsonData');
       }
 
-      if (!topojsonData.objects.hasOwnProperty(this.params.objectName)) {
-        new Error(`No ${this.params.objectName} property in objects`);
+      if (!topojsonData.objects.hasOwnProperty(this.params.topojsonObjectName)) {
+        new Error(`No ${this.params.topojsonObjectName} property in objects`);
       }
 
       // jsonデータを保存
@@ -510,9 +515,6 @@ export class Main {
 
     // 緯度経度を表示するHTML要素
     this.coordinatesContainer = document.getElementById("coordinatesContainer");
-
-    // 方位磁針を表示する要素
-    this.compassElement = document.getElementById('compass');
 
     // resizeイベントのハンドラを登録
     window.addEventListener("resize", this.onWindowResize, false);
@@ -687,10 +689,12 @@ export class Main {
       },
 
       'landmark': () => {
+        this.params.showLandmarks = !this.params.showLandmarks;
         this.camera.layers.toggle(1);
       },
 
       'scale': () => {
+        this.params.showScale = !this.params.showScale;
         this.camera.layers.toggle(2);
       },
     };
@@ -1341,7 +1345,27 @@ export class Main {
   }
 
 
+  initCompass = () => {
+    // 方位磁針を表示するコンテナ要素
+    this.compassContainer = document.getElementById('compassContainer');
+    this.compassContainer.style.display = this.params.showCompass ? 'block' : 'none';
+
+    // 方位磁針を表示する要素
+    this.compassElement = document.getElementById('compass');
+
+    // カメラの向きを保存するVector3
+    this.cameraDirection = new THREE.Vector3();
+
+    // 前フレーム時点のカメラの向きを保存するVector3
+    this.previousCameraDirection = new THREE.Vector3();
+  }
+
+
   renderCompass = () => {
+    if (this.params.showCompass === false || !this.compassElement) {
+      return;
+    }
+
     // カメラの向きを取得
     this.camera.getWorldDirection(this.cameraDirection);
 
@@ -1365,7 +1389,7 @@ export class Main {
   initLandmarks = () => {
     const LAYER = 1;  // ランドマークを表示するレイヤー
 
-    LANDMARKS.forEach((landmark) => {
+    this.params.landmarks.forEach((landmark) => {
       // 正規化した緯度経度を取得
       let [lon, lat] = this.normalizeCoordinates([landmark.lon, landmark.lat]);
 
@@ -1396,7 +1420,17 @@ export class Main {
       points.push(new THREE.Vector3(lon, position.y, lat));
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
       const line = new THREE.Line(geometry, material);
+
+      // ラインを表示するレイヤーを設定
       line.layers.set(LAYER);
+
+      // 初期状態で表示するかどうか
+      if (this.params.showLandmarks) {
+        this.camera.layers.enable(LAYER);
+      } else {
+        this.camera.layers.disable(LAYER);
+      }
+
       this.scene.add(line);
     });
   }
@@ -1473,6 +1507,12 @@ export class Main {
       cssObject.position.y = 4;
       cssObject.layers.set(LAYER);
       this.scene.add(cssObject);
+    }
+
+    if (this.params.showScale) {
+      this.camera.layers.enable(LAYER);
+    } else {
+      this.camera.layers.disable(LAYER);
     }
 
   }
