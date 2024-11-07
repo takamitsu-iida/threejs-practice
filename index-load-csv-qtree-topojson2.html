@@ -169,6 +169,20 @@
       text-decoration: underline;
     }
 
+    #debugContainer {
+      position: absolute;
+      bottom: 10px;
+      right: 100px;
+      margin: 0px;
+      padding: 0px;
+      border: 0px;
+      z-index: 999;
+      color: gray;
+      font-family: 'Roboto', sans-serif;
+      font-size: 12px;
+      pointer-events: none;
+    }
+
     /*
     ネットワーク経由でデータを取得する場合にロード中を表示
     <div id="loadingContainer">
@@ -235,6 +249,10 @@
       #coordinatesContainer {
         font-size: 1.0rem;
       }
+
+      #debugContainer {
+        display: none;
+      }
     }
   </style>
 
@@ -267,6 +285,8 @@
     <div id="coordinatesContainer"></div>
   </div>
 
+  <div id="debugContainer"></div>
+
 </body>
 
 <!-- topojson -->
@@ -291,6 +311,7 @@
 
   window.addEventListener("load", () => {
     if (WebGL.isWebGL2Available()) {
+
       const landmarks = [
         { lon: 139.60695032, lat: 35.16200000, depth: -10, name_ja: 'ヤギ瀬', name: 'Yagise' },
         { lon: 139.61539000, lat: 35.16160000, depth: 0, name_ja: 'みなとや', name: 'Minatoya' },
@@ -299,10 +320,7 @@
       ];
 
       const params = {
-        landmarks: landmarks,  // default: []
-        depthMapPath: "./static/data/depth_map_data_edited.csv",
-        topojsonPath: "./static/data/aburatsubo.json",
-        topojsonObjectName: "miura",
+        landmarks: landmarks,  // default []
         wireframe: false,
         autoRotate: false,
         showPointCloud: true,
@@ -310,7 +328,9 @@
         showScale: true,
         showCompass: true,
       };
+
       new Main(params);
+
     } else {
       document.getElementById("threejsContainer").appendChild(WebGL.getWebGLErrorMessage());
     }

@@ -70,14 +70,16 @@ export class Main {
   controller;
   statsjs;
 
-  // マウス座標にあるオブジェクトを取得するためのraycaster
+  // マウス座標にあるオブジェクトを取得するためのraycaster(renderDepthで利用)
   raycaster = new THREE.Raycaster();
 
-  // マウス座標(renderDepthで利用)
-  mousePosition = new THREE.Vector2();
+  // マウス座標(renderDepthで利用、mousemoveイベントで値をセット)
+  // THREE.Vector2();
+  mousePosition;
 
   // 前フレーム時点でのマウス座標(renderDepthで利用)
-  previousMousePosition = new THREE.Vector2();
+  // THREE.Vector2();
+  previousMousePosition;
 
   // カメラの向き(renderCompassで利用)
   cameraDirection;
@@ -134,7 +136,7 @@ export class Main {
     // ポイントクラウドのパーティクルサイズ
     pointSize: 0.2,
 
-    // ポイントクラウドの数（readonly）
+    // ポイントクラウドの数（自動計算）
     pointCount: 0,
 
     // CSVに何個のデータがあるか（CSV読み取り時に自動計算）
@@ -576,6 +578,8 @@ export class Main {
     this.scene.add(light);
 
     // 正規化したマウス座標を保存
+    this.mousePosition = new THREE.Vector2();
+    this.previousMousePosition = new THREE.Vector2();
     this.renderer.domElement.addEventListener("mousemove", (event) => {
       this.mousePosition.x = (event.clientX / this.sizes.width) * 2 - 1;
       this.mousePosition.y = -(event.clientY / this.sizes.height) * 2 + 1;
@@ -647,19 +651,6 @@ export class Main {
       .onFinishChange(() => {
         doLater(this.initContents, 100);
       });
-
-
-    gui
-      .add(this.params, "totalPointCount")
-      .name(navigator.language.startsWith("ja") ? "総ポイント数" : "totalPointCount")
-      .listen()
-      .disable();
-
-    gui
-      .add(this.params, "pointCount")
-      .name(navigator.language.startsWith("ja") ? "表示ポイント数" : "pointCount")
-      .listen()
-      .disable();
 
     gui
       .add(this.params, "quadtreeDepth")
@@ -1000,6 +991,7 @@ export class Main {
     });
 
     // console.log(`${pointCount} points are created`);
+    document.getElementById('debugContainer').textContent = `${this.params.pointCount.toLocaleString()} displayed points / ${this.params.totalPointCount.toLocaleString()} total points`;
 
     // インスタンス変数に保存
     this.pointMeshList = pointMeshList;
@@ -1390,6 +1382,7 @@ export class Main {
     const LAYER = 1;  // ランドマークを表示するレイヤー
 
     this.params.landmarks.forEach((landmark) => {
+
       // 正規化した緯度経度を取得
       let [lon, lat] = this.normalizeCoordinates([landmark.lon, landmark.lat]);
 
@@ -1399,7 +1392,7 @@ export class Main {
       // CSS2DRendererを使用してラベルを作成
       const div = document.createElement('div');
       div.className = 'landmark-label';
-      div.textContent = navigator.language.startsWith('ja') ? landmark.name_ja : landmark.name;
+      div.textContent = (navigator.language.startsWith('ja') && 'name_ja' in landmark) ? landmark.name_ja : landmark.name || '';
       const cssObject = new CSS2DObject(div);
 
       cssObject.position.copy(position);
