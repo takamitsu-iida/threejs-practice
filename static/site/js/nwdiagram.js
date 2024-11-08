@@ -125,6 +125,9 @@ export class ObjectSelection {
       return;
     }
 
+    // 1フレーム前のマウス座標を保存
+    this.previousMousePosition.copy(this.mousePosition);
+
     // カメラからマウス座標に向かって光線を飛ばす
     this.raycaster.setFromCamera(this.mousePosition, camera);
 
