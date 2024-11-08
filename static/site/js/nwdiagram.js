@@ -33,7 +33,8 @@ export class ObjectSelection {
   callbackClick;
 
   // マウス位置
-  mousePosition; // = new THREE.Vector2()
+  mousePosition;  // = new THREE.Vector2()
+  previousMousePosition;  // = new THREE.Vector2()
 
   // スクリーン上のDOM要素
   domElement;
@@ -60,7 +61,8 @@ export class ObjectSelection {
     this.domElement = this.params.hasOwnProperty("domElement") ? this.params.domElement : document;
 
     // マウス位置
-    this.mousePosition = new THREE.Vector2()
+    this.mousePosition = new THREE.Vector2();
+    this.previousMousePosition = new THREE.Vector2();
 
     // mousemoveイベントを登録
     this.domElement.addEventListener('mousemove', this.onMouseMove, false);
@@ -118,6 +120,10 @@ export class ObjectSelection {
 
   // animate()の中でこのrender()関数を呼ぶこと
   render = (scene, camera) => {
+    // マウス座標が変わっていないなら何もしない
+    if (this.mousePosition.equals(this.previousMousePosition)) {
+      return;
+    }
 
     // カメラからマウス座標に向かって光線を飛ばす
     this.raycaster.setFromCamera(this.mousePosition, camera);
@@ -186,7 +192,7 @@ export class ObjectSelection {
 // 2024.07.25 CSS2DRenderer.jsを利用することにしたので使っていないが、
 // こっちの方が性能がよければ復活させる
 //
-export class CanvasLabel {
+class __CanvasLabel {
 
   params;
 
@@ -267,12 +273,10 @@ export class CanvasLabel {
 //
 export class Graph {
 
-  nodes;
-  edges;
+  nodes = [];
+  edges = [];
 
   constructor(elements) {
-    this.nodes = [];
-    this.edges = [];
 
     let eles;
     if (elements === undefined || elements === null) {
@@ -450,7 +454,7 @@ export class FiveStageClosGraph {
   // 初期オプションは引数で上書きされうる
   options = {
     clusters: CLUSTERS_EXAMPLE_1,
-    layout: "circular",
+    layout: "circular",  // "circular" or "sphere"
   };
 
 
@@ -597,6 +601,7 @@ export class FiveStageClosGraph {
   calcLayout() {
     this.sphereLayout();
     this.circularLayout();
+    this.gridLayout();
   }
 
   setLayout(layout) {
@@ -698,7 +703,7 @@ export class FiveStageClosGraph {
   sphereLayout = (options) => {
     options = options || {};
 
-    let tier3Radius = 320;
+    let tier3Radius = 340;
     tier3Radius = options.hasOwnProperty("tier3Radius") ? options.tier3Radius : tier3Radius;
 
     let tier2Radius = 160;
@@ -785,6 +790,86 @@ export class FiveStageClosGraph {
 
     return this;
   }
+
+
+  gridLayout = (options) => {
+    options = options || {};
+
+    // Tier3を列に並べるときの列間隔
+    const clusterGap = options.hasOwnProperty("clusterGap") ? options.clusterGap : 30;
+
+    // Tier3ノード同士の間隔
+    const tier3Gap = options.hasOwnProperty("tier3Gap") ? options.tier3Gap : 30;
+
+    // tier2ノードのY座標
+    const tier2Y = options.hasOwnProperty("tier2Y") ? options.tier2Y : 120;
+
+    // tier1ノードのY座標
+    const tier1Y = options.hasOwnProperty("tier1Y") ? options.tier1Y : 240;
+
+    // tier1ノード同士の間隔
+    const tier1Gap = options.hasOwnProperty("tier1Gap") ? options.tier1Gap : 90;
+
+    // クラスタの数
+    const numClusters = this.clusters.length;
+
+    // 各クラスタについて
+    this.clusters.forEach((cluster, index) => {
+
+      // clusterIdとnumTier3を取り出しておく
+      const clusterId = cluster.clusterId;
+
+      // tier3のノードの数
+      const numTier3 = cluster.numTier3;
+
+      // X座標
+      const x = clusterGap * index - clusterGap * (numClusters - 1) / 2;
+
+      // Y座標
+      const y = 0;
+
+      for (let i = 0; i < numTier3; i++) {
+        const nodeId = `c${clusterId}_t3_${i}`;
+
+        // Z座標
+        const z = tier3Gap * i - tier3Gap * (numTier3 - 1) / 2;
+
+        const n = this.graph.getElementById(nodeId);
+        if (n) {
+          n.data.positions.grid = { x: x, y: y, z: z };
+        }
+      }
+
+      // Tier2ノードの位置を決める
+      for (let i = 0; i < 2; i++) {
+        const nodeId = `c${clusterId}_t2_${i}`;
+
+        // Z座標
+        const z = -1 * tier3Gap * (numTier3 - 1) / 2 + i * (numTier3 - 1) * tier3Gap;
+
+        const n = this.graph.getElementById(nodeId);
+        if (n) {
+          n.data.positions.grid = { x: x, y: tier2Y, z: z };
+        }
+      }
+    });
+
+    // tier1のノードの位置を決める
+    for (let i = 0; i < 4; i++) {
+      const nodeId = `t1_${i}`;
+      const x = tier1Gap * i - tier1Gap * 1.5;
+      const y = tier1Y;
+      const z = 0;
+
+      const n = this.graph.getElementById(nodeId);
+      if (n) {
+        n.data.positions.grid = { x, y, z };
+      }
+    }
+
+    return this;
+  }
+
 
 }
 
@@ -1184,10 +1269,6 @@ export class Diagram {
   // ラベル表示用のCSS2Dレンダラ
   labelRenderer;
 
-  // ライト
-  light1;
-  light2;
-
   // XYZ軸表示
   axesHelper;
 
@@ -1289,13 +1370,16 @@ export class Diagram {
     }
 
     // ライトを初期化
-    this.light1 = new THREE.DirectionalLight(0xFFFFFF, 2.5);
-    this.light1.position.set(1, 1, 1);
-    this.scene.add(this.light1);
+    // 環境光
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
-    this.light2 = new THREE.DirectionalLight(0xFFFFFF, 1.5);
-    this.light2.position.set(-1, -1, 1);
-    this.scene.add(this.light2);
+    const light1 = new THREE.DirectionalLight(0xFFFFFF, 1.5);
+    light1.position.set(1, 1, 1);
+    this.scene.add(light1);
+
+    // const light2 = new THREE.DirectionalLight(0xFFFFFF, 1.5);
+    // light2.position.set(-1, -1, 1);
+    // this.scene.add(light2);
 
     // 軸を表示するヘルパーを初期化
     //
@@ -1587,7 +1671,7 @@ export class Diagram {
 
     // クリックでレイアウト変更
     {
-      ['idLayout1', 'idLayout2'].forEach((id) => {
+      ['idLayout1', 'idLayout2', 'idLayout3'].forEach((id) => {
         const tag = document.getElementById(id);
         if (tag) {
           tag.addEventListener('click', (evt) => {
@@ -1604,6 +1688,9 @@ export class Diagram {
                 break;
               case 'idLayout2':
                 this.graphParams.layout = "sphere";
+                break;
+              case 'idLayout3':
+                this.graphParams.layout = "grid";
                 break;
             }
 
