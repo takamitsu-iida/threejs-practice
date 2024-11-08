@@ -135,6 +135,11 @@ Thiessen Polygon ティーセンポリゴン
 四分木 quad tree
 八分木 octree
 
+R-Treeの方がK近傍探索ができたりするので便利かも。
+
+JavaScriptでのR-Tree実装にrbushというのがある
+https://github.com/mourner/rbush
+
 -->
 
 
