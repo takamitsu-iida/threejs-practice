@@ -45,7 +45,9 @@ export class Main {
 
   constructor(params = {}) {
     this.params = Object.assign(this.params, params);
-    this.init();
+
+    this.initMap();
+    // this.init();
   }
 
 
@@ -75,13 +77,10 @@ export class Main {
     // 全てを削除した状態で描画
     this.renderer.render(this.scene, this.camera);
 
-    this.initMap();
 
     // フレーム毎の処理
     this.render();
   }
-
-
 
 
 
