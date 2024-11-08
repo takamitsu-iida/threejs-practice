@@ -573,9 +573,9 @@ export class Main {
     this.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
     // ディレクショナルライト
-    const light = new THREE.DirectionalLight(0xffffff, 0.8);
-    light.position.set(-50, 0, 0);
-    this.scene.add(light);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
+    directionalLight.position.set(-this.params.xzGridSize/2, 0, 0);
+    this.scene.add(directionalLight);
 
     // 正規化したマウス座標を保存
     this.mousePosition = new THREE.Vector2();
