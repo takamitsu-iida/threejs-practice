@@ -1,4 +1,7 @@
 import * as THREE from "three";
+
+import { MapControls } from "three/controls/MapControls.js";
+import { TrackballControls } from "three/controls/TrackballControls.js";
 import { OrbitControls } from "three/controls/OrbitControls.js";
 
 // lil-gui
@@ -46,7 +49,8 @@ export class Main {
   scene;
   camera;
   renderer;
-  controller;
+  mapControls;
+  zoomControls;
   statsjs;
 
   // マウス位置にあるオブジェクトを取得するためのraycaster
@@ -106,10 +110,6 @@ export class Main {
     // ワイヤーフレーム表示にする？
     wireframe: false,
 
-    // コントローラの設定
-    autoRotate: false,
-    autoRotateSpeed: 1.0,
-
     // 緯度経度の最大値、最小値（CSVから自動で読み取る）
     minLat: 0,
     maxLat: 0,
@@ -157,7 +157,7 @@ export class Main {
       event.target.remove();
     });
 
-    // scene, camera, renderer, controllerを初期化
+    // scene, camera, renderer, controlsを初期化
     this.initThreejs();
 
     // stats.jsを初期化
@@ -402,13 +402,21 @@ export class Main {
     this.container.appendChild(this.renderer.domElement);
 
     // コントローラ
-    this.controller = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controller.autoRotate = this.params.autoRotate;
-    this.controller.autoRotateSpeed = this.params.autoRotateSpeed;
-    this.controller.addEventListener('change', event => {
-      console.log(this.getZoom());
-    });
+    this.mapControls = new MapControls(this.camera, this.renderer.domElement);
+    this.mapControls.enableDamping = false;
+    this.mapControls.enableZoom = false;
+    this.mapControls.maxDistance = 1000;
 
+    this.zoomControls = new TrackballControls(this.camera, this.renderer.domElement);
+    this.zoomControls.noPan = true;
+    this.zoomControls.noRotate = true;
+    this.zoomControls.noZoom = false;
+    this.zoomControls.zoomSpeed = 0.5;
+    this.zoomControls.enableDamping = false;
+
+    this.zoomControls.addEventListener('change', event => {
+      this.getZoom();
+    });
 
     // 軸を表示
     //
@@ -468,13 +476,6 @@ export class Main {
     doLater.TID = {};
 
     gui
-      .add(this.params, "autoRotate")
-      .name(navigator.language.startsWith("ja") ? "自動回転" : "rotation")
-      .onChange((value) => {
-        this.controller.autoRotate = value;
-      });
-
-    gui
       .add(this.params, "pointSize")
       .name(navigator.language.startsWith("ja") ? "ポイントサイズ" : "pointSize")
       .min(0.1)
@@ -525,7 +526,10 @@ export class Main {
       this.statsjs.update();
 
       // カメラコントローラーを更新
-      this.controller.update();
+      this.mapControls.update();
+      const target = this.mapControls.target;
+      this.zoomControls.target.set(target.x, target.y, target.z);
+      this.zoomControls.update();
 
       // シーンをレンダリング
       this.renderer.render(this.scene, this.camera);
@@ -836,14 +840,16 @@ export class Main {
   }
 
   getZoom = () => {
+
+    return this.camera.position.distanceTo( this.mapControls.target );
+
+    /*
     if (this.renderParams.distance === null) {
-      this.renderParams.distance = this.controller.getDistance();
+      this.renderParams.distance = this.zoomControls.getDistance();
     }
+    return this.renderParams.distance / this.zoomControls.getDistance();
+    */
 
-    var zoom = this.renderParams.distance / this.controller.getDistance();
-    zoom = Math.round(zoom * 1e4) / 1e4;
-
-    return zoom;
   }
 
 
