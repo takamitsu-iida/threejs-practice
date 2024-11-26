@@ -7,6 +7,9 @@ import { GUI } from "three/libs/lil-gui.module.min.js";
 // stats.js
 import Stats from "three/libs/stats.module.js";
 
+// rbush-4.0.1
+// rbushは内部でquickselectを使用しているので、HTML側でimportmapを設定する
+import rbush from "rbush";
 
 // 500mメッシュ海底地形データ （J-EGG500:JODC-Expert Grid data for Geography）
 //
@@ -67,7 +70,9 @@ export class Main {
     clock: new THREE.Clock(),
     delta: 0,
     interval: 1 / 30,  // = 30fps
+    distance: null,
   }
+
 
   params = {
 
@@ -204,7 +209,7 @@ export class Main {
       // テキストデータを取得
       const text = await response.text();
 
-      // CSVのテキストデータをパース
+      // テキストデータをパースしてdepthMapDataを作成
       this.params.depthMapData = this.parseText(text);
 
     } catch (error) {
@@ -238,9 +243,6 @@ export class Main {
     let minLon = 9999;
     let maxLon = -9999;
 
-    // 数が多すぎるので、3の倍数のときは省略
-    const step = 3;
-
     const headers = ['type', 'lat', 'lon', 'depth'];
 
     for (let i = 0; i < lines.length; i++) {
@@ -264,6 +266,7 @@ export class Main {
     }
 
     console.log(`minLat: ${minLat}\nmaxLat: ${maxLat}\nminLon: ${minLon}\nmaxLon: ${maxLon}`);
+    console.log(`dataList.length: ${dataList.length}`);
 
     // 後から参照できるように保存しておく
     this.params.minLat = minLat;
@@ -402,6 +405,10 @@ export class Main {
     this.controller = new OrbitControls(this.camera, this.renderer.domElement);
     this.controller.autoRotate = this.params.autoRotate;
     this.controller.autoRotateSpeed = this.params.autoRotateSpeed;
+    this.controller.addEventListener('change', event => {
+      console.log(this.getZoom());
+    });
+
 
     // 軸を表示
     //
@@ -826,6 +833,17 @@ export class Main {
     this.scene.add(pointCloud);
     this.pointMeshList = [pointCloud];
 
+  }
+
+  getZoom = () => {
+    if (this.renderParams.distance === null) {
+      this.renderParams.distance = this.controller.getDistance();
+    }
+
+    var zoom = this.renderParams.distance / this.controller.getDistance();
+    zoom = Math.round(zoom * 1e4) / 1e4;
+
+    return zoom;
   }
 
 
