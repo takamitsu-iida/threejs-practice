@@ -622,6 +622,7 @@ SelectionBoxを使うと、GPU側で作成した個々のメッシュを選択�
 
 <br>
 
+<!--
 ## Bathymetric data point cloud（途中）
 
 日本海洋データセンター（JODC）が公開している500mメッシュ水深データをポイントクラウドにしたのがこれ。
@@ -651,6 +652,7 @@ SelectionBoxを使うと、GPU側で作成した個々のメッシュを選択�
 500mメッシュの水深データは[JODC](https://www.jodc.go.jp/vpage/depth500_file_j.html)からダウンロード。
 
 <br>
+-->
 
 ## Load Topojson ExtrudeGeometry
 

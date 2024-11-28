@@ -1030,37 +1030,35 @@ export class Main {
 
 
   depthColors = {
-    '-60': 0x2e146a,
-    '-55': 0x451e9f,
-    '-50': 0x3b31c3,
-    '-45': 0x1f47de,
-    '-40': 0x045ef9,
-    '-35': 0x0075fd,
-    '-30': 0x008ffd,
-    '-25': 0x01aafc,
-    '-20': 0x01c5fc,
-    '-16': 0x45ccb5,
-    '-12': 0x90d366,
-    '-10': 0xb4df56,
-    '-8': 0xd9ed4c,
-    '-6': 0xfdfb41,
-    '-5': 0xfee437,
-    '-4': 0xfecc2c,
-    '-3': 0xfeb321,
-    '-2': 0xff9b16,
-    '-1': 0xff820b,
+    '-60': new THREE.Color(0x2e146a),
+    '-55': new THREE.Color(0x451e9f),
+    '-50': new THREE.Color(0x3b31c3),
+    '-45': new THREE.Color(0x1f47de),
+    '-40': new THREE.Color(0x045ef9),
+    '-35': new THREE.Color(0x0075fd),
+    '-30': new THREE.Color(0x008ffd),
+    '-25': new THREE.Color(0x01aafc),
+    '-20': new THREE.Color(0x01c5fc),
+    '-16': new THREE.Color(0x45ccb5),
+    '-12': new THREE.Color(0x90d366),
+    '-10': new THREE.Color(0xb4df56),
+    '-8': new THREE.Color(0xd9ed4c),
+    '-6': new THREE.Color(0xfdfb41),
+    '-5': new THREE.Color(0xfee437),
+    '-4': new THREE.Color(0xfecc2c),
+    '-3': new THREE.Color(0xfeb321),
+    '-2': new THREE.Color(0xff9b16),
+    '-1': new THREE.Color(0xff820b),
   }
 
 
   getDepthColor = (depth) => {
-    const depthSteps = this.depthSteps;
-    const depthColors = this.depthColors;
-    for (let i = 0; i < depthSteps.length; i++) {
-      if (depth <= depthSteps[i]) {
-        return new THREE.Color(depthColors[depthSteps[i]]);
+    for (let i = 0; i < this.depthSteps.length; i++) {
+      if (depth <= this.depthSteps[i]) {
+        return this.depthColors[this.depthSteps[i]];
       }
     }
-    return new THREE.Color(depthColors[depthSteps[depthSteps.length - 1]]);
+    return this.depthColors[this.depthSteps[this.depthSteps.length - 1]];
   }
 
 
