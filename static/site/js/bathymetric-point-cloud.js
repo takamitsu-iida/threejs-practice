@@ -817,11 +817,11 @@ export class Main {
     this.scene.add(pointCloud);
     this.pointMeshList = [pointCloud];
 
-    /*
     // インデックスを作成
     const indexList = [];
     this.params.depthMapData.forEach((d) => {
       const surroundingData = this.getSurroundingData(this.params.depthMapData, d.lat, d.lon, this.params.latStep, this.params.lonStep);
+
       const index = d.index;
       const rightIndex = surroundingData.right ? surroundingData.right.index : null;
       const downIndex = surroundingData.down ? surroundingData.down.index : null;
@@ -830,8 +830,9 @@ export class Main {
       }
     });
 
-    console.log(this.params.depthMapData);
+    console.log(indexList);
 
+    /*
     // インデックスを設定
     geometry.setIndex(indexList);
 
@@ -851,6 +852,19 @@ export class Main {
       */
   }
 
+  // 特定の位置の上下左右のデータを取得する関数
+  getSurroundingData = (sparseMatrix, lat, lon, latStep, lonStep) => {
+    const surroundingData = {
+      up: sparseMatrix.get(`${(lat + latStep).toFixed(5)},${lon.toFixed(5)}`) || null,
+      down: sparseMatrix.get(`${(lat - latStep).toFixed(5)},${lon.toFixed(5)}`) || null,
+      left: sparseMatrix.get(`${lat.toFixed(5)},${(lon - lonStep).toFixed(5)}`) || null,
+      right: sparseMatrix.get(`${lat.toFixed(5)},${(lon + lonStep).toFixed(5)}`) || null
+    };
+    return surroundingData;
+  }
+
+
+
   getDistance = () => {
     // TrackballControlsにはgetDistance()がない
     return this.camera.position.distanceTo(this.mapControls.target);
@@ -865,16 +879,6 @@ export class Main {
   }
 
 
-  // 特定の位置の上下左右のデータを取得する関数
-  getSurroundingData = (sparseMatrix, lat, lon, latStep, lonStep) => {
-    const surroundingData = {
-      up: sparseMatrix.get(`${lat + latStep},${lon}`) || null,
-      down: sparseMatrix.get(`${lat - latStep},${lon}`) || null,
-      left: sparseMatrix.get(`${lat},${lon - lonStep}`) || null,
-      right: sparseMatrix.get(`${lat},${lon + lonStep}`) || null
-    };
-    return surroundingData;
-  }
 
 
 
