@@ -380,14 +380,14 @@ export class Main {
     gui
       .add(this.params, "showBackground")
       .name("show background")
-      .onChange((value) => {
+      .onFinishChange((value) => {
         this.params.backgroundMesh.visible = value;
       });
 
     gui
       .add(this.params, "showParticles")
       .name("show particles")
-      .onChange((value) => {
+      .onFinishChange((value) => {
         this.params.particleMesh.visible = value;
       });
 

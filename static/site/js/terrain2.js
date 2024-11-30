@@ -50,7 +50,7 @@ export class Main {
   terrainMesh;
 
 
-  constructor(params={}) {
+  constructor(params = {}) {
 
     this.params = Object.assign(this.params, params);
 
@@ -129,6 +129,7 @@ export class Main {
 
   initGui = () => {
     const guiContainer = document.getElementById("guiContainer");
+
     const gui = new GUI({
       container: guiContainer,
       width: 300,
@@ -138,9 +139,9 @@ export class Main {
       .add(this.params, "segments", 10, 200, 10)
       .name("segments")
       .onChange(() => {
-        this.scene.remove(this.terrainMesh); // 現在の地形メッシュを削除
+        this.scene.remove(this.terrainMesh);       // 現在の地形メッシュを削除
         this.terrainMesh = this.generateTerrain(); // 新しい地形メッシュを生成
-        this.scene.add(this.terrainMesh); // 新しい地形メッシュをシーンに追加
+        this.scene.add(this.terrainMesh);          // 新しい地形メッシュをシーンに追加
       });
 
     gui

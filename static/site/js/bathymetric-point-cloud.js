@@ -520,31 +520,11 @@ export class Main {
 
   initGui = () => {
     const guiContainer = document.getElementById("guiContainer");
+
     const gui = new GUI({
       container: guiContainer,
       width: 300,
     });
-
-    // 一度だけ実行するための関数
-    const doLater = (job, tmo) => {
-
-      // 処理が登録されているならタイマーをキャンセル
-      var tid = doLater.TID[job];
-      if (tid) {
-        window.clearTimeout(tid);
-      }
-
-      // タイムアウト登録する
-      doLater.TID[job] = window.setTimeout(() => {
-        // 実行前にタイマーIDをクリア
-        doLater.TID[job] = null;
-        // 登録処理を実行
-        job.call();
-      }, tmo);
-    }
-
-    // 処理からタイマーIDへのハッシュ
-    doLater.TID = {};
 
     gui
       .add(this.params, "pointSize")
@@ -567,15 +547,13 @@ export class Main {
     gui
       .add(this.params, "gridScale")
       .name(navigator.language.startsWith("ja") ? "グリッドスケール" : "gridScale")
+      .listen()
       .min(1)
       .max(3)
-      .step(0.5)
+      .step(0.1)
       .onFinishChange((value) => {
-        doLater(() => {
-          this.initContents();
-        }, 500);
+        this.initContents();
       });
-
 
     // 初期状態で閉じた状態にする
     // gui.close();

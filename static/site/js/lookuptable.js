@@ -52,7 +52,7 @@ export class Main {
   }
 
 
-  constructor(params={}) {
+  constructor(params = {}) {
 
     this.params = Object.assign(this.params, params);
 
@@ -238,6 +238,7 @@ export class Main {
 
   initGui = () => {
     const guiContainer = document.getElementById("guiContainer");
+
     const gui = new GUI({
       container: guiContainer,
       width: 300,
@@ -246,9 +247,7 @@ export class Main {
     gui
       .add(this.params, "colorMap", ['rainbow', 'cooltowarm', 'blackbody', 'grayscale'])
       .name("colorMap")
-      .onChange((value) => {
-        this.changeColorMap();
-      });
+      .onFinishChange(() => this.changeColorMap());
   }
 
 

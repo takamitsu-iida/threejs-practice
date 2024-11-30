@@ -324,6 +324,7 @@ export class Main {
 
   initGui = () => {
     const guiContainer = document.getElementById("guiContainer");
+
     const gui = new GUI({
       container: guiContainer,
       width: 300,
@@ -332,9 +333,7 @@ export class Main {
     gui
       .add(this.params, "autoRotate")
       .name(navigator.language.startsWith("ja") ? "回転して表示" : "Auto Rotate")
-      .onChange((value) => {
-        this.controller.autoRotate = value;
-      });
+      .onFinishChange((value) => this.controller.autoRotate = value);
 
     gui
       .add(this.params, "autoRotateSpeed")
@@ -342,16 +341,12 @@ export class Main {
       .min(1.0)
       .max(10.0)
       .step(0.1)
-      .onChange((value) => {
-        this.controller.autoRotateSpeed = value;
-      });
+      .onChange((value) => this.controller.autoRotateSpeed = value);
 
     gui
       .add(this.params, "showGeoTexture")
       .name(navigator.language.startsWith("ja") ? "テクスチャを表示" : "Show Texture")
-      .onChange((value) => {
-        this.params.geoTextureMesh.visible = value;
-      });
+      .onFinishChange((value) => this.params.geoTextureMesh.visible = value);
   }
 
 
@@ -702,7 +697,7 @@ export class Main {
 
     // カーブの解像度fractionStepから、カーブを表現する点の数を計算する
     // fractionStepは間隔なので、1/fractionStep + 1が点の数になる（+1するのを忘れないように！）
-    const numPoints = 1 / this.params.fractionStep +1;
+    const numPoints = 1 / this.params.fractionStep + 1;
 
     // 1. GPUComputationRendererを初期化
     const computationRenderer = new GPUComputationRenderer(

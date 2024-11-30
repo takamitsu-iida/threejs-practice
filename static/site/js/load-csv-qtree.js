@@ -361,7 +361,7 @@ export class Main {
     gui
       .add(this.params, "autoRotate")
       .name(navigator.language.startsWith("ja") ? "自動回転" : "rotation")
-      .onChange((value) => {
+      .onFinishChange((value) => {
         this.controller.autoRotate = value;
       });
 
@@ -378,16 +378,14 @@ export class Main {
     gui
       .add(this.params, "wireframe")
       .name(navigator.language.startsWith("ja") ? "ワイヤーフレーム表示" : "wireframe")
-      .onChange(() => {
+      .onFinishChange(() => {
         this.terrainMesh.material.wireframe = this.params.wireframe;
       });
 
     gui
-    .add(this.params, "showPointCloud")
+      .add(this.params, "showPointCloud")
       .name(navigator.language.startsWith("ja") ? "ポイントクラウド表示" : "showPointCloud")
-      .onChange((value) => {
-        this.pointMesh.visible = value;
-      });
+      .onFinishChange((value) => this.pointMesh.visible = value);
 
     gui
       .add(this.params, "pointSize")
@@ -395,9 +393,7 @@ export class Main {
       .min(0.1)
       .max(1.0)
       .step(0.1)
-      .onChange((value) => {
-        this.pointMesh.material.size = value;
-      });
+      .onChange((value) => this.pointMesh.material.size = value);
 
     gui
       .add(this.params, "divideParam")
@@ -405,7 +401,7 @@ export class Main {
       .min(1)
       .max(10)
       .step(1)
-      .onFinishChange(() => {
+      .onChange(() => {
         doLater(this.initContents, 100);
       })
       .disable();  // このパラメータは分割数に影響するが、見栄えには変化がないのでdisableにしておく
@@ -416,7 +412,7 @@ export class Main {
       .min(1)
       .max(10)
       .step(1)
-      .onFinishChange(() => {
+      .onChange(() => {
         doLater(this.initContents, 100);
       });
 
@@ -477,7 +473,7 @@ export class Main {
     const objectsToRemove = [];
 
     this.scene.children.forEach((child) => {
-      if (child.type === 'AxesHelper' || child.type === 'GridHelper' || String(child.type).indexOf('Light') >= 0 ) {
+      if (child.type === 'AxesHelper' || child.type === 'GridHelper' || String(child.type).indexOf('Light') >= 0) {
         return;
       }
       objectsToRemove.push(child);

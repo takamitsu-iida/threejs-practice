@@ -554,21 +554,21 @@ export class Main {
       .min(1.0)
       .max(10.0)
       .step(0.1)
-      .onChange((value) => {
+      .onFinishChange((value) => {
         this.controller.autoRotateSpeed = value;
       });
 
     gui
       .add(this.params, "wireframe")
       .name(navigator.language.startsWith("ja") ? "ワイヤーフレーム表示" : "wireframe")
-      .onChange(() => {
+      .onFinishChange(() => {
         this.terrainMesh.material.wireframe = this.params.wireframe;
       });
 
     gui
       .add(this.params, "showPointCloud")
       .name(navigator.language.startsWith("ja") ? "ポイントクラウド表示" : "showPointCloud")
-      .onChange((value) => {
+      .onFinishChange((value) => {
         this.pointMesh.visible = value;
       });
 
@@ -599,7 +599,7 @@ export class Main {
       .min(1)
       .max(10)
       .step(1)
-      .onFinishChange(() => {
+      .onChange(() => {
         doLater(this.initContents, 100);
       });
 
@@ -609,7 +609,7 @@ export class Main {
       .min(8000)
       .max(16000)
       .step(1000)
-      .onFinishChange(() => {
+      .onChange(() => {
         doLater(this.initContents, 100);
       });
 

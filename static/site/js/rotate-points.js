@@ -61,7 +61,7 @@ export class Main {
   axisZ = new THREE.Vector3(0, 0, 1);
   axisXYZ = new THREE.Vector3(1, 1, 1).normalize();
 
-  constructor(params={}) {
+  constructor(params = {}) {
 
     this.params = Object.assign(this.params, params);
 
@@ -147,6 +147,7 @@ export class Main {
 
   initGui = () => {
     const guiContainer = document.getElementById("guiContainer");
+
     const gui = new GUI({
       container: guiContainer,
       width: 300,
@@ -157,9 +158,7 @@ export class Main {
       .min(0.01)
       .max(0.2)
       .name("point size")
-      .onChange(size => {
-        this.material.size = size;
-      })
+      .onChange(value => this.material.size = value)
 
     gui
       .add(this.params, 'rotateDirection')

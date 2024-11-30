@@ -169,31 +169,11 @@ export class Main {
 
   initGui = () => {
     const guiContainer = document.getElementById("guiContainer");
+
     const gui = new GUI({
       container: guiContainer,
       width: 300,
     });
-
-    // 一度だけ実行するための関数
-    const doLater = (job, tmo) => {
-
-      // 処理が登録されているならタイマーをキャンセル
-      var tid = doLater.TID[job];
-      if (tid) {
-        window.clearTimeout(tid);
-      }
-
-      // タイムアウト登録する
-      doLater.TID[job] = window.setTimeout(() => {
-        // 実行前にタイマーIDをクリア
-        doLater.TID[job] = null;
-        // 登録処理を実行
-        job.call();
-      }, tmo);
-    }
-
-    // 処理からタイマーIDへのハッシュ
-    doLater.TID = {};
 
     gui
       .add(this.params, "numCurves")
@@ -201,9 +181,7 @@ export class Main {
       .min(1)
       .max(200)
       .step(1)
-      .onChange((value) => {
-        doLater(this.init, 100);
-      });
+      .onFinishChange(() => this.init());
 
     gui
       .add(this.params, "numParticles")
@@ -211,9 +189,7 @@ export class Main {
       .min(1)
       .max(200)
       .step(1)
-      .onChange((value) => {
-        doLater(this.init, 100);
-      });
+      .onFinishChange(() => this.init());
   }
 
 
@@ -312,7 +288,7 @@ export class Main {
   createCurvePositionTexture = () => {
 
     // fractionStepは間隔を示すので、ポイント数は1/fractionStep+1になる（+1するのを忘れないように！）
-    const numFractions = Math.floor(1 / this.params.fractionStep) +1;
+    const numFractions = Math.floor(1 / this.params.fractionStep) + 1;
 
     // カーブの数
     const numCurves = this.params.numCurves;

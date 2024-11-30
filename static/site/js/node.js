@@ -395,6 +395,7 @@ export class Main {
 
   initGui = () => {
     const guiContainer = document.getElementById("guiContainer");
+
     const gui = new GUI({
       container: guiContainer,
       width: 300,
@@ -403,9 +404,7 @@ export class Main {
     gui
       .add(this.params, "autoRotate")
       .name("autoRotate")
-      .onChange((value) => {
-        this.controller.autoRotate = value;
-      });
+      .onFinishChange((value) => this.controller.autoRotate = value);
 
     gui
       .add(this.params, "autoRotateSpeed")
@@ -413,14 +412,12 @@ export class Main {
       .min(1.0)
       .max(10.0)
       .step(0.1)
-      .onChange((value) => {
-        this.controller.autoRotateSpeed = value;
-      });
+      .onChange((value) => this.controller.autoRotateSpeed = value);
 
     gui
       .add(this.params, "select")
       .name("select")
-      .onChange((value) => {
+      .onFinishChange((value) => {
         this.nodes.forEach((node) => {
           node.select(value);
         });

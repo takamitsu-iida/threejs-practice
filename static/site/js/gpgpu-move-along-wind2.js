@@ -344,6 +344,7 @@ export class Main {
 
   initGui = () => {
     const guiContainer = document.getElementById("guiContainer");
+
     const gui = new GUI({
       container: guiContainer,
       width: 300,
@@ -356,19 +357,10 @@ export class Main {
       .max(3.0)
       .step(0.1);
 
-    /*
-    gui
-      .add(this.params, "showBackground")
-      .name("show background")
-      .onChange((value) => {
-        this.params.backgroundMesh.visible = value;
-      });
-    */
-
     gui
       .add(this.params, "showParticles")
       .name("show particles")
-      .onChange((value) => {
+      .onFinishChange((value) => {
         this.params.particleMesh.visible = value;
       });
 

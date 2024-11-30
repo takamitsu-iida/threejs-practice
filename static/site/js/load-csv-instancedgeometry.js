@@ -219,7 +219,7 @@ export class Main {
     gui
       .add(this.params, "autoRotate")
       .name("rotation")
-      .onChange((value) => {
+      .onFinishChange((value) => {
         this.controller.autoRotate = value;
       });
   }
