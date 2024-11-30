@@ -25,9 +25,38 @@ import Stats from "three/libs/stats.module.js";
 */
 
 // kdbush-4.0.2
-import kdbush from "kdbush";
 import KDBush from "kdbush";
 
+// デローネ三角形
+import Delaunator from "delaunatorjs";
+
+/*
+https://github.com/mapbox/delaunator
+ここからReleasesの最新版（2024年9月時点でv5.0.1）をダウンロードする。
+この中にindex.jsがあるので、これを使う。
+
+delaunatorは内部でrobust-predicatesのorient2dを使っているため、
+orient2dが見つからないというエラーが発生する。
+
+https://github.com/mourner/robust-predicates
+ここからReleasesの最新版（2024年9月時点でv3.0.2）をダウンロードする。
+この中のsrcフォルダのjavascriptファイルをコピーして使う。
+
+HTMLではこのようなimportmapを使う。
+
+<!-- three.js -->
+<script type="importmap">
+  {
+    "imports": {
+      "three": "./static/build/three.module.js",
+      "three/libs/": "./static/libs/",
+      "three/controls/": "./static/controls/",
+      "robust-predicates": "./static/libs/robust-predicates-3.0.2/orient2d.js",
+      "delaunatorjs": "./static/libs/delaunator-5.0.1/index.js"
+    }
+  }
+</script>
+*/
 
 
 // 500mメッシュ海底地形データ
@@ -148,12 +177,16 @@ export class Main {
 
     // グリッドを走査するときの、グリッドのスケール
     // 500m x gridScale の範囲でデータを取得する
-    gridScale: 3,
+    gridScale: 2.0,
+
+
+    wireframe: false,
 
   }
 
   // 地形図のポイントクラウド（guiで表示を操作するためにインスタンス変数にする）
   pointMeshList = [];
+  terrainMeshList = [];
 
 
   constructor(params = {}) {
@@ -387,7 +420,7 @@ export class Main {
   }
 
 
-  getGridIndexList = (gridScale = 20) => {
+  getGridIndexList = (gridScale = 1.0) => {
     const indexList = [];
 
     // 緯度経度を左上から右下にかけて、latStep, lonStep間隔で走査する
@@ -483,9 +516,32 @@ export class Main {
       const distance = this.getDistance();
       if (this.renderParams.distance !== distance) {
         this.renderParams.distance = distance;
-        console.log(`distance: ${distance}`);
-        const target = this.mapControls.target;
-        console.log(`target: ${target.x}, ${target.y}, ${target.z}`);
+        // console.log(`distance: ${distance}`);
+
+        // distance が 0 のとき gridScale は 1、distance が 1000 のとき gridScale は 2 になるように線形補間
+        // const gridScale = 1 + (distance / 1000);
+
+        // distance に基づいて gridScale を階段状に設定
+        let gridScale;
+        if (distance < 500) {
+          gridScale = 1.0;
+        } else if (distance < 600) {
+          gridScale = 1.2;
+        } else if (distance < 700) {
+          gridScale = 1.4;
+        } else if (distance < 800) {
+          gridScale = 1.6;
+        } else if (distance < 900) {
+          gridScale = 1.8;
+        } else {
+          gridScale = 2.0;
+        }
+
+        if (this.params.gridScale !== gridScale) {
+          this.params.gridScale = gridScale;
+          this.initContents();
+          console.log(`gridScale: ${gridScale}`);
+        }
       }
     });
 
@@ -549,7 +605,7 @@ export class Main {
       .name(navigator.language.startsWith("ja") ? "グリッドスケール" : "gridScale")
       .listen()
       .min(1)
-      .max(3)
+      .max(2)
       .step(0.1)
       .onFinishChange((value) => {
         this.initContents();
@@ -856,6 +912,8 @@ export class Main {
     const positions = [];
     const colors = [];
 
+    let pointCount = 0;
+
     gridIndexList.forEach((indexList) => {
       if (indexList.length === 0) {
         return;
@@ -882,7 +940,11 @@ export class Main {
       const c = this.getDepthColor(depth);
       colors.push(c.r, c.g, c.b);
 
+      pointCount++;
+
     });
+
+    this.params.pointCount = pointCount;
 
     const geometry = new THREE.BufferGeometry().setFromPoints(positions);
     geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
@@ -896,6 +958,62 @@ export class Main {
     this.scene.add(pointCloud);
     this.pointMeshList.push(pointCloud);
 
+    //
+    // XZ平面でデローネ三角形を形成する
+    //
+    const delaunay = Delaunator.from(
+      positions.map(v => {
+        return [v.x, v.z];
+      })
+    );
+
+    const maxPointDistance = this.params.lonStep * gridScale * this.params.xzScale * 2.0 * Math.sqrt(2);
+
+    // デローネ三角形のインデックスをmeshIndexに代入してThree.jsのインデックスに変換
+    const meshIndex = [];
+    for (let i = 0; i < delaunay.triangles.length; i += 3) {
+      const a = delaunay.triangles[i + 0];
+      const b = delaunay.triangles[i + 1];
+      const c = delaunay.triangles[i + 2];
+
+      const vertexA = positions[a];
+      const vertexB = positions[b];
+      const vertexC = positions[c];
+
+      vertexA.y = vertexB.y = vertexC.y = 0;
+
+      // 三角形の各辺の長さを計算
+      const ab = vertexA.distanceTo(vertexB);
+      const bc = vertexB.distanceTo(vertexC);
+      const ca = vertexC.distanceTo(vertexA);
+
+      // 各辺の長さがグリッドの長さよりも短い場合にのみ格納
+      if (ab < maxPointDistance && bc < maxPointDistance && ca < maxPointDistance) {
+        meshIndex.push(a, b, c);
+      }
+
+    }
+
+    // 点群のジオメトリにインデックスを追加してポリゴン化
+    geometry.setIndex(meshIndex);
+
+    // 法線ベクトルを計算
+    geometry.computeVertexNormals();
+
+    // マテリアルを生成
+    const material = new THREE.MeshLambertMaterial({
+      vertexColors: true, // 頂点カラーを使用
+      wireframe: this.params.wireframe,
+    });
+
+    // メッシュを生成
+    const terrainMesh = new THREE.Mesh(geometry, material);
+
+    // シーンに追加
+    this.scene.add(terrainMesh);
+
+    // 配列に保存
+    this.terrainMeshList.push(terrainMesh);
 
   }
 
