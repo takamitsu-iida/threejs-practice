@@ -13,6 +13,22 @@ import Stats from "three/libs/stats.module.js";
 // rbush-4.0.1
 // rbushは内部でquickselectを使用しているので、HTML側でimportmapを設定する
 // import rbush from "rbush";
+/*
+<script type="importmap">
+  {
+    "imports": {
+      "quickselect": "./static/libs/quickselect-3.0.0/index.js",
+      "kdbush": "./static/libs/kdbush-4.0.2/index.js"
+    }
+  }
+</script>
+*/
+
+// kdbush-4.0.2
+import kdbush from "kdbush";
+import KDBush from "kdbush";
+
+
 
 // 500mメッシュ海底地形データ
 // J-EGG500:JODC-Expert Grid data for Geography
@@ -21,8 +37,7 @@ import Stats from "three/libs/stats.module.js";
 //
 // このサイトで領域を選択してダウンロードできる
 
-
-// タイル表示したい
+// タイルローディングで表示できないかな？
 // https://github.com/tentone/geo-three
 
 
@@ -78,15 +93,23 @@ export class Main {
     distance: null,
   }
 
+  // KDBushインスタンス
+  kdbush = null;
+
 
   params = {
 
     // 海底地形図の(lon, lat)をThree.jsのXZ座標のどの範囲に描画するか
     // 持っているGPSデータに応じて調整する
-    xzGridSize: 800,  // 800を指定する場合は -400～400 の範囲に描画する
+    // 800を指定する場合は -400～400 の範囲に描画する
+    xzSize: 800,
 
-    // xzGridSizeにあわせるために、どのくらい緯度経度の値を拡大するか（自動計算）
+    // xzSizeにあわせるために、どのくらい緯度経度の値を拡大するか（自動計算）
     xzScale: 1,
+
+    // 水深をどのくらいの高さに描画するか
+    // 400を指定する場合は 0 ～ -400 の範囲に描画する
+    ySize: 400,
 
     // 最も深い水深に合わせてY座標をどのくらい拡大するか（自動計算）
     yScale: 1,
@@ -94,8 +117,8 @@ export class Main {
     // 水深データのテキストファイルのURL
     depthMapPath: "./static/data/mesh500_kanto.txt",
 
-    // テキストをパースしたデータを格納するMap()
-    depthMapData: null,
+    // テキストをパースしたデータを格納する配列
+    depthMapDatas: [],
 
     // ポイントクラウドのパーティクルサイズ
     pointSize: 1.0,
@@ -103,32 +126,35 @@ export class Main {
     // ポイントクラウドのパーティクルの数(readonly)
     pointCount: 0,
 
-    // 500メートル間隔の緯度経度の差分
-    // これに合わせてデータをスナップする
-    latStep: 0.00451,
-    lonStep: 0.00003,
+    // 500メートル間隔の緯度経度の差分（自動計算）
+    latStep: 0,
+    lonStep: 0,
 
     // 緯度経度の最大値、最小値、中央値（テキストデータから自動で読み取る）
-    minLat: 0,
-    maxLat: 0,
     minLon: 0,
     maxLon: 0,
+    minLat: 0,
+    maxLat: 0,
     maxDepth: 0,
-
-    // 緯度経度の中央値（自動計算）
-    centerLat: 0,
     centerLon: 0,
+    centerLat: 0,
 
     // ワールド座標に正規化した最大値、最小値（自動計算）
-    minZ: 0,
-    maxZ: 0,
     minX: 0,
     maxX: 0,
+    minZ: 0,
+    maxZ: 0,
     minY: 0,
+
+    // グリッドを走査するときの、グリッドのスケール
+    // 500m x gridScale の範囲でデータを取得する
+    gridScale: 3,
+
   }
 
   // 地形図のポイントクラウド（guiで表示を操作するためにインスタンス変数にする）
-  pointMeshList;
+  pointMeshList = [];
+
 
   constructor(params = {}) {
     this.params = Object.assign(this.params, params);
@@ -142,7 +168,7 @@ export class Main {
       this.loadText(this.params.depthMapPath),
     ]);
 
-    if (this.params.depthMapData === null) {
+    if (this.params.depthMapDatas === null) {
       return;
     }
 
@@ -190,9 +216,6 @@ export class Main {
     // ポイントクラウドを表示
     this.createPointCloud();
 
-    // ポイントクラウドからメッシュを作成
-    // this.createMeshFromPointCloud();
-
     // フレーム毎の処理
     this.render();
   }
@@ -209,11 +232,14 @@ export class Main {
       // テキストデータを取得
       const text = await response.text();
 
-      // テキストデータをパースしてdepthMapDataを作成
-      this.params.depthMapData = this.parseText(text);
+      // テキストデータをパースしてdepthMapDatas配列を作成
+      this.parseText(text);
 
-      // データをワールド座標に正規化
-      this.normalizeDepthMapData();
+      // 読み取ったデータをThree.jsのワールド座標に変換
+      this.translate();
+
+      // kdbushでインデックス化
+      this.initKDBush();
 
     } catch (error) {
       const errorMessage = `Error while loading ${path}: ${error}`;
@@ -237,17 +263,13 @@ export class Main {
     // 行に分割
     const lines = text.split('\n');
 
-    // 行ごとにパースしたデータを格納するMap()
-    const dataMap = new Map();
+    // データを格納する配列
+    const datas = this.params.depthMapDatas;
 
     // 緯度経度の最大値、最小値を取得するための変数
     let minLat = 9999, minLon = 9999;
     let maxLat = -9999, maxLon = -9999;
     let maxDepth = -9999;
-
-    // 500メートル間隔の緯度経度の差分
-    const latStep = this.params.latStep;
-    const lonStep = this.params.lonStep;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
@@ -263,10 +285,6 @@ export class Main {
         let lon = parseFloat(rows[2].trim());
         const depth = parseInt(rows[3].trim());
 
-        // 緯度経度を最も近いグリッドポイントにスナップ
-        lat = Math.round(lat / latStep) * latStep;
-        lon = Math.round(lon / lonStep) * lonStep;
-
         // 最大値、最小値を調べる
         minLat = Math.min(minLat, lat);
         maxLat = Math.max(maxLat, lat);
@@ -274,78 +292,128 @@ export class Main {
         maxLon = Math.max(maxLon, lon);
         maxDepth = Math.max(maxDepth, depth);
 
-        // データをMap()に格納
-        const key = `${lat.toFixed(5)},${lon.toFixed(5)}`;
-        if (!dataMap.has(key)) {
-          dataMap.set(key, { lat: lat, lon: lon, depth: depth });
-        } else {
-          // 既にデータがある場合は、深さを平均化する
-          const existing = dataMap.get(key);
-          existing.depth = (existing.depth + depth) / 2;
-          dataMap.set(key, existing);
-        }
-
+        // 配列に格納する
+        datas.push({ lon, lat, depth });
       }
     }
 
     // 何個のデータがあるか
-    this.params.pointCount = dataMap.size;
-    console.log(`point count: ${dataMap.size}`);
+    this.params.pointCount = datas.length;
+    console.log(`point count: ${this.params.pointCount}`);
 
     // 最小値・最大値
     console.log(`minLat: ${minLat}\nmaxLat: ${maxLat}\nminLon: ${minLon}\nmaxLon: ${maxLon}`);
     console.log(`maxDepth: ${maxDepth}`);
 
     // 後から参照できるように保存しておく
-    this.params.minLat = minLat;
-    this.params.maxLat = maxLat;
     this.params.minLon = minLon;
     this.params.maxLon = maxLon;
-    this.params.centerLat = (minLat + maxLat) / 2;
+    this.params.minLat = minLat;
+    this.params.maxLat = maxLat;
     this.params.centerLon = (minLon + maxLon) / 2;
+    this.params.centerLat = (minLat + maxLat) / 2;
     this.params.maxDepth = maxDepth;
 
     // 緯度の差分、経度の差分で大きい方を取得
     const diffSize = Math.max(maxLat - minLat, maxLon - minLon);
 
-    // このdiffSizeがxzGridSizeになるように係数を計算
-    this.params.xzScale = this.params.xzGridSize / diffSize;
+    // このdiffSizeがxzSizeになるように係数を計算
+    this.params.xzScale = this.params.xzSize / diffSize;
 
-    // 最も大きな水深がxzGridSizeになるように係数を計算
-    this.params.yScale = this.params.xzGridSize / maxDepth
+    // 最も大きな水深がySizeになるように係数を計算
+    this.params.yScale = this.params.ySize / maxDepth;
 
-    return dataMap;
+    // 緯度1度あたりのメートル数は、どこでも111320m
+    const metersPerDegreeLat = 111320;
+
+    // 500メートル間隔の緯度の差分
+    const latStep = 500 / metersPerDegreeLat;
+
+    // 経度1度あたりのメートル数は、どの緯度にいるかによって変わるので
+    // centerLatの緯度での1度あたりのメートル数を求める
+    const metersPerDegreeLon = Math.cos(this.params.centerLat * Math.PI / 180) * metersPerDegreeLat;
+
+    // 500メートル間隔の経度の差分
+    const lonStep = 500 / metersPerDegreeLon;
+
+    // 保存しておく
+    this.params.latStep = latStep;
+    this.params.lonStep = lonStep;
   }
 
 
-  normalizeDepthMapData = () => {
-    let minZ = 9999, minX = 9999;
-    let maxZ = -9999, maxX = -9999;
+  translate = () => {
+    let minX = 9999, minZ = 9999;
+    let maxX = -9999, maxZ = -9999;
     let minY = 9999;
 
-    this.params.depthMapData.forEach((d, key) => {
+    // 全件取り出す
+    this.params.depthMapDatas.forEach(d => {
 
       // lon, latをXZ座標に変換
-      const [x, z] = this.normalizeCoordinates([d.lon, d.lat]);
+      const [x, z] = this.translateCoordinates([d.lon, d.lat]);
       d.x = x;
       d.z = z;
 
       // depthをY座標に変換
-      const y = this.normalizeDepth(d.depth);
+      const y = this.translateDepth(d.depth);
       d.y = y;
 
-      minZ = Math.min(minZ, z);
-      maxZ = Math.max(maxZ, z);
       minX = Math.min(minX, x);
       maxX = Math.max(maxX, x);
+      minZ = Math.min(minZ, z);
+      maxZ = Math.max(maxZ, z);
       minY = Math.min(minY, y);
     });
 
-    this.params.minZ = minZ;
-    this.params.maxZ = maxZ;
     this.params.minX = minX;
     this.params.maxX = maxX;
+    this.params.minZ = minZ;
+    this.params.maxZ = maxZ;
     this.params.minY = minY;
+  }
+
+
+  initKDBush = () => {
+    this.kdbush = new KDBush(this.params.depthMapDatas.length);
+
+    // データを投入
+    this.params.depthMapDatas.forEach(d => {
+      this.kdbush.add(d.lon, d.lat);
+    });
+
+    // インデックス化
+    this.kdbush.finish();
+  }
+
+
+  getGridIndexList = (gridScale = 20) => {
+    const indexList = [];
+
+    // 緯度経度を左上から右下にかけて、latStep, lonStep間隔で走査する
+    const lonStep = this.params.lonStep * gridScale;
+    const latStep = this.params.latStep * gridScale;
+
+    for (let lat = this.params.minLat; lat <= this.params.maxLat; lat += latStep) {
+      for (let lon = this.params.minLon; lon <= this.params.maxLon; lon += lonStep) {
+
+        // 右下の領域にあるデータ（のインデックス）を取得
+        const foundIds = this.kdbush.range(lon, lat, lon + lonStep, lat + latStep);
+
+        // 陸地にはデータがないので、0件ならスキップ
+        if (foundIds.length === 0) {
+          continue;
+        }
+
+        // インデックスから実データの配列にするにはこう
+        // const foundDatas = foundIds.map(i => this.params.depthMapDatas[i]);
+
+        // 見つけたインデックスの配列を追加
+        indexList.push(foundIds);
+      }
+    }
+
+    return indexList;
   }
 
 
@@ -411,7 +479,7 @@ export class Main {
     this.zoomControls.noRotate = true;
     this.zoomControls.staticMoving = true;
 
-    this.zoomControls.addEventListener('change', event => {
+    this.zoomControls.addEventListener('change', (event) => {
       const distance = this.getDistance();
       if (this.renderParams.distance !== distance) {
         this.renderParams.distance = distance;
@@ -429,8 +497,8 @@ export class Main {
     //   /
     //  Z(blue)
     //
-    const xzGridSize = this.params.xzGridSize;
-    const axesHelper = new THREE.AxesHelper(xzGridSize);
+    const xzSize = this.params.xzSize;
+    const axesHelper = new THREE.AxesHelper(xzSize);
     this.scene.add(axesHelper);
 
     // 環境光
@@ -484,7 +552,7 @@ export class Main {
       .min(0.1)
       .max(2.0)
       .step(0.1)
-      .onChange((value) => {
+      .onFinishChange((value) => {
         this.pointMeshList.forEach((pointMesh) => {
           pointMesh.material.size = value;
         });
@@ -495,6 +563,19 @@ export class Main {
       .name(navigator.language.startsWith("ja") ? "ポイント数" : "pointCount")
       .listen()
       .disable();
+
+    gui
+      .add(this.params, "gridScale")
+      .name(navigator.language.startsWith("ja") ? "グリッドスケール" : "gridScale")
+      .min(1)
+      .max(3)
+      .step(0.5)
+      .onFinishChange((value) => {
+        doLater(() => {
+          this.initContents();
+        }, 500);
+      });
+
 
     // 初期状態で閉じた状態にする
     // gui.close();
@@ -629,8 +710,8 @@ export class Main {
       // テキストデータを取得
       const text = await response.text();
 
-      // テキストデータをパース
-      this.params.depthMapData = this.parseText(text);
+      // テキストデータをパースして、depthMapDatas配列に追加
+      this.parseText(text);
 
     } catch (error) {
       const errorMessage = `Error while loading ${path}: ${error}`;
@@ -640,26 +721,30 @@ export class Main {
 
 
   depthSteps = [
-    10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 120, 140, 160, 200, 300
+    10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 500, 1000, 2000, 3000, 4000, 5000, 6000
   ];
 
   depthColors = {
-    "10": new THREE.Color(0x00ffff),   // シアン
-    "20": new THREE.Color(0x00ffcc),   // アクアマリン
-    "30": new THREE.Color(0x00ff99),   // ミントグリーン
-    "40": new THREE.Color(0x00ff66),   // スプリンググリーン
-    "50": new THREE.Color(0x00ff33),   // ライムグリーン
-    "60": new THREE.Color(0x00ff00),   // グリーン
-    "70": new THREE.Color(0x33ff00),   // ライトグリーン
-    "80": new THREE.Color(0x66ff00),   // イエローグリーン
-    "90": new THREE.Color(0x99ff00),   // チャートリューズ
-    "100": new THREE.Color(0xccff00),  // イエロー
-    "120": new THREE.Color(0xffff00),  // ゴールド
-    "140": new THREE.Color(0xffcc00),  // オレンジ
-    "160": new THREE.Color(0xff9900),  // ダークオレンジ
-    "200": new THREE.Color(0xff6600),  // オレンジレッド
-    "300": new THREE.Color(0xff3300),  // レッド
-  }
+    "10": new THREE.Color(0x00ffff),    // シアン
+    "20": new THREE.Color(0x00ffcc),    // アクアマリン
+    "30": new THREE.Color(0x00ff99),    // ミントグリーン
+    "40": new THREE.Color(0x00ff66),    // スプリンググリーン
+    "50": new THREE.Color(0x00ff33),    // ライムグリーン
+    "60": new THREE.Color(0x00ff00),    // グリーン
+    "70": new THREE.Color(0x33ff00),    // ライトグリーン
+    "80": new THREE.Color(0x66ff00),    // イエローグリーン
+    "90": new THREE.Color(0x99ff00),    // チャートリューズ
+    "100": new THREE.Color(0xccff00),   // イエロー
+    "200": new THREE.Color(0xffff00),   // ゴールド
+    "500": new THREE.Color(0xffcc00),   // オレンジ
+    "1000": new THREE.Color(0xff9900),  // ダークオレンジ
+    "2000": new THREE.Color(0xff6600),  // オレンジレッド
+    "3000": new THREE.Color(0xff3300),  // レッド
+    "4000": new THREE.Color(0xff0000),  // ダークレッド
+    "5000": new THREE.Color(0xcc0000),  // マルーン
+    "6000": new THREE.Color(0x990000)   // ダークマルーン
+  };
+
 
   getDepthColor(depth) {
     for (let i = 0; i < this.depthSteps.length; i++) {
@@ -700,29 +785,29 @@ export class Main {
   }
 
 
-  // 経度経度を中央寄せして正規化する
-  normalizeCoordinates = ([lon, lat]) => {
+  // 経度経度をXZ座標に変換する
+  translateCoordinates = ([lon, lat]) => {
     return [
       (lon - this.params.centerLon) * this.params.xzScale,
       (lat - this.params.centerLat) * this.params.xzScale * (-1)
     ];
   }
 
-  // 元の座標系に戻す
-  inverseNormalizeCoordinates = (x, z) => {
+  // XZ座標から(lon, lat)に戻す
+  inverseTranslateCoordinates = (x, z) => {
     return [
       x / this.params.xzScale + this.params.centerLon,
       z / this.params.xzScale * (-1) + this.params.centerLat
     ];
   }
 
-  // 水深データを正規化する
-  normalizeDepth = (depth) => {
+  // 水深をY座標に変換する
+  translateDepth = (depth) => {
     return depth * this.params.yScale * (-1);
   }
 
-  // 元の座標系に戻す
-  inverseNormalizeDepth = (depth) => {
+  // Y座標から元の水深に戻す
+  inverseTranslateDepth = (depth) => {
     return depth / this.params.yScale * (-1);
   }
 
@@ -745,15 +830,15 @@ export class Main {
       const intersect = intersects[0];
 
       // 水深データを取得
-      const depth = this.inverseNormalizeDepth(intersect.point.y);
+      const depth = this.inverseTranslateDepth(intersect.point.y);
 
       // 緯度経度を取得
       const x = intersect.point.x;
       const z = intersect.point.z;
-      const [lon, lat] = this.inverseNormalizeCoordinates(x, z);
+      const [lon, lat] = this.inverseTranslateCoordinates(x, z);
 
-      this.depthContainer.textContent = `Depth: ${depth.toFixed(2)}m`;
-      this.coordinatesContainer.textContent = `Lon: ${lon.toFixed(8)}, Lat: ${lat.toFixed(8)}`;
+      this.depthContainer.textContent = `Depth: ${depth.toFixed(0)}m`;
+      this.coordinatesContainer.textContent = `Lon: ${lon.toFixed(5)}, Lat: ${lat.toFixed(5)}`;
 
     } else {
       this.depthContainer.textContent = '';
@@ -785,26 +870,43 @@ export class Main {
 
   createPointCloud = () => {
 
-    // 座標を格納する配列
-    const positions = [];
+    const gridScale = this.params.gridScale;
 
-    // 色を格納する配列
+    // グリッド状に(lon, lat)を走査してデータを取り出す
+    const gridIndexList = this.getGridIndexList(gridScale);
+
+    const positions = [];
     const colors = [];
 
-    this.params.depthMapData.forEach((d) => {
-      positions.push(new THREE.Vector3(d.x, d.y, d.z));
-      const color = this.getDepthColor(d.depth);
-      colors.push(color.r, color.g, color.b);
+    gridIndexList.forEach((indexList) => {
+      if (indexList.length === 0) {
+        return;
+      }
 
-      // positions配列の何番目に入れたのか、をindexとして保持する
-      // これを使って後ほどインデックスを作成する
-      d.index = positions.length - 1;
+      if (indexList.length === 1) {
+        const d = this.params.depthMapDatas[indexList[0]];
+        const p = new THREE.Vector3(d.x, d.y, d.z);
+        positions.push(p);
+
+        const c = this.getDepthColor(d.depth);
+        colors.push(c.r, c.g, c.b);
+        return;
+      }
+
+      // グリッド内のデータが複数ある場合は、平均値を求める
+      const x = indexList.reduce((sum, index) => sum + this.params.depthMapDatas[index].x, 0) / indexList.length;
+      const y = indexList.reduce((sum, index) => sum + this.params.depthMapDatas[index].y, 0) / indexList.length;
+      const z = indexList.reduce((sum, index) => sum + this.params.depthMapDatas[index].z, 0) / indexList.length;
+      const p = new THREE.Vector3(x, y, z);
+      positions.push(p);
+
+      const depth = indexList.reduce((sum, index) => sum + this.params.depthMapDatas[index].depth, 0) / indexList.length;
+      const c = this.getDepthColor(depth);
+      colors.push(c.r, c.g, c.b);
+
     });
 
-    // ポイントクラウドのジオメトリを作成
     const geometry = new THREE.BufferGeometry().setFromPoints(positions);
-
-    // 頂点カラーを設定
     geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
     const pointMaterial = new THREE.PointsMaterial({
@@ -813,56 +915,11 @@ export class Main {
     });
 
     const pointCloud = new THREE.Points(geometry, pointMaterial);
-
     this.scene.add(pointCloud);
-    this.pointMeshList = [pointCloud];
+    this.pointMeshList.push(pointCloud);
 
-    // インデックスを作成
-    const indexList = [];
-    this.params.depthMapData.forEach((d) => {
-      const surroundingData = this.getSurroundingData(this.params.depthMapData, d.lat, d.lon, this.params.latStep, this.params.lonStep);
 
-      const index = d.index;
-      const rightIndex = surroundingData.right ? surroundingData.right.index : null;
-      const downIndex = surroundingData.down ? surroundingData.down.index : null;
-      if (rightIndex !== null && downIndex !== null) {
-        indexList.push(index, rightIndex, downIndex);
-      }
-    });
-
-    console.log(indexList);
-
-    /*
-    // インデックスを設定
-    geometry.setIndex(indexList);
-
-    // 法線ベクトルを計算
-    geometry.computeVertexNormals();
-
-      // マテリアルを生成
-      const material = new THREE.MeshLambertMaterial({
-        vertexColors: true, // 頂点カラーを使用
-      });
-
-      // メッシュを生成
-      const terrainMesh = new THREE.Mesh(geometry, material);
-
-      // シーンに追加
-      this.scene.add(terrainMesh);
-      */
   }
-
-  // 特定の位置の上下左右のデータを取得する関数
-  getSurroundingData = (sparseMatrix, lat, lon, latStep, lonStep) => {
-    const surroundingData = {
-      up: sparseMatrix.get(`${(lat + latStep).toFixed(5)},${lon.toFixed(5)}`) || null,
-      down: sparseMatrix.get(`${(lat - latStep).toFixed(5)},${lon.toFixed(5)}`) || null,
-      left: sparseMatrix.get(`${lat.toFixed(5)},${(lon - lonStep).toFixed(5)}`) || null,
-      right: sparseMatrix.get(`${lat.toFixed(5)},${(lon + lonStep).toFixed(5)}`) || null
-    };
-    return surroundingData;
-  }
-
 
 
   getDistance = () => {
