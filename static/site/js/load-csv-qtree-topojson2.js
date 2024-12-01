@@ -104,17 +104,23 @@ export class Main {
   params = {
 
     // 海底地形図の(lon, lat)をThree.jsのXZ座標のどの範囲に描画するか
-    // 持っているGPSデータに応じて調整する
-    xzGridSize: 200,  // 200を指定する場合は -100～100 の範囲に描画する
+    // 400を指定する場合は -200～200 の範囲に描画する
+    xzGridSize: 400,
 
-    // xzGridSizeにあわせるために、どのくらい緯度経度の値を拡大するか（自動で計算する）
-    xzScale: 10000,  // これは仮の値で、CSVデータを読み込んだ後に正規化する
+    // xzSizeにあわせるために、どのくらい緯度経度の値を拡大するか（自動計算）
+    xzScale: 1,
+
+    // 水深をどのくらいの高さに描画するか
+    // 100を指定する場合は 0 ～ -100 の範囲に描画する
+    ySize: 100,
+
+    // 最も深い水深に合わせてY座標をどのくらい拡大するか（自動計算）
+    yScale: 1,
 
     // 水深データのCSVファイルのURL
     depthMapPath: "./static/data/depth_map_data_edited.csv",
 
     // CSVテキストをパースして作成するデータ配列
-    // 画面表示に適した値に正規化するのでCSVの値とは異なることに注意
     // [ {lat: 35.16900046, lon: 139.60695032, depth: -10.0}, {...}, ... ]
     depthMapData: null,
 
@@ -136,7 +142,7 @@ export class Main {
     // ポイントクラウドのパーティクルサイズ
     pointSize: 0.2,
 
-    // ポイントクラウドの数（自動計算）
+    // 画面表示しているポイントの数（自動計算）
     pointCount: 0,
 
     // CSVに何個のデータがあるか（CSV読み取り時に自動計算）
@@ -157,25 +163,26 @@ export class Main {
     centerLon: 0,
     centerLat: 0,
 
-    // 画面表示用に正規化した緯度経度の最大値、最小値（自動計算）
-    normalizedMinLon: 0,
-    normalizedMinLat: 0,
-    normalizedMaxLon: 0,
-    normalizedMaxLat: 0,
-    normalizedCenterLon: 0,
-    normalizedCenterLat: 0,
+    // 水深の最大値（CSVから自動で読み取る）
+    maxDepth: 0,
+
+    // Three.jsのワールド座標に正規化した緯度経度の最大値、最小値（自動計算）
+    minX: 0,
+    maxX: 0,
+    minZ: 0,
+    maxZ: 0,
+    minY: 0,
 
     // 画面表示対象の四分木の深さ
     quadtreeDepth: 0,
 
-    // どこまで深く四分木を分割するか（自動計算）
-    // 1m以下になるまで四分木で分割する
-    maxQuadtreeDepth: 5,
+    // どこまで深く四分木を分割するか
+    maxQuadtreeDepth: 10,
 
     // 四分木の領域に何個の点があった場合に、さらに小さく四分木分割するか
     // この値を大きくすると、四分木の深さが浅くなり、描画するポイント数は減る
     // 総数5万ポイントくらいに抑えるように調整する
-    maxPoints: 6,
+    maxAreaPoints: 6,
 
     // ランドマークのオブジェクト配列
     // [{ lon: 139.60695032, lat: 35.16200000, depth: -10, name_ja: 'ヤギ瀬', name: 'Yagise' },
@@ -196,7 +203,7 @@ export class Main {
   }
 
   // 地形図のポイントクラウド（guiで表示を操作するためにインスタンス変数にする）
-  pointMeshList;
+  pointMeshList = [];
 
   // 地形図のメッシュのリスト（guiで表示を操作するためにインスタンス変数にする）
   terrainMeshList = [];
@@ -237,8 +244,8 @@ export class Main {
       event.target.remove();
     });
 
-    // 緯度経度の値を正規化する
-    this.normalizeDepthMapData();
+    // 緯度経度の値をThree.jsのワールド座標に正規化する
+    this.translate();
 
     // scene, camera, renderer, controllerを初期化
     this.initThreejs();
@@ -249,10 +256,22 @@ export class Main {
     // lil-guiを初期化
     this.initGui();
 
+    // topojsonデータから地図を表示
+    this.initMap();
+
+    // ランドマークを表示
+    this.initLandmarks();
+
     // 色の凡例を初期化
     this.initLegend();
 
-    // コンテンツを初期化
+    // 縮尺を表示
+    this.initScale();
+
+    // 方位磁針を表示
+    this.initCompass();
+
+    // 地形図コンテンツを初期化
     this.initContents();
   }
 
@@ -264,7 +283,7 @@ export class Main {
     // シーン上のメッシュを削除する
     this.clearScene();
 
-    // 全てを削除した状態で描画
+    // メッシュを削除した状態で描画
     this.renderer.render(this.scene, this.camera);
 
     // 正規化したデータを四分木に分割する
@@ -273,22 +292,7 @@ export class Main {
     // 四分木を元に、デローネ三角形でメッシュを表示する
     this.initDelaunay();
 
-    // topojsonデータからシェイプを作成
-    const shapes = this.createShapesFromTopojson(this.params.topojsonData, this.params.topojsonObjectName);
-
-    // シェイプの配列からメッシュを作成
-    this.createMeshFromShapes(shapes);
-
-    // ランドマークを表示
-    this.initLandmarks();
-
-    // 縮尺を表示
-    this.initScale();
-
-    // 方位磁針を表示
-    this.initCompass();
-
-    // フレーム毎の処理
+    // アニメーションを開始
     this.render();
   }
 
@@ -318,6 +322,11 @@ export class Main {
 
 
   parseCsv = (text) => {
+    // CSVファイルの先頭行にヘッダが来る
+    // lat,lon,depth
+    // 35.157310485839844,139.5998077392578,21.178499221801758
+    // 35.15732192993164,139.60012817382812,16.7810001373291
+
     // 行に分割
     const lines = text.split('\n');
 
@@ -328,14 +337,17 @@ export class Main {
     const dataList = [];
 
     // 緯度経度の最大値、最小値を取得するための変数
-    let minLat = 9999;
-    let maxLat = -9999;
-    let minLon = 9999;
-    let maxLon = -9999;
+    let minLat = Infinity, minLon = Infinity;
+    let maxLat = -Infinity, maxLon = -Infinity;
+    let maxDepth = -Infinity;
 
-    // 2行目以降をパース
+    // 1行目はヘッダなので、2行目以降をパース
     for (let i = 1; i < lines.length; i++) {
-      const rows = lines[i].split(',');
+      const line = lines[i].trim();
+      if (line === '') {
+        continue;
+      }
+      const rows = line.split(',');
       if (rows.length === headers.length) {
         const d = {};
         for (let j = 0; j < headers.length; j++) {
@@ -348,16 +360,18 @@ export class Main {
         maxLat = Math.max(maxLat, d.lat);
         minLon = Math.min(minLon, d.lon);
         maxLon = Math.max(maxLon, d.lon);
+
+        // 水深の最大値を調べる
+        maxDepth = Math.max(maxDepth, d.depth);
       }
     }
-
-    // console.log(`minLat: ${minLat}\nmaxLat: ${maxLat}\nminLon: ${minLon}\nmaxLon: ${maxLon}`);
 
     // 後から参照できるように保存しておく
     this.params.minLon = minLon;
     this.params.maxLon = maxLon;
     this.params.minLat = minLat;
     this.params.maxLat = maxLat;
+    this.params.maxDepth = maxDepth;
     this.params.centerLon = (minLon + maxLon) / 2;
     this.params.centerLat = (minLat + maxLat) / 2;
 
@@ -370,99 +384,72 @@ export class Main {
     // このdiffSizeがxzGridSizeになるように係数を計算
     this.params.xzScale = this.params.xzGridSize / diffSize;
 
-    // 四分木で領域を分割するときに、何回分割すれば領域が10m以下になるか
-    // 地球の半径を6371kmとして、1度の差分は6371 * 2 * Math.PI / 360 km
-     // 1度は約111km なので、1m以下にするために1000を掛ける
-    const maxDepth = Math.ceil(Math.log2(diffSize* 111 * 1000 / 10));
-
-    // 最大で10分割に制限しておく
-    this.params.maxQuadtreeDepth = Math.min(maxDepth, 10);
-    // console.log(`maxDepth: ${maxDepth}`);
+    // 最も大きな水深がySizeになるように係数を計算
+    this.params.yScale = this.params.ySize / maxDepth;
 
     return dataList;
   }
 
 
-  // normalizeDepthMapData()で行っている正規化をメソッド化
-  // Three.jsのZ軸の向きが手前方向なので、緯度方向はマイナスにする必要がある
-  // これでTopojsonの座標を正規化した場合、
-  // シェイプをXY平面からXZ平面に向きを変えるときに
-  //   geometry.rotateX(Math.PI / 2);
-  // という向きにしないと、地図が上下逆さまになる
-  //
-  normalizeCoordinates = ([lon, lat]) => {
-    const scale = this.params.xzScale;
-    const centerLon = this.params.centerLon;
-    const centerLat = this.params.centerLat;
+  // 経度がX軸、緯度がZ軸になるように経度経度をXZ座標に変換する
+  // Three.jsのワールド座標はZ軸が手前に向いているので、-1倍して向きを反転する
+  translateCoordinates = ([lon, lat]) => {
     return [
-      (lon - centerLon) * scale,
-      -1 * (lat - centerLat) * scale
+      (lon - this.params.centerLon) * this.params.xzScale,
+      (lat - this.params.centerLat) * this.params.xzScale * (-1)
     ];
   }
 
-
-  // normalizeDepthMapData()で行っている正規化の逆変換
-  inverseNormalizeCoordinates = (x, z) => {
-    const scale = this.params.xzScale;
-    const centerLon = this.params.centerLon;
-    const centerLat = this.params.centerLat;
+  // XZ座標から(lon, lat)に戻す
+  inverseTranslateCoordinates = (x, z) => {
     return [
-      x / scale + centerLon,
-      -1 * z / scale + centerLat
+      x / this.params.xzScale + this.params.centerLon,
+      z / this.params.xzScale + this.params.centerLat * (-1)
     ];
   }
 
+  // 水深をY座標に変換する
+  translateDepth = (depth) => {
+    return depth * this.params.yScale * (-1);
+  }
 
-  normalizeDepthMapData = () => {
+  // Y座標から元の水深に戻す
+  inverseTranslateDepth = (depth) => {
+    return depth / this.params.yScale * (-1);
+  }
 
-    // 緯度経度の中央値を取り出す
-    const centerLon = this.params.centerLon;
-    const centerLat = this.params.centerLat;
 
-    // 拡大率
-    const scale = this.params.xzScale;
+  translate = () => {
+    // ワールド座標の最大値、最小値
+    let maxX = -Infinity, maxZ = -Infinity;
+    let minX = Infinity, minZ = Infinity;
+    let minY = Infinity;
 
-    // 正規化後の最小緯度、最大緯度、最小経度、最大経度
-    let normalizedMinLat = 9999;
-    let normalizedMaxLat = -9999;
-    let normalizedMinLon = 9999;
-    let normalizedMaxLon = -9999;
-
-    // params.depthMapDataを上書きで正規化する
+    // params.depthMapDataにワールド座標を追加する
     this.params.depthMapData.forEach((d) => {
 
-      // 経度(lon)はX軸に対応する
-      // センターに寄せて、スケールをかける
-      const lon = (d.lon - centerLon) * scale;
+      // lon, latをXZ座標に変換
+      const [x, z] = this.translateCoordinates([d.lon, d.lat]);
+      d.x = x;
+      d.z = z;
 
-      // 緯度(lat)はZ軸に対応する
-      // Three.jsのZ軸の向きと、地図の南北は逆になるのでマイナスをかける
-      const lat = -1 * (d.lat - centerLat) * scale;
+      // 深さ(depth)をY軸に変換
+      const y = this.translateDepth(d.depth);
+      d.y = y;
 
-      // 深さ(depth)はY軸に対応する
-      // 深さなので、マイナスをかける
-      const depth = -1 * d.depth;
-
-      // 正規化したデータを上書きで保存
-      d.lat = lat;
-      d.lon = lon;
-      d.depth = depth;
-
-      // 最小緯度、最大緯度、最小経度、最大経度を更新
-      normalizedMinLat = Math.min(normalizedMinLat, lat);
-      normalizedMaxLat = Math.max(normalizedMaxLat, lat);
-      normalizedMinLon = Math.min(normalizedMinLon, lon);
-      normalizedMaxLon = Math.max(normalizedMaxLon, lon);
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minZ = Math.min(minZ, z);
+      maxZ = Math.max(maxZ, z);
+      minY = Math.min(minY, y);
     });
 
-    // 正規化した最小値、最大値、中央値を保存しておく
-    this.params.normalizedMinLat = normalizedMinLat;
-    this.params.normalizedMaxLat = normalizedMaxLat;
-    this.params.normalizedMinLon = normalizedMinLon;
-    this.params.normalizedMaxLon = normalizedMaxLon;
-    this.params.normalizedCenterLon = (normalizedMinLon + normalizedMaxLon) / 2;
-    this.params.normalizedCenterLat = (normalizedMinLat + normalizedMaxLat) / 2;
-    // console.log(`normalizedMinLat: ${this.params.normalizedMinLat}\nnormalizedMaxLat: ${this.params.normalizedMaxLat}\nnormalizedMinLon: ${this.params.normalizedMinLon}\nnormalizedMaxLon: ${this.params.normalizedMaxLon}`);
+    // 正規化した最小値、最大値を保存しておく
+    this.params.minX = minX;
+    this.params.maxX = maxX;
+    this.params.minZ = minZ;
+    this.params.maxZ = maxZ;
+    this.params.minY = minY;
   }
 
 
@@ -531,7 +518,7 @@ export class Main {
       1,
       1000
     );
-    this.camera.position.set(0, 100, 100);
+    this.camera.position.set(0, 200, 200);
 
     // レイヤを設定
     this.camera.layers.enable(0); // enabled by default
@@ -574,7 +561,7 @@ export class Main {
 
     // ディレクショナルライト
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
-    directionalLight.position.set(-this.params.xzGridSize/2, 0, 0);
+    directionalLight.position.set(-this.params.xzGridSize / 2, 0, 0);
     this.scene.add(directionalLight);
 
     // 正規化したマウス座標を保存
@@ -643,8 +630,8 @@ export class Main {
       });
 
     gui
-      .add(this.params, "maxPoints")
-      .name(navigator.language.startsWith("ja") ? "四分木分割するしきい値点数" : "maxPoints")
+      .add(this.params, "maxAreaPoints")
+      .name(navigator.language.startsWith("ja") ? "四分木分割するしきい値点数" : "maxAreaPoints")
       .min(4)
       .max(10)
       .step(1)
@@ -770,7 +757,7 @@ export class Main {
   }
 
 
-  clearScene = () => {
+  __OLD__clearScene = () => {
     const objectsToRemove = [];
 
     this.scene.children.forEach((child) => {
@@ -796,6 +783,31 @@ export class Main {
   }
 
 
+  clearScene = () => {
+    const removeObject = (object) => {
+      this.scene.remove(object);
+      if (object.geometry) {
+        object.geometry.dispose();
+      }
+      if (object.material) {
+        if (Array.isArray(object.material)) {
+          object.material.forEach(material => material.dispose());
+        } else {
+          object.material.dispose();
+        }
+      }
+    };
+
+    this.pointMeshList.forEach(object => {
+      removeObject(object);
+    });
+
+    this.terrainMeshList.forEach(object => {
+      removeObject(object);
+    });
+  }
+
+
   onWindowResize = (event) => {
     this.sizes.width = this.container.clientWidth;
     this.sizes.height = this.container.clientHeight;
@@ -813,23 +825,18 @@ export class Main {
 
   initQuadTree = () => {
 
-    const minLon = this.params.normalizedMinLon;
-    const minLat = this.params.normalizedMinLat;
-    const maxLon = this.params.normalizedMaxLon;
-    const maxLat = this.params.normalizedMaxLat;
-
     // 最大の分割数
     Quadtree.MAX_DIVISION = this.params.maxQuadtreeDepth;
 
     // 領域内に含まれる最大の点の数、これを超えていたらさらに小さく分割する
-    Quadtree.MAX_POINTS = this.params.maxPoints;
+    Quadtree.MAX_AREA_POINTS = this.params.maxAreaPoints;
 
     // X軸 = Longitude(経度)、Z軸 = Latitude(緯度)
     const bounds = {
-      lon1: minLon,  // 最小のX(lon)
-      lat1: minLat,  // 最小のZ(lat)
-      lon2: maxLon,  // 最大のX(lon)
-      lat2: maxLat   // 最大のZ(lat)
+      x1: this.params.minX,  // 最小のX座標(lon)
+      z1: this.params.minZ,  // 最小のZ座標(lat)
+      x2: this.params.maxX,  // 最大のX座標(lon)
+      z2: this.params.maxZ   // 最大のZ座標(lat)
     }
 
     // ルート領域を作成
@@ -838,7 +845,7 @@ export class Main {
     // depthMapDataは配列で、各要素は以下のようなオブジェクト
     // [ {lat: 67.88624331335313, lon: -81.94761236723025, depth: -21.1785}, {...}, ... ]
     this.params.depthMapData.forEach((d) => {
-      quadtree.insert(d);  // ルート領域にデータを追加する
+      quadtree.insert(d);
     });
 
     // インスタンス変数に保存
@@ -888,7 +895,7 @@ export class Main {
             const point = quadtreeNode.points[i];
 
             // 頂点の位置
-            positions.push(new THREE.Vector3(point.lon, point.depth, point.lat));
+            positions.push(new THREE.Vector3(point.x, point.y, point.z));
 
             // 頂点の色
             const color = this.getDepthColor(point.depth);
@@ -902,21 +909,26 @@ export class Main {
         // それ以上の場合は、領域の中央値を採用してポイント数を削減する
 
         const bounds = quadtreeNode.bounds;
-        const centerLon = (bounds.lon1 + bounds.lon2) / 2;
-        const centerLat = (bounds.lat1 + bounds.lat2) / 2;
+        const centerX = (bounds.x1 + bounds.x2) / 2;
+        const centerZ = (bounds.z1 + bounds.z2) / 2;
 
         // エリア内の点の深さの平均値を計算する
         // const depth = quadtreeNode.points.reduce((acc, cur) => acc + cur.depth, 0) / quadtreeNode.points.length;
 
-        // 逆距離加重法 IDW (Inverse Distance Weighting)を使って深さを計算する
-        const depth = this.calcIDW(centerLon, centerLat, quadtreeNode.points);
+        // 逆距離加重法 IDW (Inverse Distance Weighting)を使って深さの平均値を計算する
+        const depth = this.calcIDW(centerX, centerZ, quadtreeNode.points);
+
+        // Y座標に変換
+        const y = this.translateDepth(depth);
 
         // 頂点の位置
-        positions.push(new THREE.Vector3(centerLon, depth, centerLat));
+        positions.push(new THREE.Vector3(centerX, y, centerZ));
 
         // 頂点の色
-        const color = this.getDepthColor(depth);
-        colors.push(color.r, color.g, color.b);
+        const c = this.getDepthColor(depth);
+
+        // colors配列にRGBを格納
+        colors.push(c.r, c.g, c.b);
 
         this.params.Count++;
 
@@ -999,7 +1011,7 @@ export class Main {
   }
 
 
-  calcIDW = (lon, lat, points) => {
+  calcIDW = (x, z, points) => {
     // 逆距離加重法 IDW (Inverse Distance Weighting)
     // https://en.wikipedia.org/wiki/Inverse_distance_weighting
 
@@ -1011,7 +1023,7 @@ export class Main {
 
     // 逆距離の重み付き深さを計算
     points.forEach((point) => {
-      const dist = Math.sqrt((lon - point.lon) ** 2 + (lat - point.lat) ** 2);
+      const dist = Math.sqrt((x - point.x) ** 2 + (z - point.z) ** 2);
       const invDist = 1 / dist;
       sumInvDist += invDist;
       sumWeightedDepth += invDist * point.depth;
@@ -1025,30 +1037,29 @@ export class Main {
 
 
   depthSteps = [
-    -60, -55, -50, -45, -40, -35, -30, -25, -20, -16, -12, -10, -8, -6, -5, -4, -3, -2, -1,
+    1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 25, 30, 35, 40, 45, 50, 55, 60
   ];
 
-
   depthColors = {
-    '-60': new THREE.Color(0x2e146a),
-    '-55': new THREE.Color(0x451e9f),
-    '-50': new THREE.Color(0x3b31c3),
-    '-45': new THREE.Color(0x1f47de),
-    '-40': new THREE.Color(0x045ef9),
-    '-35': new THREE.Color(0x0075fd),
-    '-30': new THREE.Color(0x008ffd),
-    '-25': new THREE.Color(0x01aafc),
-    '-20': new THREE.Color(0x01c5fc),
-    '-16': new THREE.Color(0x45ccb5),
-    '-12': new THREE.Color(0x90d366),
-    '-10': new THREE.Color(0xb4df56),
-    '-8': new THREE.Color(0xd9ed4c),
-    '-6': new THREE.Color(0xfdfb41),
-    '-5': new THREE.Color(0xfee437),
-    '-4': new THREE.Color(0xfecc2c),
-    '-3': new THREE.Color(0xfeb321),
-    '-2': new THREE.Color(0xff9b16),
-    '-1': new THREE.Color(0xff820b),
+    '1': new THREE.Color(0xff820b),
+    '2': new THREE.Color(0xff9b16),
+    '3': new THREE.Color(0xfeb321),
+    '4': new THREE.Color(0xfecc2c),
+    '5': new THREE.Color(0xfee437),
+    '6': new THREE.Color(0xfdfb41),
+    '8': new THREE.Color(0xd9ed4c),
+    '10': new THREE.Color(0xb4df56),
+    '12': new THREE.Color(0x90d366),
+    '16': new THREE.Color(0x45ccb5),
+    '20': new THREE.Color(0x01c5fc),
+    '25': new THREE.Color(0x01aafc),
+    '30': new THREE.Color(0x008ffd),
+    '35': new THREE.Color(0x0075fd),
+    '40': new THREE.Color(0x045ef9),
+    '45': new THREE.Color(0x1f47de),
+    '50': new THREE.Color(0x3b31c3),
+    '55': new THREE.Color(0x451e9f),
+    '60': new THREE.Color(0x2e146a),
   }
 
 
@@ -1127,6 +1138,15 @@ export class Main {
   }
 
 
+  initMap = () => {
+    // topojsonデータからシェイプを作成
+    const shapes = this.createShapesFromTopojson(this.params.topojsonData, this.params.topojsonObjectName);
+
+    // シェイプの配列からメッシュを作成
+    this.createMeshFromShapes(shapes);
+  }
+
+
   createShapesFromTopojson = (topojsonData, objectName) => {
 
     // Shapeを格納する配列
@@ -1153,7 +1173,7 @@ export class Main {
 
         let coord;
         coord = coordinates[0];
-        coord = this.normalizeCoordinates(coord);
+        coord = this.translateCoordinates(coord);
 
         // パスを開始
         shape.moveTo(
@@ -1163,7 +1183,7 @@ export class Main {
 
         for (let i = 1; i < coordinates.length; i++) {
           coord = coordinates[i];
-          coord = this.normalizeCoordinates(coord);
+          coord = this.translateCoordinates(coord);
 
           // 線分を追加
           shape.lineTo(
@@ -1183,7 +1203,7 @@ export class Main {
 
         let coord;
         coord = coordinates[0];
-        coord = this.normalizeCoordinates(coord);
+        coord = this.translateCoordinates(coord);
 
         shape.moveTo(
           coord[0],
@@ -1192,7 +1212,7 @@ export class Main {
 
         for (let i = 1; i < coordinates.length; i++) {
           coord = coordinates[i];
-          coord = this.normalizeCoordinates(coord);
+          coord = this.translateCoordinates(coord);
           shape.lineTo(
             coord[0],
             coord[1]
@@ -1210,7 +1230,7 @@ export class Main {
 
           let coord;
           coord = coordinates[0];
-          coord = this.normalizeCoordinates(coord);
+          coord = this.translateCoordinates(coord);
 
           shape.moveTo(
             coord[0],
@@ -1219,7 +1239,7 @@ export class Main {
 
           for (let i = 1; i < coordinates.length; i++) {
             coord = coordinates[i];
-            coord = this.normalizeCoordinates(coord);
+            coord = this.translateCoordinates(coord);
             shape.lineTo(
               coord[0],
               coord[1]
@@ -1310,7 +1330,7 @@ export class Main {
       // 緯度経度を取得
       const x = intersect.point.x;
       const z = intersect.point.z;
-      const [lon, lat] = this.inverseNormalizeCoordinates(x, z);
+      const [lon, lat] = this.inverseTranslateCoordinates(x, z);
 
       if (depth < 0) {
         this.depthContainer.textContent = `Depth: ${depth.toFixed(1)}m`;
@@ -1381,11 +1401,11 @@ export class Main {
 
     this.params.landmarks.forEach((landmark) => {
 
-      // 正規化した緯度経度を取得
-      let [lon, lat] = this.normalizeCoordinates([landmark.lon, landmark.lat]);
+      // 緯度経度をThree.jsのワールド座標に変換
+      let [x, z] = this.translateCoordinates([landmark.lon, landmark.lat]);
 
       // Y座標はその場所の真上になるように設定
-      const position = new THREE.Vector3(lon, this.params.labelY, lat);
+      const position = new THREE.Vector3(x, this.params.labelY, z);
 
       // CSS2DRendererを使用してラベルを作成
       const div = document.createElement('div');
@@ -1407,8 +1427,8 @@ export class Main {
         depthWrite: false,
       });
       const points = [];
-      points.push(new THREE.Vector3(lon, landmark.depth, lat));
-      points.push(new THREE.Vector3(lon, position.y, lat));
+      points.push(new THREE.Vector3(x, landmark.depth, z));
+      points.push(new THREE.Vector3(x, position.y, z));
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
       const line = new THREE.Line(geometry, material);
 
@@ -1512,19 +1532,25 @@ export class Main {
 
 
 class QuadtreeNode {
+  //
+  // 四分木の領域を表すオブジェクト
+  //
 
-  // 領域を表すオブジェクト
+  // 前提条件
+  // ポイントのオブジェクトにはキー {x, z} が含まれること
   // X軸 = Longitude(経度)、Z軸 = Latitude(緯度)
-  // { lon1, lat1, lon2, lat2 }
+
+  // 前提条件
+  // 領域を表すオブジェクトにはキー {x1, z1, x2, z2} が含まれること
   bounds;
 
   // 階層の深さ
   depth;
 
-  // データ配列
+  // ポイントデータを格納する配列
   points;
 
-  // 子ノードの配列
+  // 子の領域ノードの配列（子は４つ）
   children;
 
   // 親ノードへの参照
@@ -1543,22 +1569,23 @@ class QuadtreeNode {
   }
 
   subdivide() {
-    const { lon1, lat1, lon2, lat2 } = this.bounds;
-    const midLon = (lon1 + lon2) / 2;
-    const midLat = (lat1 + lat2) / 2;
+    const { x1, z1, x2, z2 } = this.bounds;
+    const midX = (x1 + x2) / 2;
+    const midZ = (z1 + z2) / 2;
 
     // このノードを四分木で分割する
-    // children配列には以下の順に追加する
-    //  +---+---+
+    // children配列に以下の順に追加する
+    //  +---+---+ x
     //  | 0 | 1 |
     //  +---+---+
     //  | 2 | 3 |
     //  +---+---+
+    //  z
 
-    this.children.push(new QuadtreeNode({ lon1: lon1, lat1: lat1, lon2: midLon, lat2: midLat }, this.depth + 1, this));
-    this.children.push(new QuadtreeNode({ lon1: midLon, lat1: lat1, lon2: lon2, lat2: midLat }, this.depth + 1, this));
-    this.children.push(new QuadtreeNode({ lon1: lon1, lat1: midLat, lon2: midLon, lat2: lat2 }, this.depth + 1, this));
-    this.children.push(new QuadtreeNode({ lon1: midLon, lat1: midLat, lon2: lon2, lat2: lat2 }, this.depth + 1, this));
+    this.children.push(new QuadtreeNode({ x1: x1, z1: z1, x2: midX, z2: midZ }, this.depth + 1, this));
+    this.children.push(new QuadtreeNode({ x1: midX, z1: z1, x2: x2, z2: midZ }, this.depth + 1, this));
+    this.children.push(new QuadtreeNode({ x1: x1, z1: midZ, x2: midX, z2: z2 }, this.depth + 1, this));
+    this.children.push(new QuadtreeNode({ x1: midX, z1: midZ, x2: x2, z2: z2 }, this.depth + 1, this));
   }
 
   insert(point) {
@@ -1567,8 +1594,9 @@ class QuadtreeNode {
     }
 
     if (this.isLeaf()) {
-      if (this.points.length < Quadtree.MAX_POINTS || this.depth >= Quadtree.MAX_DEPTH) {
-        point.quadtreeNode = this;  // ポイントから四分木ノードを辿れるように参照を設定
+      if (this.points.length < Quadtree.MAX_AREA_POINTS || this.depth >= Quadtree.MAX_DEPTH) {
+        // ポイントから四分木ノードを辿れるように参照を設定
+        point.quadtreeNode = this;
         this.points.push(point);
         return true;
       } else {
@@ -1591,8 +1619,8 @@ class QuadtreeNode {
   }
 
   contains(point) {
-    const { lon1, lat1, lon2, lat2 } = this.bounds;
-    return point.lon >= lon1 && point.lon < lon2 && point.lat >= lat1 && point.lat < lat2;
+    const { x1, z1, x2, z2 } = this.bounds;
+    return point.x >= x1 && point.x < x2 && point.z >= z1 && point.z < z2;
   }
 
   query(range, found = []) {
@@ -1616,8 +1644,8 @@ class QuadtreeNode {
   }
 
   intersects(range) {
-    const { lon1, lat1, lon2, lat2 } = this.bounds;
-    return !(range.lon1 > lon2 || range.lon2 < lon1 || range.lat1 > lat2 || range.lat2 < lat1);
+    const { x1, z1, x2, z2 } = this.bounds;
+    return !(range.x1 > x2 || range.x2 < x1 || range.z1 > z2 || range.z2 < z1);
   }
 
   getNodesAtDepth(targetDepth, nodes = []) {
@@ -1648,15 +1676,15 @@ class QuadtreeNode {
 class Quadtree {
   /*
     使い方
-    const bounds = { lon1: 0, lat1: 0, lon2: 100, lat2: 100 };
+    const bounds = { x1: 0, z1: 0, x2: 100, z2: 100 };
     const quadtree = new Quadtree(bounds);
 
     const points = [
-      { lon: 10, lat: 10 },
-      { lon: 20, lat: 20 },
-      { lon: 30, lat: 30 },
-      { lon: 40, lat: 40 },
-      { lon: 50, lat: 50 },
+      { x: 10, z: 10 },
+      { x: 20, z: 20 },
+      { x: 30, z: 30 },
+      { x: 40, z: 40 },
+      { x: 50, z: 50 },
     ];
 
     points.forEach(point => quadtree.insert(point));
@@ -1666,7 +1694,7 @@ class Quadtree {
   */
 
   static MAX_DIVISION = 10;
-  static MAX_POINTS = 5;
+  static MAX_AREA_POINTS = 5;
 
   constructor(bounds) {
     this.root = new QuadtreeNode(bounds);

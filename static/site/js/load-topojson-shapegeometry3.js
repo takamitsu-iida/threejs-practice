@@ -73,8 +73,6 @@ export class Main {
     // xzGridSizeにあわせるために、どのくらい緯度経度の値を拡大するか（自動で計算する）
     xzScale: 1,
 
-
-
   }
 
 
@@ -94,6 +92,13 @@ export class Main {
     }
 
     // console.log(this.params.jsonData);
+
+    let bbox;
+    topojson.bbox(this.params.jsonData, this.params.jsonData.objects[this.params.objectName], (x1, y1, x2, y2) => {
+      bbox = [x1, y1, x2, y2];
+    });
+    console.log(bbox);
+
 
     // scene, camera, rendererを初期化
     this.initThreejs();
@@ -406,6 +411,21 @@ class Prefecture {
     this.createMesh();
   }
 
+  // Three.jsのZ軸の向きが手前方向なので、緯度方向はマイナスにする必要がある
+  // シェイプをXY平面からXZ平面に向きを変えるときに
+  //   geometry.rotateX(Math.PI / 2);
+  // という向きにしないと、地図が上下逆さまになる
+  normalizeCoordinates = ([lon, lat]) => {
+    const scale = this.params.xzScale;
+    const centerLon = this.params.centerLon;
+    const centerLat = this.params.centerLat;
+    return [
+      (lon - centerLon) * scale,
+      -1 * (lat - centerLat) * scale
+    ];
+  }
+
+
 
   parseFeature = (feature) => {
 
@@ -527,6 +547,12 @@ class Prefecture {
     // 中心を原点に寄せるためには、もう少し左、もう少し下に移動する必要がある
     geometry.translate(-this.params.translate[0], -this.params.translate[1], 0);
 
+    // XZ平面化
+    // 回転の向きに注意！
+    // Lat方向（Z軸方向）の座標をマイナスに正規化しているので、奥側に倒すように回転させる
+    // つまり、画面には裏面が見えている
+    geometry.rotateX(Math.PI / 2);
+
     // メッシュ化
     const mesh = new THREE.Mesh(geometry, material);
 
@@ -546,7 +572,11 @@ class Prefecture {
     this.linePoints.forEach(points => {
       // LineSegmentsのgeometryを作成
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
+
       geometry.translate(-this.params.translate[0], -this.params.translate[1], 0);
+
+      geometry.rotateX(Math.PI / 2);
+
       const material = new THREE.LineBasicMaterial({ color: 0x000000 });
       const lineSegments = new THREE.LineSegments(geometry, material);
 
