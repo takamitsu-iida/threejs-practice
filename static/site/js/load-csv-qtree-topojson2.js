@@ -408,7 +408,7 @@ export class Main {
   }
 
   // XZ座標から(lon, lat)に戻す
-  inverseTranslateCoordinates = (x, z) => {
+  inverseTranslateCoordinates = ([x, z]) => {
     return [
       x / this.params.xScale + this.params.centerLon,
       z / this.params.zScale * (-1) + this.params.centerLat
@@ -1337,7 +1337,7 @@ export class Main {
       // 緯度経度を取得
       const x = intersect.point.x;
       const z = intersect.point.z;
-      const [lon, lat] = this.inverseTranslateCoordinates(x, z);
+      const [lon, lat] = this.inverseTranslateCoordinates([x, z]);
 
       if (depth >= 0) {
         this.depthContainer.textContent = `Depth: ${depth.toFixed(1)}m`;
