@@ -411,7 +411,7 @@ export class Main {
   inverseTranslateCoordinates = (x, z) => {
     return [
       x / this.params.xScale + this.params.centerLon,
-      z / this.params.zScale + this.params.centerLat * (-1)
+      z / this.params.zScale * (-1) + this.params.centerLat
     ];
   }
 
