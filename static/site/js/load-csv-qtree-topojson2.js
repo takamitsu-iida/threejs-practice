@@ -103,12 +103,16 @@ export class Main {
 
   params = {
 
-    // 海底地形図の(lon, lat)をThree.jsのXZ座標のどの範囲に描画するか
+    // 海底地形図のlatをThree.jsのZ座標のどの範囲に描画するか
     // 400を指定する場合は -200～200 の範囲に描画する
-    xzGridSize: 400,
+    zSize: 400,
 
-    // xzSizeにあわせるために、どのくらい緯度経度の値を拡大するか（自動計算）
-    xzScale: 1,
+    // zSizeにあわせるために、どのくらい緯度の値を拡大するか（自動計算）
+    zScale: 1,
+
+    // zScaleにあわせて、X軸方向をどのくらい拡大するか（自動計算）
+    // zScale * Math.cos(緯度) になる
+    xScale: 1,
 
     // 水深をどのくらいの高さに描画するか
     // 100を指定する場合は 0 ～ -100 の範囲に描画する
@@ -166,7 +170,7 @@ export class Main {
     // 水深の最大値（CSVから自動で読み取る）
     maxDepth: 0,
 
-    // Three.jsのワールド座標に正規化した緯度経度の最大値、最小値（自動計算）
+    // Three.jsのワールド座標に正規化した座標の最大値、最小値（自動計算）
     minX: 0,
     maxX: 0,
     minZ: 0,
@@ -378,11 +382,14 @@ export class Main {
     // 全部で何個のデータがあるか
     this.params.totalPointCount = dataList.length;
 
-    // 緯度の差分、経度の差分で大きい方を取得
-    const diffSize = Math.max(maxLat - minLat, maxLon - minLon);
+    // 緯度の差分を取得
+    const diffLat = maxLat - minLat;
 
-    // このdiffSizeがxzGridSizeになるように係数を計算
-    this.params.xzScale = this.params.xzGridSize / diffSize;
+    // このdiffLatがzSizeになるように係数を計算
+    this.params.zScale = this.params.zSize / diffLat;
+
+    // 経度のスケールは緯度によって変わるので、中央の緯度で計算
+    this.params.xScale = this.params.zScale * Math.cos(this.params.centerLat * Math.PI / 180);
 
     // 最も大きな水深がySizeになるように係数を計算
     this.params.yScale = this.params.ySize / maxDepth;
@@ -395,16 +402,16 @@ export class Main {
   // Three.jsのワールド座標はZ軸が手前に向いているので、-1倍して向きを反転する
   translateCoordinates = ([lon, lat]) => {
     return [
-      (lon - this.params.centerLon) * this.params.xzScale,
-      (lat - this.params.centerLat) * this.params.xzScale * (-1)
+      (lon - this.params.centerLon) * this.params.xScale,
+      (lat - this.params.centerLat) * this.params.zScale * (-1)
     ];
   }
 
   // XZ座標から(lon, lat)に戻す
   inverseTranslateCoordinates = (x, z) => {
     return [
-      x / this.params.xzScale + this.params.centerLon,
-      z / this.params.xzScale + this.params.centerLat * (-1)
+      x / this.params.xScale + this.params.centerLon,
+      z / this.params.zScale + this.params.centerLat * (-1)
     ];
   }
 
@@ -552,8 +559,7 @@ export class Main {
     //   /
     //  Z(blue)
     //
-    const xzGridSize = this.params.xzGridSize;
-    const axesHelper = new THREE.AxesHelper(xzGridSize);
+    const axesHelper = new THREE.AxesHelper(this.params.zSize);
     this.scene.add(axesHelper);
 
     // 環境光
@@ -561,7 +567,7 @@ export class Main {
 
     // ディレクショナルライト
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
-    directionalLight.position.set(-this.params.xzGridSize / 2, 0, 0);
+    directionalLight.position.set(-this.params.zSize / 2, 0, 0);
     this.scene.add(directionalLight);
 
     // 正規化したマウス座標を保存
@@ -1078,8 +1084,7 @@ export class Main {
 
     const depthSteps = this.depthSteps;
 
-    // 上が浅い水深になるように逆順にループ
-    for (let i = depthSteps.length - 1; i >= 0; i--) {
+    for (let i = 0; i < depthSteps.length; i++) {
       const depth = depthSteps[i];
 
       // 水深に応じた色を取得
@@ -1171,24 +1176,24 @@ export class Main {
 
         const coordinates = feature.geometry.coordinates;
 
-        let coord;
-        coord = coordinates[0];
-        coord = this.translateCoordinates(coord);
+        let coords;
+        coords = coordinates[0];
+        coords = this.translateCoordinates(coords);
 
         // パスを開始
         shape.moveTo(
-          coord[0],
-          coord[1]
+          coords[0],
+          coords[1]
         );
 
         for (let i = 1; i < coordinates.length; i++) {
-          coord = coordinates[i];
-          coord = this.translateCoordinates(coord);
+          coords = coordinates[i];
+          coords = this.translateCoordinates(coords);
 
           // 線分を追加
           shape.lineTo(
-            coord[0],
-            coord[1]
+            coords[0],
+            coords[1]
           );
         }
 
@@ -1201,21 +1206,21 @@ export class Main {
 
         const coordinates = feature.geometry.coordinates[0];
 
-        let coord;
-        coord = coordinates[0];
-        coord = this.translateCoordinates(coord);
+        let coords;
+        coords = coordinates[0];
+        coords = this.translateCoordinates(coords);
 
         shape.moveTo(
-          coord[0],
-          coord[1]
+          coords[0],
+          coords[1]
         );
 
         for (let i = 1; i < coordinates.length; i++) {
-          coord = coordinates[i];
-          coord = this.translateCoordinates(coord);
+          coords = coordinates[i];
+          coords = this.translateCoordinates(coords);
           shape.lineTo(
-            coord[0],
-            coord[1]
+            coords[0],
+            coords[1]
           );
         }
 
@@ -1228,21 +1233,21 @@ export class Main {
           const shape = new THREE.Shape();
           const coordinates = polygon[0];
 
-          let coord;
-          coord = coordinates[0];
-          coord = this.translateCoordinates(coord);
+          let coords;
+          coords = coordinates[0];
+          coords = this.translateCoordinates(coords);
 
           shape.moveTo(
-            coord[0],
-            coord[1]
+            coords[0],
+            coords[1]
           );
 
           for (let i = 1; i < coordinates.length; i++) {
-            coord = coordinates[i];
-            coord = this.translateCoordinates(coord);
+            coords = coordinates[i];
+            coords = this.translateCoordinates(coords);
             shape.lineTo(
-              coord[0],
-              coord[1]
+              coords[0],
+              coords[1]
             );
           }
 
@@ -1276,7 +1281,7 @@ export class Main {
     geometry.rotateX(Math.PI / 2);
 
     // 地図は大きすぎるので海底地形図の倍の大きさになるようにクリッピングする
-    const clippingSize = this.params.xzGridSize;
+    const clippingSize = this.params.zSize;
 
     // マテリアル、ここでは適当にMeshStandardMaterialを使う
     const material = new THREE.MeshStandardMaterial({
@@ -1289,10 +1294,10 @@ export class Main {
 
       // クリッピングして表示領域を制限する
       clippingPlanes: [
-        new THREE.Plane(new THREE.Vector3(0, 0, 1), clippingSize * 2),   // Z座標がxzGridSize * 2以下を表示
-        new THREE.Plane(new THREE.Vector3(0, 0, -1), clippingSize * 2),  // Z座標が-xzGridSize * 2以上を表示
-        new THREE.Plane(new THREE.Vector3(-1, 0, 0), clippingSize),      // X座標がxzGridSize以下を表示
-        new THREE.Plane(new THREE.Vector3(1, 0, 0), clippingSize),       // X座標が-xzGridSize以上を表示
+        new THREE.Plane(new THREE.Vector3(0, 0, 1), clippingSize * 2),   // Z座標がzSize * 2以下を表示
+        new THREE.Plane(new THREE.Vector3(0, 0, -1), clippingSize * 2),  // Z座標が-zSize * 2以上を表示
+        new THREE.Plane(new THREE.Vector3(-1, 0, 0), clippingSize),      // X座標がzSize以下を表示
+        new THREE.Plane(new THREE.Vector3(1, 0, 0), clippingSize),       // X座標が-zSize以上を表示
         new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),                  // Y座標が0以上を表示
       ],
     });
@@ -1317,24 +1322,26 @@ export class Main {
     // レイキャストを使用してマウスカーソルの位置を取得
     this.raycaster.setFromCamera(this.mousePosition, this.camera);
 
-    // シーン全体を対象にレイキャストを行う
+    // 海底地形図のメッシュを対象にレイキャストを行う
     // const intersects = this.raycaster.intersectObject(this.terrainMesh);
+
+    // シーン全体を対象にレイキャストを行う
     const intersects = this.raycaster.intersectObject(this.scene, true);
 
     if (intersects.length > 0) {
       const intersect = intersects[0];
 
-      // 水深データを取得
-      const depth = intersect.point.y;
+      // Y座標の値から水深データを取得
+      const depth = this.inverseTranslateDepth(intersect.point.y);
 
       // 緯度経度を取得
       const x = intersect.point.x;
       const z = intersect.point.z;
       const [lon, lat] = this.inverseTranslateCoordinates(x, z);
 
-      if (depth < 0) {
+      if (depth >= 0) {
         this.depthContainer.textContent = `Depth: ${depth.toFixed(1)}m`;
-        this.coordinatesContainer.textContent = `${lon.toFixed(10)}, ${lat.toFixed(10)}`;
+        this.coordinatesContainer.textContent = `${lon.toFixed(8)}, ${lat.toFixed(8)}`;
 
         // 凡例をハイライト
         this.updateLegendHighlight(depth);
@@ -1452,7 +1459,7 @@ export class Main {
 
     const EARTH_RADIUS_KM = 6371; // 地球の半径（km）
     const kmToRadians = 1 / (EARTH_RADIUS_KM * Math.PI / 180); // 1kmをラジアンに変換
-    const kmToDisplayLength = kmToRadians * this.params.xzScale;
+    const kmToDisplayLength = kmToRadians * this.params.zScale;
 
     // ラインのマテリアル
     const material = new THREE.LineBasicMaterial({ color: 0xffffff });

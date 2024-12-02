@@ -37,12 +37,6 @@ export class Main {
   zoomControls;
   statsjs;
 
-  // マウス座標
-  mousePosition = new THREE.Vector2();
-
-  // マウス座標（1フレーム前）
-  previousMousePosition = new THREE.Vector2();
-
   renderParams = {
     clock: new THREE.Clock(),
     delta: 0,
@@ -50,6 +44,7 @@ export class Main {
 
     distance: null,
   }
+
 
   params = {
     jsonData: null,
@@ -60,20 +55,33 @@ export class Main {
     // データのobjectName
     objectName: "japan",
 
-    // translate
+    // データのtranslate
+    // これは必ずしも地図の中心ではないので、使わない
     translate: [0.0, 0.0],
 
-    // グリッドを走査するときの、グリッドのスケール
-    // 500m x gridScale の範囲でデータを取得する
-    gridScale: 2.0,
+    // 地図の中心の緯度経度（東京）
+    centerLon: 139.6917,
+    centerLat: 35.6895,
 
-    // (lon, lat)をThree.jsのXZ座標のどの範囲に描画するか
-    xzGridSize: 800,  // 800を指定する場合は -400～400 の範囲に描画する
+    // 描画する地図のlon, latの範囲（関東地方くらい）
+    lonWidth: 4.13897,  // 度 137.48335～141.62232
+    latWidth: 2.17546,  // 度 34.67083～36.84629
 
-    // xzGridSizeにあわせるために、どのくらい緯度経度の値を拡大するか（自動で計算する）
-    xzScale: 1,
+    // latWidthをThree.jsのz座標のどの範囲に対応付けるか
+    // 800を指定する場合は -400～400 の範囲に描画する
+    zWidth: 800,
+
+    // zWidthに合わせるために、どのくらい緯度の値を拡大するか
+    zScale: 1,
+
+    // xScaleは地図の緯度によって倍率が変わり、zScale * Math.cos(centerLat) になる
+    xScale: 1,
 
   }
+
+
+  // Prefectureクラスのインスタンスを格納する配列
+  prefectures;
 
 
   constructor(params = {}) {
@@ -93,24 +101,14 @@ export class Main {
 
     // console.log(this.params.jsonData);
 
-    let bbox;
-    topojson.bbox(this.params.jsonData, this.params.jsonData.objects[this.params.objectName], (x1, y1, x2, y2) => {
-      bbox = [x1, y1, x2, y2];
-    });
-    console.log(bbox);
-
-
     // scene, camera, rendererを初期化
     this.initThreejs();
 
     // stats.jsを初期化
     this.initStatsjs();
 
-    // topojsonデータからPrefectureインスタンスを作成
-    const prefectures = this.createPrefecturesFromTopojson(this.params.jsonData, this.params.objectName);
-
-    // Prefectureインスタンスからメッシュを作成
-    this.drawPrefectures(prefectures);
+    // topojsonデータから地図を表示
+    this.initMap();
 
     // フレーム毎の処理(requestAnimationFrameで再帰的に呼び出される)
     this.render();
@@ -187,7 +185,7 @@ export class Main {
       1,
       10000
     );
-    this.camera.position.set(0, 1000, 0);
+    this.camera.position.set(0, this.params.zWidth, 0);
 
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -211,36 +209,18 @@ export class Main {
     this.zoomControls.noRotate = true;
     this.zoomControls.staticMoving = true;
 
-    this.zoomControls.addEventListener('change', (event) => {
+    // mapControlsのchangeイベントにリスナーを追加
+    this.mapControls.addEventListener('end', () => {
+      const visiblePrefectures = this.getVisiblePrefectures();
+      console.log('Visible Prefectures:', visiblePrefectures);
+    });
+
+    this.zoomControls.addEventListener('end', (event) => {
       const distance = this.getDistance();
       if (this.renderParams.distance !== distance) {
         this.renderParams.distance = distance;
-        // console.log(`distance: ${distance}`);
+        console.log(`distance: ${distance}`);
 
-        // distance が 0 のとき gridScale は 1、distance が 1000 のとき gridScale は 2 になるように線形補間
-        // const gridScale = 1 + (distance / 1000);
-
-        // distance に基づいて gridScale を階段状に設定
-        let gridScale;
-        if (distance < 500) {
-          gridScale = 1.0;
-        } else if (distance < 600) {
-          gridScale = 1.2;
-        } else if (distance < 700) {
-          gridScale = 1.4;
-        } else if (distance < 800) {
-          gridScale = 1.6;
-        } else if (distance < 900) {
-          gridScale = 1.8;
-        } else {
-          gridScale = 2.0;
-        }
-
-        if (this.params.gridScale !== gridScale) {
-          this.params.gridScale = gridScale;
-
-          console.log(`gridScale: ${gridScale}`);
-        }
       }
     });
 
@@ -262,12 +242,6 @@ export class Main {
     const light = new THREE.DirectionalLight(0xffffff, 0.8);
     light.position.set(-50, 0, 0);
     this.scene.add(light);
-
-    // 正規化したマウス座標を保存
-    this.renderer.domElement.addEventListener("mousemove", (event) => {
-      this.mousePosition.x = (event.clientX / this.sizes.width) * 2 - 1;
-      this.mousePosition.y = -(event.clientY / this.sizes.height) * 2 + 1;
-    }, false);
 
   }
 
@@ -314,10 +288,47 @@ export class Main {
   }
 
 
+  initMap = () => {
+
+    // zWidthをlatWidthに合わせるためのスケールを計算
+    this.params.zScale = this.params.zWidth / this.params.latWidth;
+    // xScaleは地図の緯度によって倍率が変わり、zScale * Math.cos(centerLat) になる
+    this.params.xScale = this.params.zScale * Math.cos(this.params.centerLat / 180 * Math.PI);
+
+    // topojsonデータからPrefectureインスタンスを作成
+    const prefectures = this.createPrefecturesFromTopojson(this.params.jsonData, this.params.objectName);
+
+    // Prefectureインスタンスからメッシュを作成
+    this.drawPrefectures(prefectures);
+
+    // Prefectureインスタンスをインスタンス変数に保存
+    this.prefectures = prefectures;
+
+  }
+
+  // 経度がX軸、緯度がZ軸になるように経度経度をXZ座標に変換する
+  // Three.jsのワールド座標はZ軸が手前に向いているので、-1倍して向きを反転する
+  translateCoordinates = ([lon, lat]) => {
+    return [
+      (lon - this.params.centerLon) * this.params.xScale,
+      (lat - this.params.centerLat) * this.params.zScale * (-1)
+    ];
+  }
+
+  // XZ座標から(lon, lat)に戻す
+  inverseTranslateCoordinates = (x, z) => {
+    return [
+      x / this.params.xScale + this.params.centerLon,
+      z / this.params.zScale + this.params.centerLat * (-1)
+    ];
+  }
+
+
   createPrefecturesFromTopojson = (jsonData, objectName) => {
     // Prefectureインスタンスを格納する配列
     const prefectures = [];
 
+    // featureCollectionを取り出す
     const topoData = topojson.feature(jsonData, jsonData.objects[objectName]);
     const features = topoData.features;
 
@@ -329,7 +340,7 @@ export class Main {
     features.forEach(feature => {
       prefectures.push(new Prefecture({
         feature: feature,
-        translate: this.params.translate,
+        translateCoordinates: this.translateCoordinates,
       }));
     });
 
@@ -355,6 +366,39 @@ export class Main {
   }
 
 
+  // 画面内に表示されている県を調べるメソッド
+  getVisiblePrefectures() {
+    // カメラの視錐台を取得
+    const frustum = new THREE.Frustum();
+    const cameraViewProjectionMatrix = new THREE.Matrix4();
+
+    this.camera.updateMatrixWorld(); // カメラのワールド行列を更新
+    this.camera.matrixWorldInverse.copy(this.camera.matrixWorld).invert();
+    cameraViewProjectionMatrix.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
+    frustum.setFromProjectionMatrix(cameraViewProjectionMatrix);
+
+    // 画面内に表示されている県のリスト
+    const visiblePrefectures = [];
+
+    // 各県のメッシュが視錐台内にあるかどうかを判定
+    this.prefectures.forEach(prefecture => {
+      if (frustum.intersectsObject(prefecture.shapeMesh)) {
+        visiblePrefectures.push(prefecture);
+      }
+    });
+
+    return visiblePrefectures;
+  }
+
+
+
+
+
+
+
+
+
+
   getDistance = () => {
     // TrackballControlsにはgetDistance()がない
     return this.camera.position.distanceTo(this.mapControls.target);
@@ -376,6 +420,8 @@ export class Main {
 
 class Prefecture {
 
+  // 県単位の地図を扱うのでクラスにする
+
   nam = "";
   name_ja = "";
 
@@ -394,7 +440,9 @@ class Prefecture {
   params = {
     depth: 0.1,
     feature: null,
-    translate: [0.0, 0.0],
+    // (lon, lat)座標を(x, z)に変換する関数
+    // コンストラクタに渡すparamsで上書きする前提
+    translateCoordinates: ([lon, lat]) => { return [lon, lat]; },
   }
 
 
@@ -411,23 +459,11 @@ class Prefecture {
     this.createMesh();
   }
 
-  // Three.jsのZ軸の向きが手前方向なので、緯度方向はマイナスにする必要がある
-  // シェイプをXY平面からXZ平面に向きを変えるときに
-  //   geometry.rotateX(Math.PI / 2);
-  // という向きにしないと、地図が上下逆さまになる
-  normalizeCoordinates = ([lon, lat]) => {
-    const scale = this.params.xzScale;
-    const centerLon = this.params.centerLon;
-    const centerLat = this.params.centerLat;
-    return [
-      (lon - centerLon) * scale,
-      -1 * (lat - centerLat) * scale
-    ];
-  }
-
-
 
   parseFeature = (feature) => {
+
+    // [lon, lat]を[x, z]に変換する関数
+    const translateCoordinates = this.params.translateCoordinates;
 
     // GeometryがLineStringの場合
     if (feature.geometry.type === 'LineString') {
@@ -436,24 +472,31 @@ class Prefecture {
 
       const coordinates = feature.geometry.coordinates;
 
+      let coords;
+      coords = coordinates[0];
+      coords = translateCoordinates(coords);
+
       // パスを開始
       shape.moveTo(
-        coordinates[0][0],
-        coordinates[0][1]
+        coords[0],
+        coords[1]
       );
 
       // 線分の始点
-      let p0 = new THREE.Vector3(coordinates[0][0], coordinates[0][1], 0);
+      let p0 = new THREE.Vector3(coords[0], coords[1], 0);
 
       for (let i = 1; i < coordinates.length; i++) {
+        coords = coordinates[i];
+        coords = translateCoordinates(coords);
+
         // 線分を追加
         shape.lineTo(
-          coordinates[i][0],
-          coordinates[i][1]
+          coords[0],
+          coords[1]
         );
 
         // 線分の終点
-        let p1 = new THREE.Vector3(coordinates[i][0], coordinates[i][1], 0);
+        let p1 = new THREE.Vector3(coords[0], coords[1], 0);
 
         points.push(p0, p1);
         p0 = p1;
@@ -473,20 +516,26 @@ class Prefecture {
 
       const coordinates = feature.geometry.coordinates[0];
 
+      let coords;
+      coords = coordinates[0];
+      coords = translateCoordinates(coords);
+
       shape.moveTo(
-        coordinates[0][0],
-        coordinates[0][1]
+        coords[0],
+        coords[1]
       );
 
-      let p0 = new THREE.Vector3(coordinates[0][0], coordinates[0][1], 0);
+      let p0 = new THREE.Vector3(coords[0], coords[1], 0);
 
       for (let i = 1; i < coordinates.length; i++) {
+        coords = coordinates[i];
+        coords = translateCoordinates(coords);
         shape.lineTo(
-          coordinates[i][0],
-          coordinates[i][1]
+          coords[0],
+          coords[1]
         );
 
-        let p1 = new THREE.Vector3(coordinates[i][0], coordinates[i][1], 0);
+        let p1 = new THREE.Vector3(coords[0], coords[1], 0);
 
         points.push(p0, p1);
         p0 = p1;
@@ -505,20 +554,27 @@ class Prefecture {
 
         const coordinates = polygon[0];
 
+        let coords;
+        coords = coordinates[0];
+        coords = translateCoordinates(coords);
+
         shape.moveTo(
-          coordinates[0][0],
-          coordinates[0][1]
+          coords[0],
+          coords[1]
         );
 
-        let p0 = new THREE.Vector3(coordinates[0][0], coordinates[0][1], 0);
+        let p0 = new THREE.Vector3(coords[0], coords[1], 0);
 
         for (let i = 1; i < coordinates.length; i++) {
+          coords = coordinates[i];
+          coords = translateCoordinates(coords);
+
           shape.lineTo(
-            coordinates[i][0],
-            coordinates[i][1]
+            coords[0],
+            coords[1]
           );
 
-          let p1 = new THREE.Vector3(coordinates[i][0], coordinates[i][1], 0);
+          let p1 = new THREE.Vector3(coords[0], coords[1], 0);
 
           points.push(p0, p1);
           p0 = p1;
@@ -542,10 +598,6 @@ class Prefecture {
       color: 0x00ff00,
       side: THREE.DoubleSide
     });
-
-    // 移動して原点に寄せる
-    // 中心を原点に寄せるためには、もう少し左、もう少し下に移動する必要がある
-    geometry.translate(-this.params.translate[0], -this.params.translate[1], 0);
 
     // XZ平面化
     // 回転の向きに注意！
@@ -572,8 +624,6 @@ class Prefecture {
     this.linePoints.forEach(points => {
       // LineSegmentsのgeometryを作成
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
-
-      geometry.translate(-this.params.translate[0], -this.params.translate[1], 0);
 
       geometry.rotateX(Math.PI / 2);
 
