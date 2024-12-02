@@ -37,27 +37,26 @@ export class Main {
   zoomControls;
   statsjs;
 
+  // 画面に情報表示するHTML DIV要素
+  infoContainer;
+
   renderParams = {
     clock: new THREE.Clock(),
     delta: 0,
     interval: 1 / 30,  // = 30fps
-
-    distance: null,
   }
 
 
   params = {
-    jsonData: null,
 
     // ファイルのパス
-    path: "./static/data/japan.topojson",
+    topojsonPath: "./static/data/japan.topojson",
 
-    // データのobjectName
-    objectName: "japan",
+    // topojsonデータ
+    topojsonData: null,
 
-    // データのtranslate
-    // これは必ずしも地図の中心ではないので、使わない
-    translate: [0.0, 0.0],
+    // topojsonデータのobjectName
+    topojsonObjectName: "japan",
 
     // 地図の中心の緯度経度（東京）
     centerLon: 139.6917,
@@ -74,14 +73,16 @@ export class Main {
     // zWidthに合わせるために、どのくらい緯度の値を拡大するか
     zScale: 1,
 
-    // xScaleは地図の緯度によって倍率が変わり、zScale * Math.cos(centerLat) になる
+    // xScaleは緯度によって倍率が変わり、zScale * Math.cos(緯度) になる
     xScale: 1,
-
   }
 
 
   // Prefectureクラスのインスタンスを格納する配列
-  prefectures;
+  prefectures = [];
+
+  // 見えてるPrefectureクラスのインスタンスを格納する配列
+  visiblePrefectures = [];
 
 
   constructor(params = {}) {
@@ -93,13 +94,16 @@ export class Main {
   async init() {
     // データを読み込む
     // その間、ローディング画面を表示する
-    await this.loadTopojson(this.params.path);
+    await this.loadTopojson(this.params.topojsonPath);
 
-    if (this.params.jsonData === null) {
+    if (this.params.topojsonData === null) {
       return;
     }
 
     // console.log(this.params.jsonData);
+
+    // 情報表示するHTML要素を取得
+    this.infoContainer = document.getElementById('infoContainer');
 
     // scene, camera, rendererを初期化
     this.initThreejs();
@@ -127,22 +131,16 @@ export class Main {
       // JSONデータを取得
       const jsonData = await response.json();
 
-      if (jsonData.hasOwnProperty('transform')) {
-        this.params.translate = jsonData.transform.translate;
-      } else {
-        new Error('No transform property in jsonData');
-      }
-
       if (!jsonData.hasOwnProperty('objects')) {
         new Error('No objects property in jsonData');
       }
 
-      if (!jsonData.objects.hasOwnProperty(this.params.objectName)) {
-        new Error(`No ${this.params.objectName} property in objects`);
+      if (!jsonData.objects.hasOwnProperty(this.params.topojsonObjectName)) {
+        new Error(`No ${this.params.topojsonObjectName} property in objects`);
       }
 
       // jsonデータを保存
-      this.params.jsonData = jsonData;
+      this.params.topojsonData = jsonData;
 
       // 瞬時にfetchできても0.5秒はローディング画面を表示する
       const interval = setInterval(() => {
@@ -202,26 +200,53 @@ export class Main {
     this.mapControls = new MapControls(this.camera, this.renderer.domElement);
     this.mapControls.enableDamping = false;
     this.mapControls.enableZoom = false;
-    this.mapControls.maxDistance = 1000;
 
+    // 回転角度を制限
+    this.mapControls.minPolarAngle = 0;               // 上方向の制限
+    this.mapControls.maxPolarAngle = Math.PI / 4;     // 下方向の制限
+
+    this.mapControls.minAzimuthAngle = 0; // -Math.PI / 8;  // 左方向の制限
+    this.mapControls.maxAzimuthAngle = 0; // Math.PI / 8;   // 右方向の制限
+
+    // 右ボタンの動作設定
+    this.mapControls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
+
+    // カメラの移動範囲を制限する
+    this.mapControls.addEventListener('change', () => {
+      const minX = -this.params.zWidth;
+      const maxX = this.params.zWidth;
+      const minZ = -this.params.zWidth;
+      const maxZ = this.params.zWidth;
+
+      const target = this.mapControls.target;
+      target.x = Math.max(minX, Math.min(maxX, target.x));
+      target.z = Math.max(minZ, Math.min(maxZ, target.z));
+      this.mapControls.target = target;
+
+      const position = this.camera.position;
+      position.x = Math.max(minX, Math.min(maxX, position.x));
+      position.z = Math.max(minZ, Math.min(maxZ, position.z));
+      this.camera.position.set(position.x, position.y, position.z);
+    });
+
+    // mapControlsのchangeイベントにリスナーを追加
+    this.mapControls.addEventListener('end', () => {
+      this.updateVisiblePrefectures();
+    });
+
+    // ズーム動作はTrackballControlsで行う
     this.zoomControls = new TrackballControls(this.camera, this.renderer.domElement);
     this.zoomControls.noPan = true;
     this.zoomControls.noRotate = true;
     this.zoomControls.staticMoving = true;
 
-    // mapControlsのchangeイベントにリスナーを追加
-    this.mapControls.addEventListener('end', () => {
-      const visiblePrefectures = this.getVisiblePrefectures();
-      console.log('Visible Prefectures:', visiblePrefectures);
-    });
+    // ズームの範囲を制限
+  this.zoomControls.minDistance = 10; // 最小ズーム距離
+  this.zoomControls.maxDistance = 1000; // 最大ズーム距離
 
-    this.zoomControls.addEventListener('end', (event) => {
-      const distance = this.getDistance();
-      if (this.renderParams.distance !== distance) {
-        this.renderParams.distance = distance;
-        console.log(`distance: ${distance}`);
 
-      }
+    this.zoomControls.addEventListener('end', () => {
+      this.updateVisiblePrefectures();
     });
 
     // 軸を表示
@@ -237,11 +262,6 @@ export class Main {
 
     // 環境光
     this.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-
-    // ディレクショナルライト
-    const light = new THREE.DirectionalLight(0xffffff, 0.8);
-    light.position.set(-50, 0, 0);
-    this.scene.add(light);
 
   }
 
@@ -296,7 +316,7 @@ export class Main {
     this.params.xScale = this.params.zScale * Math.cos(this.params.centerLat / 180 * Math.PI);
 
     // topojsonデータからPrefectureインスタンスを作成
-    const prefectures = this.createPrefecturesFromTopojson(this.params.jsonData, this.params.objectName);
+    const prefectures = this.createPrefecturesFromTopojson(this.params.topojsonData, this.params.topojsonObjectName);
 
     // Prefectureインスタンスからメッシュを作成
     this.drawPrefectures(prefectures);
@@ -304,6 +324,8 @@ export class Main {
     // Prefectureインスタンスをインスタンス変数に保存
     this.prefectures = prefectures;
 
+    // 見えてるPrefectureインスタンスをインスタンス変数に保存
+    this.updateVisiblePrefectures();
   }
 
   // 経度がX軸、緯度がZ軸になるように経度経度をXZ座標に変換する
@@ -365,14 +387,19 @@ export class Main {
 
   }
 
+  // 画面内に表示されている県を調べるためのカメラのパラメータ
+  cameraParams = {
+    frustum: new THREE.Frustum(),
+    cameraViewProjectionMatrix: new THREE.Matrix4(),
+  }
 
   // 画面内に表示されている県を調べるメソッド
-  getVisiblePrefectures() {
+  updateVisiblePrefectures() {
     // カメラの視錐台を取得
-    const frustum = new THREE.Frustum();
-    const cameraViewProjectionMatrix = new THREE.Matrix4();
+    const frustum = this.cameraParams.frustum;
+    const cameraViewProjectionMatrix = this.cameraParams.cameraViewProjectionMatrix;
 
-    this.camera.updateMatrixWorld(); // カメラのワールド行列を更新
+    this.camera.updateMatrixWorld();
     this.camera.matrixWorldInverse.copy(this.camera.matrixWorld).invert();
     cameraViewProjectionMatrix.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
     frustum.setFromProjectionMatrix(cameraViewProjectionMatrix);
@@ -380,39 +407,46 @@ export class Main {
     // 画面内に表示されている県のリスト
     const visiblePrefectures = [];
 
-    // 各県のメッシュが視錐台内にあるかどうかを判定
+    // 各県のメッシュが視錐台内にあるかどうかを判定して配列に追加
     this.prefectures.forEach(prefecture => {
       if (frustum.intersectsObject(prefecture.shapeMesh)) {
         visiblePrefectures.push(prefecture);
       }
     });
 
-    return visiblePrefectures;
+    const deleted = this.visiblePrefectures.filter(prefecture => !visiblePrefectures.includes(prefecture));
+    const added = visiblePrefectures.filter(prefecture => !this.visiblePrefectures.includes(prefecture));
+    this.visiblePrefectures = visiblePrefectures;
+
+    this.onDeleteVisiblePrefectures(deleted);
+    this.onAddVisiblePrefectures(added);
   }
 
+  onDeleteVisiblePrefectures = (prefectures) => {
+    prefectures.forEach(prefecture => {
+      // 画面から消えた県の処理
+      console.log(`Deleted: ${prefecture.nam_ja}`);
 
+      const element = document.getElementById(`prefecture-${prefecture.nam}`);
+      if (element) {
+        this.infoContainer.removeChild(element);
+      }
 
-
-
-
-
-
-
-
-  getDistance = () => {
-    // TrackballControlsにはgetDistance()がない
-    return this.camera.position.distanceTo(this.mapControls.target);
+    });
   }
 
+  onAddVisiblePrefectures = (prefectures) => {
+    prefectures.forEach(prefecture => {
+      // 画面に表示された県の処理
+      console.log(`Added: ${prefecture.nam_ja}`);
 
-  getZoom = () => {
-    // OrbitControlsにはgetDistance()がある
-    if (this.renderParams.distance === null) {
-      this.renderParams.distance = this.zoomControls.getDistance();
-    }
-    return this.renderParams.distance / this.zoomControls.getDistance();
+      const element = document.createElement('div');
+      element.id = `prefecture-${prefecture.nam}`;
+      element.textContent = prefecture.nam_ja;
+      this.infoContainer.appendChild(element);
+
+    });
   }
-
 
 
 }
