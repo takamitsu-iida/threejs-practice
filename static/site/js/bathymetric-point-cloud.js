@@ -692,36 +692,45 @@ export class Main {
   // 画面内に表示されている県を調べるメソッド
   updateVisiblePrefectures() {
 
-    // 画面内に表示されている県のリスト
-    const visiblePrefectures = this.prefectures.filter(prefecture => this.isInFrustum(prefecture.shapeMesh));
-
-    const deleted = this.visiblePrefectures.filter(prefecture => !visiblePrefectures.includes(prefecture));
-    const added = visiblePrefectures.filter(prefecture => !this.visiblePrefectures.includes(prefecture));
-
-    this.visiblePrefectures = visiblePrefectures;
-
-    this.onDeleteVisiblePrefectures(deleted);
-    this.onAddVisiblePrefectures(added);
-
-  }
-
-  onAddVisiblePrefectures = (prefectures) => {
-
-    prefectures.forEach(prefecture => {
-      // 画面に表示された県の処理
-      console.log(`Added: ${prefecture.nam}`);
+    // 画面内に表示されている県のリストを取得
+    const visiblePrefectures = this.prefectures.filter(prefecture => {
+      return this.isInFrustum(prefecture.shapeMesh);
     });
+
+    // 名前だけのリストを作成
+    const visiblePrefectureNames = visiblePrefectures.map(prefecture => prefecture.nam);
+
+    // データを同期する（新しい県はデータを取得、古い県はデータを削除）
+    this.onUpdateVisiblePrefectures(visiblePrefectureNames);
+
   }
 
 
-  onDeleteVisiblePrefectures = (prefectures) => {
-    prefectures.forEach(prefecture => {
-      // 画面から消えた県の処理
-      console.log(`Deleted: ${prefecture.nam}`);
+  onUpdateVisiblePrefectures = (visiblePrefectureNames) => {
+
+    // データ取得が必要な県のリストを作成
+    const needFetchPrefectures = Object.keys(this.prefectureNameToPath).filter(prefectureName => {
+      return visiblePrefectureNames.includes(prefectureName) && !this.fetchedPrefectures[prefectureName] && !this.fetchInProgress[prefectureName];
     });
+    if (needFetchPrefectures.length > 0) {
+      console.log('needFetchPrefectures:', needFetchPrefectures);
+      this.fetchPrefectureData(needFetchPrefectures);
+    }
+
+    const needDeletePrefectures = Object.keys(this.prefectureNameToPath).filter(prefectureName => {
+      return !visiblePrefectureNames.includes(prefectureName) && this.fetchedPrefectures[prefectureName];
+    });
+    if (needDeletePrefectures.length > 0) {
+      console.log(`needDeletePrefectures: ${needDeletePrefectures}`);
+      needDeletePrefectures.forEach(prefectureName => {
+        delete this.fetchedPrefectures[prefectureName];
+      });
+    }
+
   }
 
 
+  // 水深データを持つ県の名前とファイルパスの対応表
   prefectureNameToPath = {
     'Ibaraki Ken': './static/data/mesh500/ibaraki.txt',
     'Aichi Ken': './static/data/mesh500/aichi.txt',
@@ -732,23 +741,44 @@ export class Main {
   }
 
 
+  // fetchした県の情報をキャッシュするオブジェクト
+  fetchedPrefectures = {};
 
+  // fetchの進行状態を管理するオブジェクト
+  fetchInProgress = {};
 
+  // 県の情報をfetchするメソッド
+  async fetchPrefectureData(needFetchPrefectures) {
+    const fetchPromises = needFetchPrefectures.map(async prefectureName => {
+      if (this.fetchedPrefectures[prefectureName]) {
+        return this.fetchedPrefectures[prefectureName];
+      } else if (this.fetchInProgress[prefectureName]) {
+        // すでにfetchが進行中の場合は、完了を待つ
+        await this.fetchInProgress[prefectureName];
+        return this.fetchedPrefectures[prefectureName];
+      } else {
+        // fetchの進行状態を管理
+        this.fetchInProgress[prefectureName] = fetch(this.prefectureNameToPath[prefectureName])
+          .then(response => response.text())
+          .then(text => {
+            this.fetchedPrefectures[prefectureName] = text;
+            // this.parseText(text);
+            delete this.fetchInProgress[prefectureName]; // fetchが完了したら削除
+            return this.fetchedPrefectures[prefectureName];
+          })
+          .catch(error => {
+            delete this.fetchInProgress[prefectureName]; // fetchが失敗しても削除
+            throw error;
+          });
 
+        return this.fetchInProgress[prefectureName];
+      }
+    });
 
-  loadDepthMapData = async (targetList) => {
-
-    Promise.all(targetList.map(target => fetch(target).then(response => response.text())))
-      .then(results => {
-        const text = results.join('\n');
-        this.parseText(text);
-      })
-      .catch(error => {
-        console.error(error);
-      });
+    const results = await Promise.all(fetchPromises);
+    console.log('fetch results:', results);
+    return results;
   }
-
-
 
 
 
