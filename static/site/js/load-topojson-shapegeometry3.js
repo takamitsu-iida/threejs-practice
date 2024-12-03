@@ -47,7 +47,7 @@ export class Main {
 
   params = {
 
-    // ファイルのパス
+    // topojsonファイルのパス
     topojsonPath: "./static/data/japan.topojson",
 
     // topojsonデータ
@@ -60,9 +60,8 @@ export class Main {
     centerLon: 139.7,
     centerLat: 34.9,
 
-    // 描画する地図のlon, latの範囲（関東地方くらい）
-    lonWidth: 4.13897,  // 度 137.48335～141.62232
-    latWidth: 2.17546,  // 度 34.67083～36.84629
+    // 描画する地図のlatの範囲（関東地方くらい）
+    latWidth: 2.18,  // 度 34.67083～36.84629
 
     // latWidthをThree.jsのz座標のどの範囲に対応付けるか
     // 800を指定する場合は -400～400 の範囲に描画する
@@ -184,9 +183,6 @@ export class Main {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(this.sizes.width, this.sizes.height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-    // 地図は大きいのでクリッピングを有効にして表示領域を制限する
-    this.renderer.localClippingEnabled = true;
 
     // コンテナにレンダラを追加
     this.container.appendChild(this.renderer.domElement);
@@ -334,7 +330,7 @@ export class Main {
   inverseTranslateCoordinates = (x, z) => {
     return [
       x / this.params.xScale + this.params.centerLon,
-      z / this.params.zScale + this.params.centerLat * (-1)
+      z / this.params.zScale * (-1) + this.params.centerLat
     ];
   }
 
