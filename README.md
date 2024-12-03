@@ -712,6 +712,22 @@ TopoJSONを読み込んでパスシェイプを作り、ShapeGeometryで表示�
 
 <br>
 
+## Load TopoJSON ShapeGeometry (Part 3)
+
+カメラをPerspectiveCameraに変更、地図を常に北向きにした上で、カメラの移動範囲を制限したもの。
+
+県がカメラの視錐台に収まるか判定できるようにしたので、画面内に入った県に関するデータをオンデマンドでダウンロードして可視化する、というような使い方もできると思う。
+
+[![ScreenImage](./asset/index-load-topojson-shapegeometry3.html.png)](https://takamitsu-iida.github.io/threejs-practice/index-load-topojson-shapegeometry3.html)
+
+[Live Demo](https://takamitsu-iida.github.io/threejs-practice/index-load-topojson-shapegeometry3.html)
+
+[HTML](https://github.com/takamitsu-iida/threejs-practice/blob/master/index-load-topojson-shapegeometry3.html)
+
+[JavaScript](https://github.com/takamitsu-iida/threejs-practice/blob/master/static/site/js/load-topojson-shapegeometry3.js)
+
+<br>
+
 ## Load GeoJSON (Part 1)
 
 GeoJSONを読み込んでTHREE.LineSegmentsでワイヤーフレームを表示した例。

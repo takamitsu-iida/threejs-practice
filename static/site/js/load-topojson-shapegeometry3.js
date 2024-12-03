@@ -1,11 +1,9 @@
 import * as THREE from "three";
-// import { OrbitControls } from "three/controls/OrbitControls.js";
 import { MapControls } from "three/controls/MapControls.js";
 import { TrackballControls } from "three/controls/TrackballControls.js";
 
 // stats.js
 import Stats from "three/libs/stats.module.js";
-
 
 // 日本地図のtopojsonデータはここから取得
 // https://github.com/dataofjapan/land
@@ -23,8 +21,10 @@ import Stats from "three/libs/stats.module.js";
 
 export class Main {
 
+  // 画面に表示するThree.jsコンテナのHTML DIV要素
   container;
 
+  // コンテナサイズ
   sizes = {
     width: 600,
     height: 600,
@@ -34,11 +34,9 @@ export class Main {
   camera;
   renderer;
   mapControls;
-  zoomControls;
+  trackballControls;
   statsjs;
 
-  // 画面に情報表示するHTML DIV要素
-  infoContainer;
 
   renderParams = {
     clock: new THREE.Clock(),
@@ -58,9 +56,9 @@ export class Main {
     // topojsonデータのobjectName
     topojsonObjectName: "japan",
 
-    // 地図の中心の緯度経度（東京）
-    centerLon: 139.6917,
-    centerLat: 35.6895,
+    // 地図の中心の緯度経度（三浦半島の南の海上）
+    centerLon: 139.7,
+    centerLat: 34.9,
 
     // 描画する地図のlon, latの範囲（関東地方くらい）
     lonWidth: 4.13897,  // 度 137.48335～141.62232
@@ -70,10 +68,10 @@ export class Main {
     // 800を指定する場合は -400～400 の範囲に描画する
     zWidth: 800,
 
-    // zWidthに合わせるために、どのくらい緯度の値を拡大するか
+    // zWidthに合わせるために、どのくらい緯度の値を拡大するか（自動計算）
     zScale: 1,
 
-    // xScaleは緯度によって倍率が変わり、zScale * Math.cos(緯度) になる
+    // xScaleは表示対象物の緯度によって倍率が変わるので zScale * Math.cos(緯度) になる（自動計算）
     xScale: 1,
   }
 
@@ -101,9 +99,6 @@ export class Main {
     }
 
     // console.log(this.params.jsonData);
-
-    // 情報表示するHTML要素を取得
-    this.infoContainer = document.getElementById('infoContainer');
 
     // scene, camera, rendererを初期化
     this.initThreejs();
@@ -166,7 +161,7 @@ export class Main {
 
 
   initThreejs = () => {
-    // コンテナ
+    // Three.jsを表示するHTML要素を取得
     this.container = document.getElementById("threejsContainer");
 
     // コンテナのサイズ
@@ -183,7 +178,7 @@ export class Main {
       1,
       10000
     );
-    this.camera.position.set(0, this.params.zWidth, 0);
+    this.camera.position.set(0, this.params.zWidth / 2, 0);
 
     // レンダラ
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -198,18 +193,17 @@ export class Main {
 
     // コントローラ
     this.mapControls = new MapControls(this.camera, this.renderer.domElement);
-    this.mapControls.enableDamping = false;
+    this.mapControls.enableDamping = true;
+    this.mapControls.dampingFactor = 0.25;
+
+    // カメラの視線が斜めになっているときにズームすると前後方向の回転動作が加わるので無効にする
     this.mapControls.enableZoom = false;
 
     // 回転角度を制限
-    this.mapControls.minPolarAngle = 0;               // 上方向の制限
-    this.mapControls.maxPolarAngle = Math.PI / 4;     // 下方向の制限
-
-    this.mapControls.minAzimuthAngle = 0; // -Math.PI / 8;  // 左方向の制限
-    this.mapControls.maxAzimuthAngle = 0; // Math.PI / 8;   // 右方向の制限
-
-    // 右ボタンの動作設定
-    this.mapControls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
+    this.mapControls.minPolarAngle = 0;           // 上方向の制限
+    this.mapControls.maxPolarAngle = Math.PI / 4; // 下方向の制限
+    this.mapControls.minAzimuthAngle = 0;         // 左方向の制限　常時ノースアップ
+    this.mapControls.maxAzimuthAngle = 0;         // 右方向の制限　常時ノースアップ
 
     // カメラの移動範囲を制限する
     this.mapControls.addEventListener('change', () => {
@@ -229,23 +223,22 @@ export class Main {
       this.camera.position.set(position.x, position.y, position.z);
     });
 
-    // mapControlsのchangeイベントにリスナーを追加
+    // mapControlsのendイベントにリスナーを追加
     this.mapControls.addEventListener('end', () => {
       this.updateVisiblePrefectures();
     });
 
     // ズーム動作はTrackballControlsで行う
-    this.zoomControls = new TrackballControls(this.camera, this.renderer.domElement);
-    this.zoomControls.noPan = true;
-    this.zoomControls.noRotate = true;
-    this.zoomControls.staticMoving = true;
+    this.trackballControls = new TrackballControls(this.camera, this.renderer.domElement);
+    this.trackballControls.noPan = true;
+    this.trackballControls.noRotate = true;
+    this.trackballControls.staticMoving = true;
 
     // ズームの範囲を制限
-  this.zoomControls.minDistance = 10; // 最小ズーム距離
-  this.zoomControls.maxDistance = 1000; // 最大ズーム距離
+    this.trackballControls.minDistance = 200;   // 最小ズーム距離
+    this.trackballControls.maxDistance = 1000;  // 最大ズーム距離
 
-
-    this.zoomControls.addEventListener('end', () => {
+    this.trackballControls.addEventListener('end', () => {
       this.updateVisiblePrefectures();
     });
 
@@ -257,8 +250,8 @@ export class Main {
     //   /
     //  Z(blue)
     //
-    const axesHelper = new THREE.AxesHelper(this.params.xzGridSize);
-    this.scene.add(axesHelper);
+    // const axesHelper = new THREE.AxesHelper(this.params.zWidth / 2);
+    // this.scene.add(axesHelper);
 
     // 環境光
     this.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
@@ -297,8 +290,8 @@ export class Main {
 
       // カメラコントローラーを更新
       this.mapControls.update();
-      this.zoomControls.target.set(this.mapControls.target.x, this.mapControls.target.y, this.mapControls.target.z);
-      this.zoomControls.update();
+      this.trackballControls.target.set(this.mapControls.target.x, this.mapControls.target.y, this.mapControls.target.z);
+      this.trackballControls.update();
 
       // 再描画
       this.renderer.render(this.scene, this.camera);
@@ -373,10 +366,9 @@ export class Main {
   drawPrefectures = (prefectures) => {
 
     prefectures.forEach(prefecture => {
-      const mesh = prefecture.shapeMesh;
 
       // メッシュをシーンに追加
-      this.scene.add(mesh);
+      this.scene.add(prefecture.shapeMesh);
 
       // 線分をシーンに追加
       prefecture.lineSegments.forEach(line => {
@@ -387,32 +379,49 @@ export class Main {
 
   }
 
-  // 画面内に表示されている県を調べるためのカメラのパラメータ
-  cameraParams = {
+
+  // 画面内に表示されているメッシュを調べるための視錐台のパラメータ
+  frustumParams = {
     frustum: new THREE.Frustum(),
     cameraViewProjectionMatrix: new THREE.Matrix4(),
   }
 
-  // 画面内に表示されている県を調べるメソッド
-  updateVisiblePrefectures() {
-    // カメラの視錐台を取得
-    const frustum = this.cameraParams.frustum;
-    const cameraViewProjectionMatrix = this.cameraParams.cameraViewProjectionMatrix;
 
+  isInFrustum = (mesh) => {
+
+    // 注意
+    // カメラの位置が遠いと、視錐台の範囲が広がって true になりやすくなる
+
+    // カメラの視錐台を取得
+    const frustum = this.frustumParams.frustum;
+
+    // 毎回、Matrix4を生成するのではなく、インスタンス変数を使い回す
+    const cameraViewProjectionMatrix = this.frustumParams.cameraViewProjectionMatrix;
+
+    // カメラのワールド行列を更新して位置と方向を最新化する
     this.camera.updateMatrixWorld();
+
+    // カメラのワールド行列の逆行列を計算してビュー行列を正確に取得できるようにする
     this.camera.matrixWorldInverse.copy(this.camera.matrixWorld).invert();
+
+    // ビュー・プロジェクション行列を計算
     cameraViewProjectionMatrix.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
+
+    // 視錐台を設定
     frustum.setFromProjectionMatrix(cameraViewProjectionMatrix);
 
-    // 画面内に表示されている県のリスト
-    const visiblePrefectures = [];
+    // メッシュが視錐台内にあるかどうかを判定
+    const inFrustum = frustum.intersectsObject(mesh);
 
-    // 各県のメッシュが視錐台内にあるかどうかを判定して配列に追加
-    this.prefectures.forEach(prefecture => {
-      if (frustum.intersectsObject(prefecture.shapeMesh)) {
-        visiblePrefectures.push(prefecture);
-      }
-    });
+    return inFrustum;
+  }
+
+
+  // 画面内に表示されている県を調べるメソッド
+  updateVisiblePrefectures() {
+
+    // 画面内に表示されている県のリスト
+    const visiblePrefectures = this.prefectures.filter(prefecture => this.isInFrustum(prefecture.shapeMesh));
 
     const deleted = this.visiblePrefectures.filter(prefecture => !visiblePrefectures.includes(prefecture));
     const added = visiblePrefectures.filter(prefecture => !this.visiblePrefectures.includes(prefecture));
@@ -420,7 +429,9 @@ export class Main {
 
     this.onDeleteVisiblePrefectures(deleted);
     this.onAddVisiblePrefectures(added);
+
   }
+
 
   onDeleteVisiblePrefectures = (prefectures) => {
     prefectures.forEach(prefecture => {
@@ -429,11 +440,12 @@ export class Main {
 
       const element = document.getElementById(`prefecture-${prefecture.nam}`);
       if (element) {
-        this.infoContainer.removeChild(element);
+        document.getElementById("prefectureNameContainer").removeChild(element);
       }
 
     });
   }
+
 
   onAddVisiblePrefectures = (prefectures) => {
     prefectures.forEach(prefecture => {
@@ -443,8 +455,7 @@ export class Main {
       const element = document.createElement('div');
       element.id = `prefecture-${prefecture.nam}`;
       element.textContent = prefecture.nam_ja;
-      this.infoContainer.appendChild(element);
-
+      document.getElementById("prefectureNameContainer").appendChild(element);
     });
   }
 
@@ -472,8 +483,12 @@ class Prefecture {
   lineSegments = [];
 
   params = {
+    // Shapeの厚み
     depth: 0.1,
+
+    // topojsonのfeature
     feature: null,
+
     // (lon, lat)座標を(x, z)に変換する関数
     // コンストラクタに渡すparamsで上書きする前提
     translateCoordinates: ([lon, lat]) => { return [lon, lat]; },
@@ -636,7 +651,7 @@ class Prefecture {
     // XZ平面化
     // 回転の向きに注意！
     // Lat方向（Z軸方向）の座標をマイナスに正規化しているので、奥側に倒すように回転させる
-    // つまり、画面には裏面が見えている
+    // つまり、画面には裏面が見えているので、マテリアルのsideはDoubleSideにして両面表示にする
     geometry.rotateX(Math.PI / 2);
 
     // メッシュ化
