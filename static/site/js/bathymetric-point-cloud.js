@@ -133,49 +133,49 @@ export class Main {
     // topojsonデータのobjectName
     topojsonObjectName: "japan",
 
-    // 地図の中心の緯度経度
+    // 初期状態での地図の中心の緯度経度（指定）
     centerLon: 139.9,
     centerLat: 35.3,
 
-    // 描画する地図のlatの範囲（関東地方くらい）
+    // latの範囲（指定）
+    // おおよそ関東地方が収まるくらいの範囲
     latWidth: 2.18,  // 度 34.67083～36.84629
 
-    // latWidthをThree.jsのz座標のどの範囲に対応付けるか
+    // latWidthをThree.jsのz座標のどの範囲に対応付けるか（指定）
     // 800を指定する場合は -400～400 の範囲に描画する
     zWidth: 800,
 
-    // zWidthに合わせるために、どのくらい緯度の値を拡大するか（自動計算）
+    // latWidthをzWidthに合わせるために、どのくらい緯度の値を拡大するか（自動計算）
     zScale: 1,
 
-    // xScaleは表示対象物の緯度によって倍率が変わるので zScale * Math.cos(緯度) になる（自動計算）
+    // xScaleは対象物の緯度によって変わる（自動計算）
+    // zScale * Math.cos(緯度)
     xScale: 1,
 
-    // 水深をどのくらいの高さに描画するか
+    // 水深をどのくらいのY座標に描画するか
     // 300を指定する場合は 0 ～ -300 の範囲に描画する
     yWidth: 300,
 
-    // 最も深い水深に合わせてY座標をどのくらい拡大するか（固定）
-    // おおよそ最大で6000mの水深があるので、6000mをY座標の-300に対応付ける
+    // 最も深い水深に合わせてY座標をどのくらい拡大するか（指定）
+    // おおよそ最大で6000mの水深があるので、6000mをY座標の-300に対応付けるような倍率にする
     yScale: 300 / 6000,
 
-    // 水深データのテキストファイルのURL
-    depthMapPath: "./static/data/mesh500_kanto.txt",
-
-    // テキストをパースしたデータを格納する配列
+    // テキストをパースしたデータを格納するオブジェクト
+    // 県名をキーにして、データを格納する
     depthMapDatas: {},
 
-    // ポイントクラウドのパーティクルサイズ
-    pointSize: 1.0,
+    // パーティクルサイズ
+    particleSize: 1.0,
 
-    // ポイントクラウドのパーティクルの数(readonly)
-    pointCount: 0,
+    // 表示しているパーティクルの数(readonly)
+    particleCount: 0,
 
     // 緯度経度をグリッド状に走査するときの単位ステップ（自動計算）
     // おおよそ500メートル間隔にする
     gridLatStep: 0,
     gridLonStep: 0,
 
-    // グリッドを走査するときに、単位ステップを何倍するか
+    // lon, latグリッドを走査するときに、単位ステップを何倍するか
     // おおよそ500メートル x gridScale の範囲でデータを取得する
     // 元データが500メートル間隔なので、2.0にするとデータ数は半減する
     gridScale: 1.0,
@@ -197,12 +197,10 @@ export class Main {
   terrainMeshList = [];
 
 
-
   constructor(params = {}) {
     this.params = Object.assign(this.params, params);
     this.init();
   }
-
 
 
   init = async () => {
@@ -382,8 +380,8 @@ export class Main {
     });
 
     gui
-      .add(this.params, "pointSize")
-      .name(navigator.language.startsWith("ja") ? "ポイントサイズ" : "pointSize")
+      .add(this.params, "particleSize")
+      .name(navigator.language.startsWith("ja") ? "パーティクルサイズ" : "particleSize")
       .min(0.1)
       .max(2.0)
       .step(0.1)
@@ -394,8 +392,8 @@ export class Main {
       });
 
     gui
-      .add(this.params, "pointCount")
-      .name(navigator.language.startsWith("ja") ? "ポイント数" : "pointCount")
+      .add(this.params, "particleCount")
+      .name(navigator.language.startsWith("ja") ? "ポイント数" : "particleCount")
       .listen()
       .disable();
 
@@ -605,7 +603,6 @@ export class Main {
     ];
   }
 
-
   // XZ座標から(lon, lat)に戻す
   inverseTranslateCoordinates = (x, z) => {
     return [
@@ -614,6 +611,15 @@ export class Main {
     ];
   }
 
+  // 水深をY座標に変換する
+  translateDepth = (depth) => {
+    return depth * this.params.yScale * (-1);
+  }
+
+  // Y座標から元の水深に戻す
+  inverseTranslateDepth = (depth) => {
+    return depth / this.params.yScale * (-1);
+  }
 
   createPrefecturesFromTopojson = (jsonData, objectName) => {
     // Prefectureインスタンスを格納する配列
@@ -697,7 +703,7 @@ export class Main {
       return this.isInFrustum(prefecture.shapeMesh);
     });
 
-    // 名前だけのリストを作成
+    // Prefectureクラスインスタンスではなく、県の名前のリストに変換
     const visiblePrefectureNames = visiblePrefectures.map(prefecture => prefecture.nam);
 
     // データを同期する（新しい県はデータを取得、古い県はデータを削除）
@@ -709,23 +715,21 @@ export class Main {
   onUpdateVisiblePrefectures = (visiblePrefectureNames) => {
 
     // データ取得が必要な県のリストを作成
-    const needFetchPrefectures = Object.keys(this.prefectureNameToPath).filter(prefectureName => {
+    const needFetchPrefectureNames = Object.keys(this.prefectureNameToPath).filter(prefectureName => {
       return visiblePrefectureNames.includes(prefectureName) && !this.fetchedPrefectures[prefectureName] && !this.fetchInProgress[prefectureName];
     });
 
-    if (needFetchPrefectures.length > 0) {
-      console.log('needFetchPrefectures:', needFetchPrefectures);
-      this.startFetchPrefectureData(needFetchPrefectures);
+    if (needFetchPrefectureNames.length > 0) {
+      this.startFetch(needFetchPrefectureNames);
     }
 
-    const needDeletePrefectures = Object.keys(this.prefectureNameToPath).filter(prefectureName => {
+    const needDeletePrefectureNames = Object.keys(this.prefectureNameToPath).filter(prefectureName => {
       return !visiblePrefectureNames.includes(prefectureName) && this.fetchedPrefectures[prefectureName];
     });
 
-    if (needDeletePrefectures.length > 0) {
-      console.log(`needDeletePrefectures: ${needDeletePrefectures}`);
-      needDeletePrefectures.forEach(prefectureName => {
-        delete this.fetchedPrefectures[prefectureName];
+    if (needDeletePrefectureNames.length > 0) {
+      needDeletePrefectureNames.forEach(prefectureName => {
+        this.onDeletePrefecture(prefectureName);
       });
     }
 
@@ -742,7 +746,6 @@ export class Main {
     'Chiba Ken': './static/data/mesh500/chiba.txt',
   }
 
-
   // fetchした県の情報をキャッシュするオブジェクト
   fetchedPrefectures = {};
 
@@ -750,9 +753,18 @@ export class Main {
   fetchInProgress = {};
 
   // 県の情報をfetchを開始するメソッド
-  async startFetchPrefectureData(needFetchPrefectures) {
-    const fetchPromises = needFetchPrefectures.map(async prefectureName => {
+  async startFetch(prefectureNames) {
+    const fetchPromises = prefectureNames.map(async prefectureName => {
+
+      if (this.fetchInProgress[prefectureName]) {
+        // 既に別のfetchが走っている場合は何もしない
+        return;
+      }
+
+      // 重複してfetchしないように状態を更新
       this.fetchInProgress[prefectureName] = true;
+
+      // ダウンロードするファイルのパスを取得
       const path = this.prefectureNameToPath[prefectureName];
 
       try {
@@ -760,14 +772,22 @@ export class Main {
         if (!response.ok) {
           throw new Error(`HTTP status: ${response.status}`);
         }
+
+        // テキストデータを取得
         const data = await response.text();
+
+        // データをキャッシュ
         this.fetchedPrefectures[prefectureName] = data;
+
+        // fetchが完了したことを通知
         this.onFetchComplete(prefectureName, data);
+
       } catch (error) {
         console.error(`${prefectureName}のデータのfetchに失敗しました:`, error);
       } finally {
         delete this.fetchInProgress[prefectureName];
       }
+
     });
 
     await Promise.all(fetchPromises);
@@ -778,6 +798,26 @@ export class Main {
     // 必要な処理をここに追加
     console.log(`持っているデータ: ${Object.keys(this.fetchedPrefectures)}`);
   }
+
+  onDeletePrefecture = (prefectureName) => {
+    console.log(`${prefectureName}のデータを削除しました。`);
+    delete this.fetchedPrefectures[prefectureName];
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   loadText = async (path) => {
@@ -855,8 +895,8 @@ export class Main {
     }
 
     // 何個のデータがあるか
-    this.params.pointCount = datas.length;
-    console.log(`point count: ${this.params.pointCount}`);
+    this.params.particleCount = datas.length;
+    console.log(`point count: ${this.params.particleCount}`);
 
     // 最小値・最大値
     console.log(`minLat: ${minLat}\nmaxLat: ${maxLat}\nminLon: ${minLon}\nmaxLon: ${maxLon}`);
@@ -975,52 +1015,6 @@ export class Main {
 
 
 
-
-
-  __getFilesToLoad = (lon, lat) => {
-    // 表示領域に基づいて必要なファイルを決定するロジックを実装
-    const files = [];
-    const lonIndex = Math.floor(lon);
-    const latIndex = Math.floor(lat);
-    files.push(`data/mesh/mesh_${latIndex}_${lonIndex}.txt`);
-    return files;
-  }
-
-
-  __loadMeshFiles = async (lon, lat) => {
-    // 表示領域に基づいて必要なファイルを決定
-    const filesToLoad = this.getFilesToLoad(lon, lat);
-
-    // ファイルをロードしてポイントクラウドを更新
-    for (const file of filesToLoad) {
-      await this.loadMeshData(file);
-    }
-
-    // ポイントクラウドを更新
-    this.createPointCloud();
-  }
-
-
-  __loadMeshData = async (path) => {
-    try {
-      const response = await fetch(path);
-      if (!response.ok) {
-        throw new Error(`HTTP status: ${response.status}`);
-      }
-
-      // テキストデータを取得
-      const text = await response.text();
-
-      // テキストデータをパースして、depthMapDatas配列に追加
-      this.parseText(text);
-
-    } catch (error) {
-      const errorMessage = `Error while loading ${path}: ${error}`;
-      console.error(errorMessage);
-    }
-  }
-
-
   depthSteps = [
     10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 500, 1000, 2000, 3000, 4000, 5000, 6000
   ];
@@ -1087,15 +1081,6 @@ export class Main {
 
 
 
-  // 水深をY座標に変換する
-  translateDepth = (depth) => {
-    return depth * this.params.yScale * (-1);
-  }
-
-  // Y座標から元の水深に戻す
-  inverseTranslateDepth = (depth) => {
-    return depth / this.params.yScale * (-1);
-  }
 
   renderDepth = () => {
     // マウス位置が変わっていない場合は処理をスキップ
@@ -1196,13 +1181,13 @@ export class Main {
 
     });
 
-    this.params.pointCount = pointCount;
+    this.params.particleCount = pointCount;
 
     const geometry = new THREE.BufferGeometry().setFromPoints(positions);
     geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
     const pointMaterial = new THREE.PointsMaterial({
-      size: this.params.pointSize,
+      size: this.params.particleSize,
       vertexColors: true,
     });
 
