@@ -712,14 +712,16 @@ export class Main {
     const needFetchPrefectures = Object.keys(this.prefectureNameToPath).filter(prefectureName => {
       return visiblePrefectureNames.includes(prefectureName) && !this.fetchedPrefectures[prefectureName] && !this.fetchInProgress[prefectureName];
     });
+
     if (needFetchPrefectures.length > 0) {
       console.log('needFetchPrefectures:', needFetchPrefectures);
-      this.fetchPrefectureData(needFetchPrefectures);
+      this.startFetchPrefectureData(needFetchPrefectures);
     }
 
     const needDeletePrefectures = Object.keys(this.prefectureNameToPath).filter(prefectureName => {
       return !visiblePrefectureNames.includes(prefectureName) && this.fetchedPrefectures[prefectureName];
     });
+
     if (needDeletePrefectures.length > 0) {
       console.log(`needDeletePrefectures: ${needDeletePrefectures}`);
       needDeletePrefectures.forEach(prefectureName => {
@@ -747,39 +749,35 @@ export class Main {
   // fetchの進行状態を管理するオブジェクト
   fetchInProgress = {};
 
-  // 県の情報をfetchするメソッド
-  async fetchPrefectureData(needFetchPrefectures) {
+  // 県の情報をfetchを開始するメソッド
+  async startFetchPrefectureData(needFetchPrefectures) {
     const fetchPromises = needFetchPrefectures.map(async prefectureName => {
-      if (this.fetchedPrefectures[prefectureName]) {
-        return this.fetchedPrefectures[prefectureName];
-      } else if (this.fetchInProgress[prefectureName]) {
-        // すでにfetchが進行中の場合は、完了を待つ
-        await this.fetchInProgress[prefectureName];
-        return this.fetchedPrefectures[prefectureName];
-      } else {
-        // fetchの進行状態を管理
-        this.fetchInProgress[prefectureName] = fetch(this.prefectureNameToPath[prefectureName])
-          .then(response => response.text())
-          .then(text => {
-            this.fetchedPrefectures[prefectureName] = text;
-            // this.parseText(text);
-            delete this.fetchInProgress[prefectureName]; // fetchが完了したら削除
-            return this.fetchedPrefectures[prefectureName];
-          })
-          .catch(error => {
-            delete this.fetchInProgress[prefectureName]; // fetchが失敗しても削除
-            throw error;
-          });
+      this.fetchInProgress[prefectureName] = true;
+      const path = this.prefectureNameToPath[prefectureName];
 
-        return this.fetchInProgress[prefectureName];
+      try {
+        const response = await fetch(path);
+        if (!response.ok) {
+          throw new Error(`HTTP status: ${response.status}`);
+        }
+        const data = await response.text();
+        this.fetchedPrefectures[prefectureName] = data;
+        this.onFetchComplete(prefectureName, data);
+      } catch (error) {
+        console.error(`${prefectureName}のデータのfetchに失敗しました:`, error);
+      } finally {
+        delete this.fetchInProgress[prefectureName];
       }
     });
 
-    const results = await Promise.all(fetchPromises);
-    console.log('fetch results:', results);
-    return results;
+    await Promise.all(fetchPromises);
   }
 
+  onFetchComplete = (prefectureName, data) => {
+    console.log(`${prefectureName}のデータのfetchが完了しました。`);
+    // 必要な処理をここに追加
+    console.log(`持っているデータ: ${Object.keys(this.fetchedPrefectures)}`);
+  }
 
 
   loadText = async (path) => {
