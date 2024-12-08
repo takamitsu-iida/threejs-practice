@@ -579,6 +579,21 @@ export class Main {
     // xScaleは地図の緯度によって倍率が変わり、zScale * Math.cos(centerLat) になる
     this.params.xScale = this.params.zScale * Math.cos(this.params.centerLat / 180 * Math.PI);
 
+    // グリッド状に走査するときのステップを計算
+    const earthRadiusKm = 6371;                                // 地球の半径（km）
+    const earthCircumferenceKm = 2 * Math.PI * earthRadiusKm;  // 地球の円周（km）
+    const oneDegreeLatitudeKm = earthCircumferenceKm / 360;    // 1度の緯度の距離を求める（km）
+    const oneDegreeLatitudeM = oneDegreeLatitudeKm * 1000;     // 1度の緯度の距離を求める（m）
+
+    // gridLatStepをおおよそ500メートル間隔に設定する
+    const gridLatStep = 500 / oneDegreeLatitudeM;
+
+    // 1度の経度の距離は緯度によって変わる
+    const gridLonStep = gridLatStep * Math.cos(this.params.centerLat / 180 * Math.PI);
+
+    this.params.gridLatStep = gridLatStep;
+    this.params.gridLonStep = gridLonStep;
+
     // topojsonデータからPrefectureインスタンスを作成
     const prefectures = this.createPrefecturesFromTopojson(this.params.topojsonData, this.params.topojsonObjectName);
 
@@ -603,6 +618,7 @@ export class Main {
     ];
   }
 
+
   // XZ座標から(lon, lat)に戻す
   inverseTranslateCoordinates = (x, z) => {
     return [
@@ -611,15 +627,18 @@ export class Main {
     ];
   }
 
+
   // 水深をY座標に変換する
   translateDepth = (depth) => {
     return depth * this.params.yScale * (-1);
   }
 
+
   // Y座標から元の水深に戻す
   inverseTranslateDepth = (depth) => {
     return depth / this.params.yScale * (-1);
   }
+
 
   createPrefecturesFromTopojson = (jsonData, objectName) => {
     // Prefectureインスタンスを格納する配列
@@ -754,6 +773,7 @@ export class Main {
 
   // 県の情報をfetchを開始するメソッド
   async startFetch(prefectureNames) {
+
     const fetchPromises = prefectureNames.map(async prefectureName => {
 
       if (this.fetchInProgress[prefectureName]) {
@@ -774,13 +794,13 @@ export class Main {
         }
 
         // テキストデータを取得
-        const data = await response.text();
+        const text = await response.text();
 
         // データをキャッシュ
-        this.fetchedPrefectures[prefectureName] = data;
+        this.fetchedPrefectures[prefectureName] = text;
 
         // fetchが完了したことを通知
-        this.onFetchComplete(prefectureName, data);
+        this.onFetchComplete(prefectureName, text);
 
       } catch (error) {
         console.error(`${prefectureName}のデータのfetchに失敗しました:`, error);
@@ -793,64 +813,44 @@ export class Main {
     await Promise.all(fetchPromises);
   }
 
-  onFetchComplete = (prefectureName, data) => {
+  onFetchComplete = (prefectureName, text) => {
     console.log(`${prefectureName}のデータのfetchが完了しました。`);
-    // 必要な処理をここに追加
-    console.log(`持っているデータ: ${Object.keys(this.fetchedPrefectures)}`);
+
+    this.addDepthData(prefectureName, text);
   }
 
-  onDeletePrefecture = (prefectureName) => {
+  onDeletePrefecture = (prefectureName, text) => {
     console.log(`${prefectureName}のデータを削除しました。`);
+
     delete this.fetchedPrefectures[prefectureName];
   };
 
 
+  addDepthData = (prefectureName, text) => {
 
+    // データをパースしてThree.jsのワールド座標に変換
+    const dataMap = this.parseText(text);
 
+    // 読み取ったデータをThree.jsのワールド座標に変換
+    this.translate(dataMap);
 
+    // kdbushでインデックス化
+    this.initKDBush(dataMap);
 
+    // ポイントクラウドを作成
+    this.createPointCloud(dataMap);
 
+    // 作成したポイントクラウドをシーンに追加
+    this.scene.add(dataMap.pointCloud);
 
+    // その県のデータを保存
+    this.params.depthMapDatas[prefectureName] = dataMap;
 
+    // TODO
+    // doLaterを使って、全部のサーフェスをまとめて作成する
+    this.createSurface(dataMap);
 
-
-
-
-
-
-
-
-  loadText = async (path) => {
-    const loadingContainer = document.getElementById('loadingContainer');
-
-    try {
-
-      const response = await fetch(path);
-      if (!response.ok) {
-        throw new Error(`HTTP status: ${response.status}`);
-      }
-
-      // テキストデータを取得
-      const text = await response.text();
-
-      // テキストデータをパースしてdepthMapDatas配列を作成
-      this.parseText(text);
-
-      // 読み取ったデータをThree.jsのワールド座標に変換
-      this.translate();
-
-      // kdbushでインデックス化
-      this.initKDBush();
-
-    } catch (error) {
-      const errorMessage = `Error while loading ${path}: ${error}`;
-      console.error(errorMessage);
-      let p = document.createElement('p');
-      p.textContent = errorMessage;
-      p.style.color = 'white';
-      loadingContainer.appendChild(p);
-    }
-  }
+  };
 
 
   parseText = (text) => {
@@ -864,13 +864,13 @@ export class Main {
     // 行に分割
     const lines = text.split('\n');
 
-    // データを格納する配列
-    const datas = this.params.depthMapDatas;
+    // 行データを格納する配列
+    const datas = [];
 
-    // 緯度経度の最大値、最小値を取得するための変数
-    let minLat = 9999, minLon = 9999;
-    let maxLat = -9999, maxLon = -9999;
-    let maxDepth = -9999;
+    // 渡されたデータに関して、最大値、最小値を取得する
+    let minLat = Infinity, minLon = Infinity;
+    let maxLat = -Infinity, maxLon = -Infinity;
+    let maxDepth = -Infinity;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
@@ -882,9 +882,16 @@ export class Main {
       const rows = line.split(/\s+/);
 
       if (rows.length === 4) {
+        // rows[0]は種別なので無視
         let lat = parseFloat(rows[1].trim());
         let lon = parseFloat(rows[2].trim());
         const depth = parseInt(rows[3].trim());
+
+        // 最小の緯度、経度を調べる
+        minLat = Math.min(minLat, lat);
+        minLon = Math.min(minLon, lon);
+        maxLat = Math.max(maxLat, lat);
+        maxLon = Math.max(maxLon, lon);
 
         // 最大の水深を調べる
         maxDepth = Math.max(maxDepth, depth);
@@ -894,59 +901,29 @@ export class Main {
       }
     }
 
-    // 何個のデータがあるか
-    this.params.particleCount = datas.length;
-    console.log(`point count: ${this.params.particleCount}`);
+    // データをまとめるオブジェクト
+    const dataMap = {};
 
-    // 最小値・最大値
-    console.log(`minLat: ${minLat}\nmaxLat: ${maxLat}\nminLon: ${minLon}\nmaxLon: ${maxLon}`);
-    console.log(`maxDepth: ${maxDepth}`);
+    dataMap['datas'] = datas;
+    dataMap['minLon'] = minLon;
+    dataMap['maxLon'] = maxLon;
+    dataMap['minLat'] = minLat;
+    dataMap['maxLat'] = maxLat;
+    dataMap['centerLon'] = (minLon + maxLon) / 2;
+    dataMap['centerLat'] = (minLat + maxLat) / 2;
+    dataMap['maxDepth'] = maxDepth;
 
-    // 後から参照できるように保存しておく
-    this.params.minLon = minLon;
-    this.params.maxLon = maxLon;
-    this.params.minLat = minLat;
-    this.params.maxLat = maxLat;
-    this.params.centerLon = (minLon + maxLon) / 2;
-    this.params.centerLat = (minLat + maxLat) / 2;
-    this.params.maxDepth = maxDepth;
-
-    // 緯度の差分、経度の差分で大きい方を取得
-    const diffSize = Math.max(maxLat - minLat, maxLon - minLon);
-
-    // このdiffSizeがxzSizeになるように係数を計算
-    this.params.xzScale = this.params.xzSize / diffSize;
-
-    // 最も大きな水深がySizeになるように係数を計算
-    this.params.yScale = this.params.yWidth / maxDepth;
-
-    // 緯度1度あたりのメートル数は、どこでも111320m
-    const metersPerDegreeLat = 111320;
-
-    // 500メートル間隔の緯度の差分
-    const latStep = 500 / metersPerDegreeLat;
-
-    // 経度1度あたりのメートル数は、どの緯度にいるかによって変わるので
-    // centerLatの緯度での1度あたりのメートル数を求める
-    const metersPerDegreeLon = Math.cos(this.params.centerLat * Math.PI / 180) * metersPerDegreeLat;
-
-    // 500メートル間隔の経度の差分
-    const lonStep = 500 / metersPerDegreeLon;
-
-    // 保存しておく
-    this.params.gridLatStep = latStep;
-    this.params.gridLonStep = lonStep;
+    return dataMap;
   }
 
 
-  translate = () => {
-    let minX = 9999, minZ = 9999;
-    let maxX = -9999, maxZ = -9999;
-    let minY = 9999;
+  translate = (dataMap) => {
+    let minX = Infinity, maxX = -Infinity;
+    let minZ = Infinity, maxZ = -Infinity;
+    let minY = Infinity;
 
-    // 全件取り出す
-    this.params.depthMapDatas.forEach(d => {
-
+    // datas配列に格納されているオブジェクトを全件取り出す
+    dataMap.datas.forEach(d => {
       // lon, latをXZ座標に変換
       const [x, z] = this.translateCoordinates([d.lon, d.lat]);
       d.x = x;
@@ -956,6 +933,7 @@ export class Main {
       const y = this.translateDepth(d.depth);
       d.y = y;
 
+      // 最大値、最小値を取得
       minX = Math.min(minX, x);
       maxX = Math.max(maxX, x);
       minZ = Math.min(minZ, z);
@@ -963,55 +941,181 @@ export class Main {
       minY = Math.min(minY, y);
     });
 
-    this.params.minX = minX;
-    this.params.maxX = maxX;
-    this.params.minZ = minZ;
-    this.params.maxZ = maxZ;
-    this.params.minY = minY;
+    dataMap['minX'] = minX;
+    dataMap['maxX'] = maxX;
+    dataMap['minZ'] = minZ;
+    dataMap['maxZ'] = maxZ;
+    dataMap['minY'] = minY;
   }
 
 
-  initKDBush = () => {
-    this.kdbush = new KDBush(this.params.depthMapDatas.length);
+  initKDBush = (dataMap) => {
+    const datas = dataMap.datas;
+
+    // KDBushをインスタンス化
+    const kdbush = new KDBush(datas.length);
 
     // データを投入
-    this.params.depthMapDatas.forEach(d => {
-      this.kdbush.add(d.lon, d.lat);
+    datas.forEach(d => {
+      kdbush.add(d.lon, d.lat);
     });
 
-    // インデックス化
-    this.kdbush.finish();
+    // インデックスを計算
+    kdbush.finish();
+
+    dataMap['kdbush'] = kdbush;
   }
 
 
-  getGridIndexList = (gridScale = 1.0) => {
-    const indexList = [];
+  getGridIndices = (dataMap) => {
+    const kdbush = dataMap.kdbush;
 
-    // 緯度経度を左上から右下にかけて、latStep, lonStep間隔で走査する
+    // グリッドのスケール
+    const gridScale = this.params.gridScale;
+
+    // 緯度経度を左下から右上にかけて、latStep, lonStep間隔で走査する
     const lonStep = this.params.gridLonStep * gridScale;
     const latStep = this.params.gridLatStep * gridScale;
 
-    for (let lat = this.params.minLat; lat <= this.params.maxLat; lat += latStep) {
-      for (let lon = this.params.minLon; lon <= this.params.maxLon; lon += lonStep) {
+    // 戻り値となるインデックスのリスト（配列を格納する配列）
+    const gridIndices = [];
 
-        // 右下の領域にあるデータ（のインデックス）を取得
-        const foundIds = this.kdbush.range(lon, lat, lon + lonStep, lat + latStep);
+    for (let lat = dataMap.minLat; lat <= dataMap.maxLat; lat += latStep) {
+      for (let lon = dataMap.minLon; lon <= dataMap.maxLon; lon += lonStep) {
+
+        // 矩形領域にあるデータ（のインデックス）を取得
+        const foundIds = kdbush.range(lon, lat, lon + lonStep, lat + latStep);
 
         // 陸地にはデータがないので、0件ならスキップ
         if (foundIds.length === 0) {
           continue;
         }
 
-        // インデックスから実データの配列にするにはこう
-        // const foundDatas = foundIds.map(i => this.params.depthMapDatas[i]);
-
         // 見つけたインデックスの配列を追加
-        indexList.push(foundIds);
+        gridIndices.push(foundIds);
       }
     }
 
-    return indexList;
+    return gridIndices;
   }
+
+
+  createPointCloud = (dataMap) => {
+
+    // グリッド状に(lon, lat)を走査してデータを取り出す
+    const gridIndices = this.getGridIndices(dataMap);
+
+    const positions = [];
+    const colors = [];
+
+    let particleCount = 0;
+
+    gridIndices.forEach((indexList) => {
+      if (indexList.length === 0) {
+        return;
+      }
+
+      if (indexList.length === 1) {
+        const d = dataMap.datas[indexList[0]];
+        const p = new THREE.Vector3(d.x, d.y, d.z);
+        positions.push(p);
+
+        const c = this.getDepthColor(d.depth);
+        colors.push(c.r, c.g, c.b);
+        return;
+      }
+
+      // グリッド内のデータが複数ある場合は、平均値を求める
+      const x = indexList.reduce((sum, index) => sum + dataMap.datas[index].x, 0) / indexList.length;
+      const y = indexList.reduce((sum, index) => sum + dataMap.datas[index].y, 0) / indexList.length;
+      const z = indexList.reduce((sum, index) => sum + dataMap.datas[index].z, 0) / indexList.length;
+      const p = new THREE.Vector3(x, y, z);
+      positions.push(p);
+
+      const depth = indexList.reduce((sum, index) => sum + dataMap.datas[index].depth, 0) / indexList.length;
+      const c = this.getDepthColor(depth);
+      colors.push(c.r, c.g, c.b);
+
+      particleCount++;
+
+    });
+
+    dataMap['particleCount'] = particleCount;
+
+    const geometry = new THREE.BufferGeometry().setFromPoints(positions);
+
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+    const pointMaterial = new THREE.PointsMaterial({
+      size: this.params.particleSize,
+      vertexColors: true,
+    });
+
+    const pointCloud = new THREE.Points(geometry, pointMaterial);
+
+    // 保存しておく
+    dataMap.positions = positions;
+    dataMap.colors = colors;
+    dataMap.pointCloud = pointCloud;
+
+  }
+
+
+  createSurface = (dataMap) => {
+
+    const geometry = dataMap.pointCloud.geometry;
+
+    const positions = dataMap.positions;
+
+    //
+    // XZ平面でデローネ三角形を形成する
+    //
+    const delaunay = Delaunator.from(
+      positions.map(v => {
+        return [v.x, v.z];
+      })
+    );
+
+    // デローネ三角形のインデックスをmeshIndexに代入してThree.jsのインデックスに変換
+    const meshIndex = [];
+    for (let i = 0; i < delaunay.triangles.length; i += 3) {
+      const a = delaunay.triangles[i + 0];
+      const b = delaunay.triangles[i + 1];
+      const c = delaunay.triangles[i + 2];
+
+      meshIndex.push(a, b, c);
+    }
+
+    // 点群のジオメトリにインデックスを追加してポリゴン化
+    geometry.setIndex(meshIndex);
+
+    // 法線ベクトルを計算
+    geometry.computeVertexNormals();
+
+    console.log(geometry);
+
+    // マテリアルを生成
+    const material = new THREE.MeshLambertMaterial({
+      vertexColors: true, // 頂点カラーを使用
+      wireframe: this.params.wireframe,
+    });
+
+    // メッシュを生成
+    const terrainMesh = new THREE.Mesh(geometry, material);
+
+    // シーンに追加
+    this.scene.add(terrainMesh);
+
+    // 配列に保存
+    this.terrainMeshList.push(terrainMesh);
+
+  }
+
+
+
+
+
+
 
 
 
@@ -1139,120 +1243,6 @@ export class Main {
   }
 
 
-  createPointCloud = () => {
-
-    const gridScale = this.params.gridScale;
-
-    // グリッド状に(lon, lat)を走査してデータを取り出す
-    const gridIndexList = this.getGridIndexList(gridScale);
-
-    const positions = [];
-    const colors = [];
-
-    let pointCount = 0;
-
-    gridIndexList.forEach((indexList) => {
-      if (indexList.length === 0) {
-        return;
-      }
-
-      if (indexList.length === 1) {
-        const d = this.params.depthMapDatas[indexList[0]];
-        const p = new THREE.Vector3(d.x, d.y, d.z);
-        positions.push(p);
-
-        const c = this.getDepthColor(d.depth);
-        colors.push(c.r, c.g, c.b);
-        return;
-      }
-
-      // グリッド内のデータが複数ある場合は、平均値を求める
-      const x = indexList.reduce((sum, index) => sum + this.params.depthMapDatas[index].x, 0) / indexList.length;
-      const y = indexList.reduce((sum, index) => sum + this.params.depthMapDatas[index].y, 0) / indexList.length;
-      const z = indexList.reduce((sum, index) => sum + this.params.depthMapDatas[index].z, 0) / indexList.length;
-      const p = new THREE.Vector3(x, y, z);
-      positions.push(p);
-
-      const depth = indexList.reduce((sum, index) => sum + this.params.depthMapDatas[index].depth, 0) / indexList.length;
-      const c = this.getDepthColor(depth);
-      colors.push(c.r, c.g, c.b);
-
-      pointCount++;
-
-    });
-
-    this.params.particleCount = pointCount;
-
-    const geometry = new THREE.BufferGeometry().setFromPoints(positions);
-    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-
-    const pointMaterial = new THREE.PointsMaterial({
-      size: this.params.particleSize,
-      vertexColors: true,
-    });
-
-    const pointCloud = new THREE.Points(geometry, pointMaterial);
-    this.scene.add(pointCloud);
-    this.pointMeshList.push(pointCloud);
-
-    //
-    // XZ平面でデローネ三角形を形成する
-    //
-    const delaunay = Delaunator.from(
-      positions.map(v => {
-        return [v.x, v.z];
-      })
-    );
-
-    const maxPointDistance = this.params.gridLonStep * gridScale * this.params.xzScale * 2.0 * Math.sqrt(2);
-
-    // デローネ三角形のインデックスをmeshIndexに代入してThree.jsのインデックスに変換
-    const meshIndex = [];
-    for (let i = 0; i < delaunay.triangles.length; i += 3) {
-      const a = delaunay.triangles[i + 0];
-      const b = delaunay.triangles[i + 1];
-      const c = delaunay.triangles[i + 2];
-
-      const vertexA = positions[a];
-      const vertexB = positions[b];
-      const vertexC = positions[c];
-
-      vertexA.y = vertexB.y = vertexC.y = 0;
-
-      // 三角形の各辺の長さを計算
-      const ab = vertexA.distanceTo(vertexB);
-      const bc = vertexB.distanceTo(vertexC);
-      const ca = vertexC.distanceTo(vertexA);
-
-      // 各辺の長さがグリッドの長さよりも短い場合にのみ格納
-      if (ab < maxPointDistance && bc < maxPointDistance && ca < maxPointDistance) {
-        meshIndex.push(a, b, c);
-      }
-
-    }
-
-    // 点群のジオメトリにインデックスを追加してポリゴン化
-    geometry.setIndex(meshIndex);
-
-    // 法線ベクトルを計算
-    geometry.computeVertexNormals();
-
-    // マテリアルを生成
-    const material = new THREE.MeshLambertMaterial({
-      vertexColors: true, // 頂点カラーを使用
-      wireframe: this.params.wireframe,
-    });
-
-    // メッシュを生成
-    const terrainMesh = new THREE.Mesh(geometry, material);
-
-    // シーンに追加
-    this.scene.add(terrainMesh);
-
-    // 配列に保存
-    this.terrainMeshList.push(terrainMesh);
-
-  }
 
 
 }
