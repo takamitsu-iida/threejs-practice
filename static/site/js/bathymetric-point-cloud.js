@@ -178,10 +178,13 @@ export class Main {
     // lon, latグリッドを走査するときに、単位ステップを何倍するか
     // おおよそ500メートル x gridScale の範囲でデータを取得する
     // 元データが500メートル間隔なので、2.0にするとデータ数は半減する
-    gridScale: 1.0,
+    gridScale: 1.5,
 
     // ワイヤフレームとして表示するかどうか
     wireframe: false,
+
+    // メッシュを表示するかどうか
+    showSurface: false,
   }
 
   // Prefectureクラスのインスタンスを格納する配列
@@ -195,7 +198,6 @@ export class Main {
 
   // 地形図のメッシュ（guiで表示を操作するためにインスタンス変数にする）
   terrainMeshList = [];
-
 
   constructor(params = {}) {
     this.params = Object.assign(this.params, params);
@@ -280,7 +282,7 @@ export class Main {
 
     // 回転角度を制限
     this.mapControls.minPolarAngle = 0;           // 上方向の制限
-    this.mapControls.maxPolarAngle = Math.PI / 4; // 下方向の制限
+    this.mapControls.maxPolarAngle = Math.PI / 3; // 下方向の制限
     this.mapControls.minAzimuthAngle = 0;         // 左方向の制限　常時ノースアップ
     this.mapControls.maxAzimuthAngle = 0;         // 右方向の制限　常時ノースアップ
 
@@ -495,13 +497,20 @@ export class Main {
       }
     };
 
-    this.pointMeshList.forEach(object => {
-      removeObject(object);
+    Object.keys(this.params.depthMapDatas).forEach(prefectureName => {
+      const dataMap = this.params.depthMapDatas[prefectureName];
+      if (dataMap.pointCloud) {
+        removeObject(dataMap.pointCloud);
+      }
+      dataMap.pointCloud = null;
     });
+    this.pointMeshList = [];
 
     this.terrainMeshList.forEach(object => {
       removeObject(object);
     });
+    this.terrainMeshList = [];
+
   }
 
 
@@ -515,8 +524,7 @@ export class Main {
     // 全てを削除した状態で描画
     this.renderer.render(this.scene, this.camera);
 
-    // ポイントクラウドを表示
-    // this.createPointCloud();
+    this.createTerrain();
 
     // フレーム毎の処理
     this.render();
@@ -820,14 +828,18 @@ export class Main {
   }
 
   onDeletePrefecture = (prefectureName, text) => {
+    delete this.fetchedPrefectures[prefectureName];
     console.log(`${prefectureName}のデータを削除しました。`);
 
-    delete this.fetchedPrefectures[prefectureName];
+    this.scene.remove(this.params.depthMapDatas[prefectureName].pointCloud);
+    this.params.depthMapDatas[prefectureName].pointCloud.geometry.dispose();
+    this.params.depthMapDatas[prefectureName].pointCloud.material.dispose();
+
+    delete this.params.depthMapDatas[prefectureName];
   };
 
 
   addDepthData = (prefectureName, text) => {
-
     // データをパースしてThree.jsのワールド座標に変換
     const dataMap = this.parseText(text);
 
@@ -837,18 +849,58 @@ export class Main {
     // kdbushでインデックス化
     this.initKDBush(dataMap);
 
-    // ポイントクラウドを作成
-    this.createPointCloud(dataMap);
-
-    // 作成したポイントクラウドをシーンに追加
-    this.scene.add(dataMap.pointCloud);
-
     // その県のデータを保存
     this.params.depthMapDatas[prefectureName] = dataMap;
 
-    // TODO
-    // doLaterを使って、全部のサーフェスをまとめて作成する
-    this.createSurface(dataMap);
+    // 地形図を作成
+    this.createTerrain();
+  }
+
+
+  createTerrain = () => {
+
+    // 一度だけ実行するための関数
+    const doLater = (job, tmo) => {
+
+      // 処理が登録されているならタイマーをキャンセル
+      var tid = doLater.TID[job];
+      if (tid) {
+        window.clearTimeout(tid);
+      }
+
+      // タイムアウト登録する
+      doLater.TID[job] = window.setTimeout(() => {
+        // 実行前にタイマーIDをクリア
+        doLater.TID[job] = null;
+        // 登録処理を実行
+        job.call();
+      }, tmo);
+    }
+
+    // 処理からタイマーIDへのハッシュ
+    doLater.TID = {};
+
+    Object.keys(this.params.depthMapDatas).forEach(prefectureName => {
+
+      const dataMap = this.params.depthMapDatas[prefectureName];
+
+      if (!dataMap.pointCloud) {
+        // ポイントクラウドを作成
+        this.createPointCloud(dataMap);
+      }
+
+      const pointCloud = dataMap.pointCloud;
+      if (!this.pointMeshList.includes(pointCloud)) {
+        this.scene.add(pointCloud);
+        this.pointMeshList.push(pointCloud);
+      }
+    });
+
+    // 1秒後にSurfaceを作成
+    doLater(() => {
+      this.deleteSurface();
+      this.createSurface();
+    }, 1000);
 
   };
 
@@ -1057,15 +1109,35 @@ export class Main {
     dataMap.positions = positions;
     dataMap.colors = colors;
     dataMap.pointCloud = pointCloud;
-
   }
 
 
-  createSurface = (dataMap) => {
+  deleteSurface = () => {
+    this.terrainMeshList.forEach(terrainMesh => {
+      this.scene.remove(terrainMesh);
+      terrainMesh.geometry.dispose();
+      terrainMesh.material.dispose();
+    });
+    this.terrainMeshList = [];
+  }
 
-    const geometry = dataMap.pointCloud.geometry;
 
-    const positions = dataMap.positions;
+  createSurface = () => {
+    if (this.params.showSurface === false) {
+      return;
+    }
+
+    // this.params.depthMapDatasオブジェクトに格納されているpositionsを連結する
+    let positions = [];
+    let colors = [];
+
+    Object.keys(this.params.depthMapDatas).forEach(prefectureName => {
+      positions = positions.concat(this.params.depthMapDatas[prefectureName].positions);
+      colors = colors.concat(this.params.depthMapDatas[prefectureName].colors);
+    });
+
+    // 全ての点郡の数を取得
+    this.params.particleCount = positions.length;
 
     //
     // XZ平面でデローネ三角形を形成する
@@ -1086,13 +1158,15 @@ export class Main {
       meshIndex.push(a, b, c);
     }
 
+    const geometry = new THREE.BufferGeometry().setFromPoints(positions);
+
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
     // 点群のジオメトリにインデックスを追加してポリゴン化
     geometry.setIndex(meshIndex);
 
     // 法線ベクトルを計算
     geometry.computeVertexNormals();
-
-    console.log(geometry);
 
     // マテリアルを生成
     const material = new THREE.MeshLambertMaterial({
@@ -1108,7 +1182,6 @@ export class Main {
 
     // 配列に保存
     this.terrainMeshList.push(terrainMesh);
-
   }
 
 
@@ -1269,7 +1342,7 @@ class Prefecture {
 
   params = {
     // Shapeの厚み
-    depth: 0.1,
+    depth: 1.0,
 
     // topojsonのfeature
     feature: null,
