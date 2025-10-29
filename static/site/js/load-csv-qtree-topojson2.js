@@ -326,16 +326,16 @@ export class Main {
 
 
   parseCsv = (text) => {
-    // CSVファイルの先頭行にヘッダが来る
-    // lat,lon,depth
-    // 35.157310485839844,139.5998077392578,21.178499221801758
-    // 35.15732192993164,139.60012817382812,16.7810001373291
-
     // 行に分割
-    const lines = text.split('\n');
+    const lines = text.split('\n').filter(line => line.trim().length > 0);
 
-    // 先頭行にヘッダがある前提
-    const headers = lines[0].split(',');
+    // 先頭行が数字で始まる場合はヘッダ無しと判定
+    const firstLine = lines[0].trim();
+    const isHeader = isNaN(Number(firstLine.split(',')[0]));
+    const headers = isHeader ? lines[0].split(',').map(h => h.trim()) : ["lat", "lon", "depth"];
+
+    // データ開始行のインデックス
+    const startIdx = isHeader ? 1 : 0;
 
     // 行ごとにパースしたデータを格納する配列
     const dataList = [];
@@ -346,7 +346,7 @@ export class Main {
     let maxDepth = -Infinity;
 
     // 1行目はヘッダなので、2行目以降をパース
-    for (let i = 1; i < lines.length; i++) {
+    for (let i = startIdx; i < lines.length; i++) {
       const line = lines[i].trim();
       if (line === '') {
         continue;
